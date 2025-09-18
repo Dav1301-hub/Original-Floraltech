@@ -1,0 +1,60 @@
+<?php
+// ajax_vacacion.php
+require_once __DIR__ . '/../../models/conexion.php';
+$conn = new conexion();
+$db = $conn->get_conexion();
+
+$action = $_POST['action'] ?? '';
+$response = ['success' => false];
+
+if ($action === 'get') {
+    $id = intval($_POST['id'] ?? 0);
+    $stmt = $db->prepare('SELECT * FROM vacaciones WHERE id = ?');
+    $stmt->execute([$id]);
+    $response = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    $response['success'] = !!$response;
+    echo json_encode($response);
+    exit;
+}
+if ($action === 'update') {
+    $id = intval($_POST['id'] ?? 0);
+    $id_empleado = intval($_POST['id_empleado'] ?? 0);
+    $fecha_inicio = $_POST['fecha_inicio'] ?? date('Y-m-d');
+    $fecha_fin = $_POST['fecha_fin'] ?? date('Y-m-d');
+    $motivo = $_POST['motivo'] ?? '';
+    $estado = $_POST['estado'] ?? 'En curso';
+    $stmt = $db->prepare('UPDATE vacaciones SET id_empleado=?, fecha_inicio=?, fecha_fin=?, motivo=?, estado=? WHERE id=?');
+    $ok = $stmt->execute([$id_empleado, $fecha_inicio, $fecha_fin, $motivo, $estado, $id]);
+    $response['success'] = $ok;
+    echo json_encode($response);
+    exit;
+}
+if ($action === 'delete') {
+    $id = intval($_POST['id'] ?? 0);
+    $stmt = $db->prepare('DELETE FROM vacaciones WHERE id = ?');
+    $ok = $stmt->execute([$id]);
+    $response['success'] = $ok;
+    echo json_encode($response);
+    exit;
+}
+if ($action === 'view') {
+    $id = intval($_POST['id'] ?? 0);
+    $stmt = $db->prepare('SELECT * FROM vacaciones WHERE id = ?');
+    $stmt->execute([$id]);
+    $response = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    $response['success'] = !!$response;
+    echo json_encode($response);
+    exit;
+}
+if ($action === 'create') {
+    $id_empleado = intval($_POST['id_empleado'] ?? 0);
+    $fecha_inicio = $_POST['fecha_inicio'] ?? date('Y-m-d');
+    $fecha_fin = $_POST['fecha_fin'] ?? date('Y-m-d');
+    $motivo = $_POST['motivo'] ?? '';
+    $estado = $_POST['estado'] ?? 'En curso';
+    $stmt = $db->prepare('INSERT INTO vacaciones (id_empleado, fecha_inicio, fecha_fin, motivo, estado) VALUES (?, ?, ?, ?, ?)');
+    $ok = $stmt->execute([$id_empleado, $fecha_inicio, $fecha_fin, $motivo, $estado]);
+    $response['success'] = $ok;
+    echo json_encode($response);
+    exit;
+}
