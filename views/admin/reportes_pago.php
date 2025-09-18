@@ -1,40 +1,666 @@
+<?php ?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes de Pagos - FloralTech</title>
+    <link rel="stylesheet" href="/assets/dashboard-admin.css">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+</head>
+<body>
 <div class="container">
+    <!-- Tarjetas de accesos rápidos a reportes -->
+        <div class="row mb-4 g-3">
+            <div class="col-12 col-md-3 mb-3">
+                <div class="card border-success h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalGanancias" style="cursor:pointer;">
+                    <div class="card-body text-center">
+                        <i class="bi bi-currency-dollar h1 text-success"></i>
+                        <h6 class="fw-bold mt-2">Ganancias</h6>
+                        <div class="small">Ingresos: <span class="fw-bold">$<?= number_format($datos['resumen']['total_recaudado'] ?? 0, 2) ?></span></div>
+                        <div class="small">Utilidad Neta: <span class="fw-bold">$<?= number_format($datos['resumen']['ganancia_neta'] ?? 0, 2) ?></span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-3 mb-3">
+                <div class="card border-primary h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalVentas" style="cursor:pointer;">
+                    <div class="card-body text-center">
+                        <i class="bi bi-bar-chart-line h1 text-primary"></i>
+                        <h6 class="fw-bold mt-2">Ventas</h6>
+                        <div class="small">Total: <span class="fw-bold">$<?= number_format($datos['ventas']['total'] ?? 0, 2) ?></span></div>
+                        <div class="small">Pedidos: <span class="fw-bold"><?= $datos['ventas']['pedidos'] ?? 0 ?></span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-3 mb-3">
+                <div class="card border-danger h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCostos" style="cursor:pointer;">
+                    <div class="card-body text-center">
+                        <i class="bi bi-receipt h1 text-danger"></i>
+                        <h6 class="fw-bold mt-2">Costos</h6>
+                        <div class="small">Total: <span class="fw-bold">$<?= number_format($datos['costos']['total'] ?? 0, 2) ?></span></div>
+                        <div class="small">Fijos: <span class="fw-bold">$<?= number_format($datos['costos']['fijos'] ?? 0, 2) ?></span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-3 mb-3">
+                <div class="card border-info h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalInventario" style="cursor:pointer;">
+                    <div class="card-body text-center">
+                        <i class="bi bi-box-seam h1 text-info"></i>
+                        <h6 class="fw-bold mt-2">Inventario</h6>
+                        <div class="small">Stock: <span class="fw-bold"><?= $datos['inventario']['stock_total'] ?? 0 ?></span></div>
+                        <div class="small">Productos: <span class="fw-bold"><?= $datos['inventario']['productos'] ?? 0 ?></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mb-4 g-3">
+            <div class="col-12 col-md-3 mb-3">
+                <div class="card border-warning h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCuentas" style="cursor:pointer;">
+                    <div class="card-body text-center">
+                        <i class="bi bi-person-badge h1 text-warning"></i>
+                        <h6 class="fw-bold mt-2">Cuentas</h6>
+                        <div class="small">Por Cobrar: <span class="fw-bold">$<?= number_format($datos['cuentas']['por_cobrar'] ?? 0, 2) ?></span></div>
+                        <div class="small">Por Pagar: <span class="fw-bold">$<?= number_format($datos['cuentas']['por_pagar'] ?? 0, 2) ?></span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-3 mb-3">
+                <div class="card border-secondary h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalPagos" style="cursor:pointer;">
+                    <div class="card-body text-center">
+                        <i class="bi bi-cash-stack h1 text-secondary"></i>
+                        <h6 class="fw-bold mt-2">Pagos</h6>
+                        <div class="small">Realizados: <span class="fw-bold">$<?= number_format($datos['pagos']['realizados'] ?? 0, 2) ?></span></div>
+                        <div class="small">Pendientes: <span class="fw-bold">$<?= number_format($datos['pagos']['pendientes'] ?? 0, 2) ?></span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-3 mb-3">
+                <div class="card border-dark h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalProyecciones" style="cursor:pointer;">
+                    <div class="card-body text-center">
+                        <i class="bi bi-bar-chart h1 text-dark"></i>
+                        <h6 class="fw-bold mt-2">Proyecciones</h6>
+                        <div class="small">Ventas: <span class="fw-bold">$<?= number_format($datos['proyecciones']['ventas'] ?? 0, 2) ?></span></div>
+                        <div class="small">Ganancias: <span class="fw-bold">$<?= number_format($datos['proyecciones']['ganancias'] ?? 0, 2) ?></span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-3 mb-3">
+                <div class="card border-light h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAuditoria" style="cursor:pointer;">
+                    <div class="card-body text-center">
+                        <i class="bi bi-shield-check h1 text-secondary"></i>
+                        <h6 class="fw-bold mt-2">Auditoría</h6>
+                        <div class="small">Acciones: <span class="fw-bold"><?= $datos['auditoria']['acciones'] ?? 0 ?></span></div>
+                        <div class="small">Incidencias: <span class="fw-bold"><?= $datos['auditoria']['incidencias'] ?? 0 ?></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Filtros adicionales mes/año antes de las cards -->
+    <form class="row mb-3 g-2 flex-wrap" method="get">
+                <div class="col-12 col-md-2">
+                <input type="text" class="form-control" name="cliente" placeholder="Cliente" value="<?= htmlspecialchars($_GET['cliente'] ?? '') ?>">
+            </div>
+                <div class="col-12 col-md-2">
+                <input type="date" class="form-control" name="fecha_inicio" value="<?= htmlspecialchars($_GET['fecha_inicio'] ?? '') ?>">
+            </div>
+                <div class="col-12 col-md-2">
+                <input type="date" class="form-control" name="fecha_fin" value="<?= htmlspecialchars($_GET['fecha_fin'] ?? '') ?>">
+            </div>
+                <div class="col-12 col-md-2">
+                <select class="form-select" name="estado">
+                    <option value="todos">Todos</option>
+                    <option value="completado" <?= (isset($_GET['estado']) && $_GET['estado'] == 'completado') ? 'selected' : '' ?>>Completado</option>
+                    <option value="pendiente" <?= (isset($_GET['estado']) && $_GET['estado'] == 'pendiente') ? 'selected' : '' ?>>Pendiente</option>
+                    <option value="cancelado" <?= (isset($_GET['estado']) && $_GET['estado'] == 'cancelado') ? 'selected' : '' ?>>Cancelado</option>
+                </select>
+            </div>
+                <div class="col-12 col-md-2">
+                <select class="form-select" name="mes">
+                    <option value="">Mes</option>
+                    <?php for ($m = 1; $m <= 12; $m++): ?>
+                        <option value="<?= str_pad($m, 2, '0', STR_PAD_LEFT) ?>" <?= (isset($_GET['mes']) && $_GET['mes'] == str_pad($m, 2, '0', STR_PAD_LEFT)) ? 'selected' : '' ?>><?= date('F', mktime(0,0,0,$m,1)) ?></option>
+                    <?php endfor; ?>
+                </select>
+            </div>
+                <div class="col-12 col-md-2">
+                <select class="form-select" name="anio">
+                    <option value="">Año</option>
+                    <?php $anioActual = date('Y');
+                    for ($a = $anioActual; $a >= $anioActual-5; $a--): ?>
+                        <option value="<?= $a ?>" <?= (isset($_GET['anio']) && $_GET['anio'] == $a) ? 'selected' : '' ?>><?= $a ?></option>
+                    <?php endfor; ?>
+                </select>
+            </div>
+                <div class="col-12 col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+            </div>
+        </form>
+                ?>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Pedido ID</th>
+                                <th>Total</th>
+                                <th>Método</th>
+                                <th>Estado</th>
+                                <th>Transacción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($pagosFiltrados)): ?>
+                                <?php foreach ($pagosFiltrados as $pago): ?>
+                                <tr>
+                                    <td><?= date('d/m/Y H:i', strtotime($pago['fecha_pago'])) ?></td>
+                                    <td><?= htmlspecialchars($pago['cliente']) ?></td>
+                                    <td><?= htmlspecialchars($pago['numped']) ?></td>
+                                    <td>$<?= number_format($pago['monto'], 2) ?></td>
+                                    <td><?= htmlspecialchars($pago['metodo_pago']) ?></td>
+                                    <td>
+                                        <span class="badge bg-<?= 
+                                            $pago['estado_pag'] === 'Completado' ? 'success' : 
+                                            ($pago['estado_pag'] === 'Pendiente' ? 'warning' : 'danger') 
+                                        ?>">
+                                            <?= htmlspecialchars($pago['estado_pag']) ?>
+                                        </span>
+                                    </td>
+                                    <td><?= htmlspecialchars($pago['transaccion_id'] ?? 'N/A') ?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="7" class="text-center text-warning">No se encontraron datos para los filtros seleccionados.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="modalVentas" tabindex="-1" aria-labelledby="modalVentasLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalVentasLabel">Reporte de Ventas</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                                            <div class="row mb-4">
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="card border-success h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalGanancias" style="cursor:pointer;">
+                                                        <div class="card-body text-center">
+                                                            <i class="bi bi-currency-dollar h1 text-success"></i>
+                                                            <h6 class="fw-bold mt-2">Ganancias</h6>
+                                                            <div class="small">Ingresos: <span class="fw-bold">$<?= number_format($datos['resumen']['total_recaudado'] ?? 0, 2) ?></span></div>
+                                                            <div class="small">Utilidad Neta: <span class="fw-bold">$<?= number_format($datos['resumen']['ganancia_neta'] ?? 0, 2) ?></span></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="card border-primary h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalVentas" style="cursor:pointer;">
+                                                        <div class="card-body text-center">
+                                                            <i class="bi bi-bar-chart-line h1 text-primary"></i>
+                                                            <h6 class="fw-bold mt-2">Ventas</h6>
+                                                            <div class="small">Total: <span class="fw-bold">$<?= number_format($datos['ventas']['total'] ?? 0, 2) ?></span></div>
+                                                            <div class="small">Pedidos: <span class="fw-bold"><?= $datos['ventas']['pedidos'] ?? 0 ?></span></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="card border-danger h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCostos" style="cursor:pointer;">
+                                                        <div class="card-body text-center">
+                                                            <i class="bi bi-receipt h1 text-danger"></i>
+                                                            <h6 class="fw-bold mt-2">Costos</h6>
+                                                            <div class="small">Total: <span class="fw-bold">$<?= number_format($datos['costos']['total'] ?? 0, 2) ?></span></div>
+                                                            <div class="small">Fijos: <span class="fw-bold">$<?= number_format($datos['costos']['fijos'] ?? 0, 2) ?></span></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="card border-info h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalInventario" style="cursor:pointer;">
+                                                        <div class="card-body text-center">
+                                                            <i class="bi bi-box-seam h1 text-info"></i>
+                                                            <h6 class="fw-bold mt-2">Inventario</h6>
+                                                            <div class="small">Stock: <span class="fw-bold"><?= $datos['inventario']['stock_total'] ?? 0 ?></span></div>
+                                                            <div class="small">Productos: <span class="fw-bold"><?= $datos['inventario']['productos'] ?? 0 ?></span></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row mb-4">
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="card border-warning h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCuentas" style="cursor:pointer;">
+                                                        <div class="card-body text-center">
+                                                            <i class="bi bi-person-badge h1 text-warning"></i>
+                                                            <h6 class="fw-bold mt-2">Cuentas</h6>
+                                                            <div class="small">Por Cobrar: <span class="fw-bold">$<?= number_format($datos['cuentas']['por_cobrar'] ?? 0, 2) ?></span></div>
+                                                            <div class="small">Por Pagar: <span class="fw-bold">$<?= number_format($datos['cuentas']['por_pagar'] ?? 0, 2) ?></span></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="card border-secondary h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalPagos" style="cursor:pointer;">
+                                                        <div class="card-body text-center">
+                                                            <i class="bi bi-cash-stack h1 text-secondary"></i>
+                                                            <h6 class="fw-bold mt-2">Pagos</h6>
+                                                            <div class="small">Realizados: <span class="fw-bold">$<?= number_format($datos['pagos']['realizados'] ?? 0, 2) ?></span></div>
+                                                            <div class="small">Pendientes: <span class="fw-bold">$<?= number_format($datos['pagos']['pendientes'] ?? 0, 2) ?></span></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="card border-dark h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalProyecciones" style="cursor:pointer;">
+                                                        <div class="card-body text-center">
+                                                            <i class="bi bi-bar-chart h1 text-dark"></i>
+                                                            <h6 class="fw-bold mt-2">Proyecciones</h6>
+                                                            <div class="small">Ventas: <span class="fw-bold">$<?= number_format($datos['proyecciones']['ventas'] ?? 0, 2) ?></span></div>
+                                                            <div class="small">Ganancias: <span class="fw-bold">$<?= number_format($datos['proyecciones']['ganancias'] ?? 0, 2) ?></span></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3 mb-3">
+                                                    <div class="card border-light h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAuditoria" style="cursor:pointer;">
+                                                        <div class="card-body text-center">
+                                                            <i class="bi bi-shield-check h1 text-secondary"></i>
+                                                            <h6 class="fw-bold mt-2">Auditoría</h6>
+                                                            <div class="small">Acciones: <span class="fw-bold"><?= $datos['auditoria']['acciones'] ?? 0 ?></span></div>
+                                                            <div class="small">Incidencias: <span class="fw-bold"><?= $datos['auditoria']['incidencias'] ?? 0 ?></span></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                                                <p class="card-text">Consulta el detalle de gastos y pagos realizados a cada proveedor.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- ...existing code... -->
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="modalInventario" tabindex="-1" aria-labelledby="modalInventarioLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalInventarioLabel">Reporte de Inventario</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                                            <div class="modal-body">
+                                                <div class="row g-3 mb-4">
+                                                    <div class="col-md-6">
+                                                        <div class="card bg-light border-0 shadow-sm">
+                                                            <div class="card-body">
+                                                                <h5 class="card-title"><i class="bi bi-box-seam"></i> Existencias actuales de flores y accesorios</h5>
+                                                                <p class="card-text">Consulta el inventario actual de flores y accesorios disponibles.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="card bg-light border-0 shadow-sm">
+                                                            <div class="card-body">
+                                                                <h5 class="card-title"><i class="bi bi-exclamation-triangle"></i> Productos próximos a vencerse</h5>
+                                                                <p class="card-text">Identifica los productos que están próximos a vencer para evitar pérdidas.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- ...existing code... -->
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="modalCuentas" tabindex="-1" aria-labelledby="modalCuentasLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalCuentasLabel">Reporte de Cuentas</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                                            <div class="modal-body">
+                                                <div class="row g-3 mb-4">
+                                                    <div class="col-md-6">
+                                                        <div class="card bg-light border-0 shadow-sm">
+                                                            <div class="card-body">
+                                                                <h5 class="card-title"><i class="bi bi-person-badge"></i> Clientes deudores</h5>
+                                                                <p class="card-text">Listado de clientes que tienen cuentas por cobrar pendientes.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="card bg-light border-0 shadow-sm">
+                                                            <div class="card-body">
+                                                                <h5 class="card-title"><i class="bi bi-file-earmark-text"></i> Proveedores con facturas pendientes</h5>
+                                                                <p class="card-text">Listado de proveedores que tienen facturas por pagar pendientes.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- ...existing code... -->
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="modalPagos" tabindex="-1" aria-labelledby="modalPagosLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalPagosLabel">Reporte de Pagos</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                                            <div class="modal-body">
+                                                <div class="row g-3 mb-4">
+                                                    <div class="col-md-6">
+                                                        <div class="card bg-light border-0 shadow-sm">
+                                                            <div class="card-body">
+                                                                <h5 class="card-title"><i class="bi bi-cash-stack"></i> Entradas y salidas de efectivo</h5>
+                                                                <p class="card-text">Visualiza todos los movimientos de efectivo realizados en caja y banco.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="card bg-light border-0 shadow-sm">
+                                                            <div class="card-body">
+                                                                <h5 class="card-title"><i class="bi bi-bank"></i> Saldo disponible en caja/banco</h5>
+                                                                <p class="card-text">Consulta el saldo actual disponible en caja y cuentas bancarias.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- ...existing code... -->
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="modalProyecciones" tabindex="-1" aria-labelledby="modalProyeccionesLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalProyeccionesLabel">Reporte de Proyecciones</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                                            <div class="modal-body">
+                                                <div class="row g-3 mb-4">
+                                                    <div class="col-md-6">
+                                                        <div class="card bg-light border-0 shadow-sm">
+                                                            <div class="card-body">
+                                                                <h5 class="card-title"><i class="bi bi-bar-chart"></i> Pronósticos de ventas por temporada</h5>
+                                                                <p class="card-text">Visualiza los pronósticos de ventas para cada temporada relevante.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="card bg-light border-0 shadow-sm">
+                                                            <div class="card-body">
+                                                                <h5 class="card-title"><i class="bi bi-graph-up-arrow"></i> Gráficos de tendencia histórica</h5>
+                                                                <p class="card-text">Consulta los gráficos de tendencia histórica para tomar mejores decisiones.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- ...existing code... -->
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="modalUsuarios" tabindex="-1" aria-labelledby="modalUsuariosLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalUsuariosLabel">Reporte de Usuarios</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                                            <div class="modal-body">
+                                                <div class="row g-3 mb-4">
+                                                    <div class="col-md-6">
+                                                        <div class="card bg-light border-0 shadow-sm">
+                                                            <div class="card-body">
+                                                                <h5 class="card-title"><i class="bi bi-shield-check"></i> Control de transacciones</h5>
+                                                                <p class="card-text">Revisa el estado de las transacciones: aprobadas, pendientes y fallidas.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="card bg-light border-0 shadow-sm">
+                                                            <div class="card-body">
+                                                                <h5 class="card-title"><i class="bi bi-exclamation-octagon"></i> Identificación de inconsistencias y responsables</h5>
+                                                                <p class="card-text">Detecta inconsistencias y visualiza los responsables de cada transacción.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- ...existing code... -->
+                </div>
+            </div>
+        </div>
+<!-- Bootstrap JS Bundle (includes Popper) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    </div>
     <?php
     // Inicializar variables con valores por defecto
     $tipo = $tipo ?? ($_GET['tipo'] ?? 'ganancias');
-    $datos = $datos ?? [];
+    if (!isset($datos) || !is_array($datos)) {
+        $datos = [];
+    }
+    $datos = array_merge([
+        'resumen' => [
+            'total_recaudado' => 0,
+            'ganancia_neta' => 0,
+            'total_ventas' => 0,
+            'total_costos' => 0,
+            'pagos_completados' => 0,
+            'pagos_pendientes' => 0,
+        ],
+        'ventas' => [
+            'total' => 0,
+            'pedidos' => 0,
+            'clientes' => 0,
+            'promedio' => 0,
+        ],
+        'costos' => [
+            'total' => 0,
+            'fijos' => 0,
+            'variables' => 0,
+            'otros' => 0,
+        ],
+        'inventario' => [
+            'stock_total' => 0,
+            'productos' => 0,
+            'stock_bajo' => 0,
+            'stock_critico' => 0,
+        ],
+        'cuentas' => [
+            'por_cobrar' => 0,
+            'por_pagar' => 0,
+            'saldo_neto' => 0,
+            'movimientos' => 0,
+        ],
+        'pagos' => [
+            'realizados' => 0,
+            'pendientes' => 0,
+            'rechazados' => 0,
+            'transacciones' => 0,
+        ],
+        'proyecciones' => [
+            'ventas' => 0,
+            'ganancias' => 0,
+            'costos' => 0,
+            'periodo' => '',
+        ],
+        'auditoria' => [
+            'acciones' => 0,
+            'usuarios' => 0,
+            'ultima' => '',
+            'incidencias' => 0,
+        ],
+    ], $datos);
     ?>
     
+            <!-- Modals for each report type -->
+            <!-- Pagos Modal -->
+            <div class="modal fade" id="modalPagos" tabindex="-1" aria-labelledby="modalPagosLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalPagosLabel">Reporte de Pagos</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Filtros, gráfico y tabla de pagos aquí -->
+                            <div class="row mb-4">
+                                <div class="col-md-3 mb-3">
+                                    <div class="card border-success h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalGanancias" style="cursor:pointer;">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-currency-dollar h1 text-success"></i>
+                                            <h6 class="fw-bold mt-2">Ganancias</h6>
+                                            <div class="small">Ingresos: <span class="fw-bold">$<?= number_format($datos['resumen']['total_recaudado'] ?? 0, 2) ?></span></div>
+                                            <div class="small">Utilidad Neta: <span class="fw-bold">$<?= number_format($datos['resumen']['ganancia_neta'] ?? 0, 2) ?></span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card border-primary h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalVentas" style="cursor:pointer;">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-bar-chart-line h1 text-primary"></i>
+                                            <h6 class="fw-bold mt-2">Ventas</h6>
+                                            <div class="small">Total: <span class="fw-bold">$<?= number_format($datos['ventas']['total'] ?? 0, 2) ?></span></div>
+                                            <div class="small">Pedidos: <span class="fw-bold"><?= $datos['ventas']['pedidos'] ?? 0 ?></span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card border-danger h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCostos" style="cursor:pointer;">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-receipt h1 text-danger"></i>
+                                            <h6 class="fw-bold mt-2">Costos</h6>
+                                            <div class="small">Total: <span class="fw-bold">$<?= number_format($datos['costos']['total'] ?? 0, 2) ?></span></div>
+                                            <div class="small">Fijos: <span class="fw-bold">$<?= number_format($datos['costos']['fijos'] ?? 0, 2) ?></span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card border-info h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalInventario" style="cursor:pointer;">
+                                        <div class="card-body text-center">
+                                            <i class="bi bi-box-seam h1 text-info"></i>
+                                            <h6 class="fw-bold mt-2">Inventario</h6>
+                                            <div class="small">Stock: <span class="fw-bold"><?= $datos['inventario']['stock_total'] ?? 0 ?></span></div>
+                                            <div class="small">Productos: <span class="fw-bold"><?= $datos['inventario']['productos'] ?? 0 ?></span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <canvas id="chartPagos"></canvas>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Fecha</th>
+                                                <th>Monto</th>
+                                                <th>Estado</th>
+                                                <th>Método</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Aquí van los datos dinámicos -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cuentas Modal -->
+            <div class="modal fade" id="modalCuentas" tabindex="-1" aria-labelledby="modalCuentasLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalCuentasLabel">Reporte de Cuentas</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Filtros, gráfico y tabla de cuentas aquí -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usuarios Modal -->
+            <div class="modal fade" id="modalUsuarios" tabindex="-1" aria-labelledby="modalUsuariosLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalUsuariosLabel">Reporte de Usuarios</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Filtros, gráfico y tabla de usuarios aquí -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventario Modal -->
+            <div class="modal fade" id="modalInventario" tabindex="-1" aria-labelledby="modalInventarioLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="modalInventarioLabel">Reporte de Inventario</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Filtros, gráfico y tabla de inventario aquí -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
     <h2 class="my-4">Reporte de <?= htmlspecialchars(ucfirst($tipo)) ?></h2>
 
     <!-- Filtros del reporte -->
     <fieldset class="border rounded p-3 mb-4 bg-light">
         <legend class="float-none w-auto px-2 mb-2 fw-bold"><i class="bi bi-funnel"></i> Filtros del reporte</legend>
-        <form class="row g-2 align-items-end" method="get" action="">
-            <div class="col-md-3">
-                <input type="text" name="cliente" class="form-control" placeholder="Cliente" value="<?= htmlspecialchars($_GET['cliente'] ?? '') ?>">
+        <form class="d-flex flex-row flex-wrap align-items-end justify-content-between w-100 gap-3" method="get" action="" style="min-height:70px;">
+            <div style="min-width:160px;">
+                <label for="fecha_inicio" class="form-label mb-1">Fecha Inicio</label>
+                <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-control" value="<?= htmlspecialchars($_GET['fecha_inicio'] ?? '') ?>">
             </div>
-            <div class="col-md-3">
-                <input type="date" name="fecha_inicio" class="form-control" value="<?= htmlspecialchars($_GET['fecha_inicio'] ?? '') ?>">
+            <div style="min-width:160px;">
+                <label for="fecha_fin" class="form-label mb-1">Fecha Fin</label>
+                <input type="date" id="fecha_fin" name="fecha_fin" class="form-control" value="<?= htmlspecialchars($_GET['fecha_fin'] ?? '') ?>">
             </div>
-            <div class="col-md-3">
-                <input type="date" name="fecha_fin" class="form-control" value="<?= htmlspecialchars($_GET['fecha_fin'] ?? '') ?>">
+            <div style="min-width:140px;">
+                <label for="estado" class="form-label mb-1">Estado</label>
+                <select id="estado" name="estado" class="form-select">
+                    <option value="" <?= empty($_GET['estado']) ? 'selected' : '' ?>>Todos</option>
+                    <option value="Completado" <?= (($_GET['estado'] ?? '') === 'Completado') ? 'selected' : '' ?>>Completado</option>
+                    <option value="Pendiente" <?= (($_GET['estado'] ?? '') === 'Pendiente') ? 'selected' : '' ?>>Pendiente</option>
+                    <option value="Cancelado" <?= (($_GET['estado'] ?? '') === 'Cancelado') ? 'selected' : '' ?>>Cancelado</option>
+                </select>
             </div>
-            <div class="col-md-3 d-flex gap-2">
-                <button type="submit" class="btn btn-primary flex-fill"><i class="bi bi-search"></i> Filtrar</button>
-                <a href="?tipo=<?= urlencode($tipo) ?>" class="btn btn-outline-secondary flex-fill"><i class="bi bi-x-circle"></i> Limpiar</a>
+            <div class="d-flex align-items-end" style="min-width:120px;">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Filtrar</button>
             </div>
-            <div class="col-12 mt-2">
+            <div class="d-flex flex-row flex-wrap align-items-center gap-2 mt-2" style="flex:1;">
                 <div class="btn-group" role="group">
                     <button type="button" class="btn btn-outline-info btn-sm" onclick="setQuickDate('hoy')">Hoy</button>
                     <button type="button" class="btn btn-outline-info btn-sm" onclick="setQuickDate('7dias')">Últimos 7 días</button>
                     <button type="button" class="btn btn-outline-info btn-sm" onclick="setQuickDate('mes')">Este mes</button>
                     <button type="button" class="btn btn-outline-info btn-sm" onclick="setQuickDate('mespasado')">Mes pasado</button>
                 </div>
-                <button type="button" class="btn btn-outline-dark btn-sm ms-2" onclick="toggleDemo()"><i class="bi bi-eye"></i> Datos de Ejemplo</button>
-                <button type="button" class="btn btn-success btn-sm ms-2" onclick="exportar('csv')"><i class="bi bi-file-earmark-spreadsheet"></i> Exportar Excel</button>
-                <button type="button" class="btn btn-danger btn-sm ms-2" onclick="exportar('pdf')"><i class="bi bi-file-earmark-pdf"></i> Exportar PDF</button>
+                <button type="button" class="btn btn-outline-dark btn-sm" onclick="toggleDemo()"><i class="bi bi-eye"></i> Datos de Ejemplo</button>
+                <button type="button" class="btn btn-success btn-sm" onclick="exportar('csv')"><i class="bi bi-file-earmark-spreadsheet"></i> Exportar Excel</button>
+                <button type="button" class="btn btn-danger btn-sm" onclick="exportar('pdf')"><i class="bi bi-file-earmark-pdf"></i> Exportar PDF</button>
             </div>
         </form>
     </fieldset>
@@ -264,22 +890,22 @@
     <nav class="mt-4">
         <ul class="nav nav-pills justify-content-center gap-2">
             <li class="nav-item">
-                <a href="/floraltech/views/admin/proyecciones.php" class="nav-link">
+                <a href="/floraltech/controllers/ReportesPagoController.php?tipo=proyecciones" class="nav-link">
                     <i class="bi bi-graph-up"></i> Proyecciones
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/floraltech/views/admin/auditoria.php" class="nav-link">
+                <a href="/floraltech/controllers/ReportesPagoController.php?tipo=auditoria" class="nav-link">
                     <i class="bi bi-search"></i> Auditoría
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/floraltech/views/admin/detalle_pago.php" class="nav-link">
+                <a href="/floraltech/controllers/ReportesPagoController.php?tipo=detalles" class="nav-link">
                     <i class="bi bi-clipboard-data"></i> Detalles
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/floraltech/views/admin/dashboard.php" class="nav-link">
+                <a href="/floraltech/controllers/ReportesPagoController.php?tipo=dashboard" class="nav-link">
                     <i class="bi bi-house"></i> Dashboard
                 </a>
             </li>
@@ -386,5 +1012,5 @@ function exportar(tipo) {
 
 <?php 
 // Incluir footer con direccionamiento correcto
-require_once __DIR__ . '/../../partials/footer.php';
+require_once __DIR__ . '/../partials/footer.php';
 ?>

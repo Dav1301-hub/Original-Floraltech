@@ -1,6 +1,87 @@
 <?php
 
 class PagoModel {
+    // Resumen de Ganancias
+    public function getResumenGanancias() {
+        $query = "SELECT SUM(CASE WHEN estado_pag = 'Completado' THEN monto ELSE 0 END) as total_recaudado,
+                          SUM(CASE WHEN estado_pag = 'Completado' THEN monto ELSE 0 END) - SUM(CASE WHEN estado_pag = 'Pendiente' THEN monto ELSE 0 END) as ganancia_neta,
+                          SUM(CASE WHEN estado_pag = 'Completado' THEN monto ELSE 0 END) as total_ventas,
+                          SUM(CASE WHEN estado_pag = 'Pendiente' THEN monto ELSE 0 END) as total_costos,
+                          SUM(CASE WHEN estado_pag = 'Completado' THEN 1 ELSE 0 END) as pagos_completados,
+                          SUM(CASE WHEN estado_pag = 'Pendiente' THEN 1 ELSE 0 END) as pagos_pendientes
+                   FROM pagos";
+        return $this->db->query($query)->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // Resumen de Ventas
+    public function getResumenVentas() {
+        $query = "SELECT SUM(monto) as total,
+                          COUNT(*) as pedidos,
+                          COUNT(DISTINCT ped_idped) as clientes,
+                          AVG(monto) as promedio
+                   FROM pagos WHERE estado_pag = 'Completado'";
+        return $this->db->query($query)->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // Resumen de Costos
+    public function getResumenCostos() {
+        $query = "SELECT SUM(monto) as total,
+                          SUM(CASE WHEN estado_pag = 'Fijo' THEN monto ELSE 0 END) as fijos,
+                          SUM(CASE WHEN estado_pag = 'Variable' THEN monto ELSE 0 END) as variables,
+                          SUM(CASE WHEN estado_pag = 'Otro' THEN monto ELSE 0 END) as otros
+                   FROM pagos";
+        return $this->db->query($query)->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // Resumen de Inventario
+    public function getResumenInventario() {
+        $query = "SELECT SUM(stock) as stock_total,
+                          COUNT(*) as productos,
+                          SUM(CASE WHEN stock < 10 THEN 1 ELSE 0 END) as stock_bajo,
+                          SUM(CASE WHEN stock < 3 THEN 1 ELSE 0 END) as stock_critico
+                   FROM inventario";
+        return $this->db->query($query)->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // Resumen de Cuentas
+    public function getResumenCuentas() {
+        $query = "SELECT SUM(CASE WHEN tipo = 'por_cobrar' THEN monto ELSE 0 END) as por_cobrar,
+                          SUM(CASE WHEN tipo = 'por_pagar' THEN monto ELSE 0 END) as por_pagar,
+                          SUM(monto) as saldo_neto,
+                          COUNT(*) as movimientos
+                   FROM cuentas";
+        return $this->db->query($query)->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // Resumen de Pagos
+    public function getResumenPagos() {
+        $query = "SELECT SUM(CASE WHEN estado_pag = 'Completado' THEN monto ELSE 0 END) as realizados,
+                          SUM(CASE WHEN estado_pag = 'Pendiente' THEN monto ELSE 0 END) as pendientes,
+                          SUM(CASE WHEN estado_pag = 'Rechazado' THEN monto ELSE 0 END) as rechazados,
+                          COUNT(*) as transacciones
+                   FROM pagos";
+        return $this->db->query($query)->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // Resumen de Proyecciones
+    public function getResumenProyecciones() {
+        $query = "SELECT SUM(ventas) as ventas,
+                          SUM(ganancias) as ganancias,
+                          SUM(costos) as costos,
+                          MAX(periodo) as periodo
+                   FROM proyecciones";
+        return $this->db->query($query)->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // Resumen de Auditoría
+    public function getResumenAuditoria() {
+        $query = "SELECT COUNT(*) as acciones,
+                          COUNT(DISTINCT usuario_id) as usuarios,
+                          MAX(fecha) as ultima,
+                          SUM(CASE WHEN tipo = 'incidencia' THEN 1 ELSE 0 END) as incidencias
+                   FROM auditoria";
+        return $this->db->query($query)->fetch(PDO::FETCH_ASSOC);
+    }
     private $db;
 
     public function __construct($db) {

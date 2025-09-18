@@ -1,9 +1,14 @@
 
+
 <?php
 // Inicializar variables con valores por defecto si no están definidas
 $estadisticas = $estadisticas ?? [['ingresos_totales' => 0, 'pagos_completados' => 0, 'pagos_pendientes' => 0, 'total_pagos' => 0, 'metodos_pago' => []]];
 $pagosRecientes = $pagosRecientes ?? [];
 ?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="stylesheet" href="/assets/dashboard-admin.css">
 
 <div class="container">
     <h2 class="my-4">Dashboard de Pagos</h2>
@@ -404,5 +409,6 @@ $pagosRecientes = $pagosRecientes ?? [];
                         <?php endif; ?>
                     </div>
                 </div>
+
 
 

@@ -1,12 +1,17 @@
 <?php
-// Verificar que el usuario esté logueado y sea cliente
-if (!isset($_SESSION['user']) || $_SESSION['user']['tpusu_idtpusu'] != 5) {
-    header('Location: index.php?ctrl=login&action=index');
-    exit();
+// Permitir renderizado como fragmento para el modal admin
+$isFragment = isset($_GET['fragment']) && $_GET['fragment'] == '1';
+
+// Verificar usuario solo si no es fragmento (cliente normal)
+if (!$isFragment) {
+    if (!isset($_SESSION['user']) || $_SESSION['user']['tpusu_idtpusu'] != 5) {
+        header('Location: index.php?ctrl=login&action=index');
+        exit();
+    }
 }
 
 // Conectar a la base de datos para obtener flores
-require_once 'models/conexion.php';
+require_once __DIR__ . '/../../models/conexion.php';
 $conn = new conexion();
 $db = $conn->get_conexion();
 
@@ -38,6 +43,7 @@ try {
     error_log("Error obteniendo flores: " . $e->getMessage());
 }
 ?>
+<?php if (!$isFragment): ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -48,79 +54,20 @@ try {
     <link rel="stylesheet" href="assets/dashboard-cliente.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .flower-card {
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-        .flower-card:hover {
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            border-color: #007bff;
-        }
-        .flower-card.selected {
-            border-color: #28a745;
-            background-color: #f8fff9;
-        }
-        .payment-method {
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 10px 0;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .payment-method:hover {
-            border-color: #007bff;
-        }
-        .payment-method.selected {
-            border-color: #28a745;
-            background-color: #f8fff9;
-        }
-        .qr-container {
-            text-align: center;
-            padding: 20px;
-            border: 2px dashed #007bff;
-            border-radius: 10px;
-            margin: 20px 0;
-        }
-        .total-summary {
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            position: sticky;
-            top: 20px;
-        }
-        .quantity-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .quantity-control input {
-            width: 60px;
-            text-align: center;
-        }
-        .no-stock {
-            opacity: 0.6;
-            background-color: #f8f9fa;
-            border-color: #e0e0e0 !important;
-        }
-        .no-stock:hover {
-            box-shadow: none !important;
-            cursor: not-allowed;
-        }
-        #flowerSearch {
-            border-radius: 20px;
-            padding: 10px 15px;
-            border: 1px solid #ced4da;
-            transition: all 0.3s ease;
-        }
-        #flowerSearch:focus {
-            border-color: #86b7fe;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        }
+        .flower-card { border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 15px; transition: all 0.3s ease; position: relative; }
+        .flower-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-color: #007bff; }
+        .flower-card.selected { border-color: #28a745; background-color: #f8fff9; }
+        .payment-method { border: 2px solid #e0e0e0; border-radius: 10px; padding: 20px; margin: 10px 0; cursor: pointer; transition: all 0.3s ease; }
+        .payment-method:hover { border-color: #007bff; }
+        .payment-method.selected { border-color: #28a745; background-color: #f8fff9; }
+        .qr-container { text-align: center; padding: 20px; border: 2px dashed #007bff; border-radius: 10px; margin: 20px 0; }
+        .total-summary { background-color: #f8f9fa; border-radius: 10px; padding: 20px; position: sticky; top: 20px; }
+        .quantity-control { display: flex; align-items: center; gap: 10px; }
+        .quantity-control input { width: 60px; text-align: center; }
+        .no-stock { opacity: 0.6; background-color: #f8f9fa; border-color: #e0e0e0 !important; }
+        .no-stock:hover { box-shadow: none !important; cursor: not-allowed; }
+        #flowerSearch { border-radius: 20px; padding: 10px 15px; border: 1px solid #ced4da; transition: all 0.3s ease; }
+        #flowerSearch:focus { border-color: #86b7fe; box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); }
     </style>
 </head>
 <body>
@@ -151,7 +98,6 @@ try {
             </div>
             <?php unset($_SESSION['mensaje'], $_SESSION['tipo_mensaje']); ?>
         <?php endif; ?>
-
         <div class="row">
             <!-- Columna principal - Selección de flores -->
             <div class="col-md-8">
@@ -171,6 +117,7 @@ try {
                         </div>
                     </div>
                     <div class="card-body">
+<?php endif; ?>
                         <form id="pedidoForm" method="POST" action="index.php?ctrl=cliente&action=procesar_pedido">
                             <?php if (!empty($flores_disponibles)): ?>
                                 <div id="floresContainer">

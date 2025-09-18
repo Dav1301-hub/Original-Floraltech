@@ -30,8 +30,8 @@ USE `flores`;
 --
 
 CREATE TABLE `cfg_sis` (
-  `id_cfg` int(11) NOT NULL,
-  `moneda` varchar(50) NOT NULL DEFAULT 'COP',
+  `id_cfg` int(11) NOT NULL AUTO_INCREMENT,
+  `idusu` int(11) NOT NULL,
   `idioma` varchar(50) NOT NULL DEFAULT 'Español',
   `zona_hor` varchar(100) NOT NULL DEFAULT 'America/Bogota',
   `fmt_fecha` varchar(50) NOT NULL DEFAULT 'dd/mm/yyyy',
@@ -636,7 +636,7 @@ INSERT INTO `tpusu` (`idtpusu`, `nombre`, `descripcion`) VALUES
 --
 
 CREATE TABLE `usu` (
-  `idusu` int(11) NOT NULL,
+  `idusu` int(11) NOT NULL AUTO_INCREMENT,
   `username` varchar(255) NOT NULL,
   `nombre_completo` varchar(255) NOT NULL,
   `naturaleza` varchar(255) DEFAULT NULL,
@@ -645,7 +645,19 @@ CREATE TABLE `usu` (
   `clave` varchar(255) NOT NULL,
   `tpusu_idtpusu` int(11) NOT NULL,
   `fecha_registro` datetime DEFAULT current_timestamp(),
-  `activo` tinyint(1) DEFAULT 1
+  `activo` tinyint(1) DEFAULT 1,
+  PRIMARY KEY (`idusu`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `permisos` (
+  `idpermiso` INT NOT NULL AUTO_INCREMENT,
+  `idempleado` INT NOT NULL,
+  `tipo` VARCHAR(100) NOT NULL,
+  `fecha_inicio` DATE NOT NULL,
+  `fecha_fin` DATE NOT NULL,
+  `estado` VARCHAR(50) NOT NULL DEFAULT 'Pendiente',
+  PRIMARY KEY (`idpermiso`),
+  FOREIGN KEY (`idempleado`) REFERENCES `usu`(`idusu`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -659,23 +671,6 @@ INSERT INTO `usu` (`idusu`, `username`, `nombre_completo`, `naturaleza`, `telefo
 (42, 'juan', 'juan luis', '23', '5', 'juan@gmail.com', '$2y$10$GSHbrGQ2eZDJDHeyviNxluSZcMvm8MjTi8E7IGm8rkyM8XT8A/Xpy', 1, '2025-08-14 21:27:21', 1),
 (43, 'maria', 'maria sanchez', 'sd', '456', 'maria@gmail.com', '$2y$10$KIkPfVcQMKLKVDGFbh9sCO1vgk9N4m.fzIopEV8bzh02Vl6fgCMVG', 5, '2025-08-14 21:28:27', 1),
 (44, 'mauecheveria', 'mauricio', 'vcs#', '32145', 'mau@gmail.com', '$2y$10$gqUA70VS4LNnmsj9mKdUbeA4OP.VRU4Z0CVFjZjRtST4tsSoVn/KK', 5, '2025-08-26 10:03:00', 1);
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `permisos`
---
-
-CREATE TABLE `permisos` (
-  `idpermiso` INT NOT NULL AUTO_INCREMENT,
-  `idempleado` INT NOT NULL,
-  `tipo` VARCHAR(100) NOT NULL,
-  `fecha_inicio` DATE NOT NULL,
-  `fecha_fin` DATE NOT NULL,
-  `estado` VARCHAR(50) NOT NULL DEFAULT 'Pendiente',
-  PRIMARY KEY (`idpermiso`),
-  FOREIGN KEY (`idempleado`) REFERENCES `usu`(`idusu`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 

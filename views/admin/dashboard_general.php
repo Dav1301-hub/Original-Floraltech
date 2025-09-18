@@ -1,4 +1,3 @@
-
 <?php
 require_once __DIR__ . '/../../controllers/CDashboardGeneral.php';
 $controller = new CDashboardGeneral();
@@ -25,7 +24,8 @@ $pedidosRechazadosMes = $dashboardData['resumenPedidosMes']['pedidosRechazados']
     <meta charset="UTF-8">
     <title>Dashboard General - FloralTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/dashboard-general.php">
+    <link rel="stylesheet" href="/assets/dashboard-admin.css">
+    <link rel="stylesheet" href="/assets/styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
@@ -72,11 +72,7 @@ $pedidosRechazadosMes = $dashboardData['resumenPedidosMes']['pedidosRechazados']
     </div>
 
     <!-- Accesos rápidos -->
-    <div class="quick-actions mb-4 d-flex gap-3">
-        <a href="?page=empleados" class="btn btn-primary"><i class="fas fa-users"></i> Gestión de Empleados</a>
-        <a href="?page=pagos" class="btn btn-info"><i class="fas fa-credit-card"></i> Gestión de Pagos</a>
-        <a href="?page=reportes" class="btn btn-warning"><i class="fas fa-chart-bar"></i> Ver Reportes</a>
-    </div>
+    <!-- Accesos rápidos eliminados -->
 
     <!-- Actividad reciente y calendario -->
     <div class="row mb-4">
@@ -106,14 +102,28 @@ $pedidosRechazadosMes = $dashboardData['resumenPedidosMes']['pedidosRechazados']
                 </div>
             </div>
         </div>
-        <div class="col-lg-6 col-md-5">
-            <div class="card card-calendario mb-3">
-                <div class="card-header bg-success text-white"><i class="fas fa-calendar me-2"></i>Calendario de Pedidos</div>
-                <div class="card-body">
-                    <div id="calendar-pedidos"></div>
+                <div class="col-lg-6 col-md-5">
+                        <div class="card card-calendario mb-3">
+                                <div class="card-header bg-success text-white"><i class="fas fa-calendar me-2"></i>Calendario de Pedidos</div>
+                                <div class="card-body">
+                                        <div id="calendar-pedidos"></div>
+                                </div>
+                        </div>
+                        <!-- Modal para mostrar pedidos del día -->
+                        <div class="modal fade" id="modalPedidosDia" tabindex="-1" aria-labelledby="modalPedidosDiaLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="modalPedidosDiaLabel">Pedidos del día</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                    </div>
+                                    <div class="modal-body" id="modalPedidosDiaBody">
+                                        <!-- Aquí se cargan los pedidos -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                 </div>
-            </div>
-        </div>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
@@ -122,31 +132,89 @@ $pedidosRechazadosMes = $dashboardData['resumenPedidosMes']['pedidosRechazados']
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var calendarEl = document.getElementById('calendar-pedidos');
-    if (calendarEl) {
-        var calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            locale: 'es',
-            height: 400,
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay'
-            },
-            events: {
-                url: '/controllers/PedidoCalendarController.php',
-                failure: function() {
-                    alert('No se pudieron cargar los pedidos.');
-                }
-            },
-            eventClick: function(info) {
-                var detalles = info.event.extendedProps.detalles;
-                alert(detalles);
-            }
-        });
-        calendar.render();
-    }
+        var calendarEl = document.getElementById('calendar-pedidos');
+        if (calendarEl) {
+                var calendar = new FullCalendar.Calendar(calendarEl, {
+                        initialView: 'dayGridMonth',
+                        locale: 'es',
+                        height: 400,
+                        headerToolbar: {
+                                left: 'prev,next today',
+                                center: 'title',
+                                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                        },
+                        dateClick: function(info) {
+                                var fecha = info.dateStr;
+                                fetch('/Floraltech/controllers/ccalendar_api.php?fecha=' + fecha)
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        var html = '';
+                                        html += '<h6>Resumen:</h6>';
+                                        html += '<ul>';
+                                        html += '<li>Total: ' + data.resumen.total + '</li>';
+                                        html += '<li>Completados: ' + data.resumen.completados + '</li>';
+                                        html += '<li>Pendientes: ' + data.resumen.pendientes + '</li>';
+                                        html += '<li>Rechazados: ' + data.resumen.rechazados + '</li>';
+                                        html += '</ul>';
+                                        html += '<button class="btn btn-success mb-3" id="btnNuevoPedido" data-fecha="' + info.dateStr + '">Crear nuevo pedido</button>';
+                                        html += '<h6>Pedidos:</h6>';
+                                        if (data.pedidos.length === 0) {
+                                            html += '<p>No hay pedidos para este día.</p>';
+                                        } else {
+                                            html += '<table class="table table-bordered"><thead><tr><th>ID</th><th>Cliente</th><th>Estado</th><th>Monto</th><th>Hora</th></tr></thead><tbody>';
+                                            data.pedidos.forEach(function(p) {
+                                                html += '<tr>';
+                                                html += '<td>' + p.id + '</td>';
+                                                html += '<td>' + (p.cliente || '-') + '</td>';
+                                                html += '<td><span class="badge ' + getStatusBadgeClass(p.estado) + '">' + p.estado + '</span></td>';
+                                                html += '<td>' + p.monto + '</td>';
+                                                html += '<td>' + (p.fecha_pedido ? p.fecha_pedido.substr(11,5) : '-') + '</td>';
+                                                html += '</tr>';
+                                            });
+                                            html += '</tbody></table>';
+                                        }
+                                        document.getElementById('modalPedidosDiaBody').innerHTML = html;
+                                        var modal = new bootstrap.Modal(document.getElementById('modalPedidosDia'));
+                                        modal.show();
+                                        // Integrar el formulario en el modal al hacer clic en el botón
+                                        setTimeout(function() {
+                                            var btn = document.getElementById('btnNuevoPedido');
+                                            if (btn) {
+                                                btn.onclick = function() {
+                                                    var fecha = btn.getAttribute('data-fecha');
+                                                    document.getElementById('modalPedidosDiaBody').innerHTML = '<div class="text-center"><div class="spinner-border text-success" role="status"></div><p>Cargando formulario...</p></div>';
+                                                    fetch('/FloralTech/controllers/ajax_nuevo_pedido.php?fecha=' + fecha)
+                                                        .then(resp => resp.text())
+                                                        .then(formHtml => {
+                                                            document.getElementById('modalPedidosDiaBody').innerHTML = formHtml;
+                                                        })
+                                                        .catch(() => {
+                                                            document.getElementById('modalPedidosDiaBody').innerHTML = '<p class="text-danger">No se pudo cargar el formulario.</p>';
+                                                        });
+                                                };
+                                            }
+                                        }, 300);
+                                    })
+                                    .catch(() => {
+                                        document.getElementById('modalPedidosDiaBody').innerHTML = '<p class="text-danger">No se pudieron cargar los pedidos.</p>';
+                                        var modal = new bootstrap.Modal(document.getElementById('modalPedidosDia'));
+                                        modal.show();
+                                    });
+                        }
+                });
+                calendar.render();
+        }
 });
+// Helper para mostrar badge de estado
+function getStatusBadgeClass(estado) {
+    switch (estado) {
+        case 'Pendiente': return 'bg-warning text-dark';
+        case 'Completado': return 'bg-success';
+        case 'Cancelado': return 'bg-danger';
+        case 'En proceso': return 'bg-info text-dark';
+        default: return 'bg-secondary';
+    }
+}
 </script>
 </body>
 </html>

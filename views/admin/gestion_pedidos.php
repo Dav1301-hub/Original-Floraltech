@@ -1,10 +1,11 @@
 
+<link rel="stylesheet" href="/assets/dashboard-admin.css">
 <?php
 // Simulación de datos de pedidos
 $pedidos = [
     [
         'id' => 1001,
-        'fecha' => '2025-08-28 14:23',
+
         'estado' => 'Pendiente',
         'metodo_pago' => 'Tarjeta',
         'total' => 120.50,
@@ -150,7 +151,7 @@ $ventasTotales = array_sum(array_column($pedidos, 'total'));
                         <?php foreach ($pedidos as $pedido): ?>
                         <tr>
                             <td><?= $pedido['id'] ?></td>
-                            <td><?= $pedido['fecha'] ?></td>
+                            <td><?= isset($pedido['fecha']) ? $pedido['fecha'] : '' ?></td>
                             <td><?= htmlspecialchars($pedido['cliente']['nombre']) ?></td>
                             <td><span class="badge bg-<?= $pedido['estado'] === 'Pendiente' ? 'warning' : ($pedido['estado'] === 'Entregado' ? 'success' : 'secondary') ?>"><?= $pedido['estado'] ?></span></td>
                             <td>$<?= number_format($pedido['total'], 2) ?></td>
