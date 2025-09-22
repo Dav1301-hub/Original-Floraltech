@@ -326,7 +326,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button class="btn btn-secondary shadow-sm" onclick="abrirParametros()">
             <i class="fas fa-cog me-2"></i>Parámetros Inventario
         </button>
-        <button class="btn btn-warning shadow-sm" onclick="abrirGestionFlores()">
+        <button class="btn btn-warning shadow-sm" onclick="gestionarFlores()">
             <i class="fas fa-seedling me-2"></i>Gestión de Flores
         </button>
     </div>
