@@ -1035,3 +1035,23 @@ CREATE TABLE `vacaciones` (
 --
 ALTER TABLE usu ADD COLUMN vacaciones INT DEFAULT 0;
 -- --------------------------------------------------------
+-- Script para crear la tabla empresa faltante
+USE flores;
+
+CREATE TABLE IF NOT EXISTS `empresa` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(255) NOT NULL DEFAULT '',
+  `direccion` varchar(255) DEFAULT '',
+  `telefono` varchar(100) DEFAULT '',
+  `email` varchar(255) DEFAULT '',
+  `horario` varchar(255) DEFAULT '',
+  `fecha_creacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `fecha_actualizacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Insertar un registro inicial para la empresa
+INSERT INTO `empresa` (`nombre`, `direccion`, `telefono`, `email`, `horario`) VALUES
+('FloralTech', 'Dirección de la empresa', '555-0123', 'info@floraltech.com', 'Lunes a Viernes 8:00 AM - 6:00 PM')
+ON DUPLICATE KEY UPDATE
+`nombre` = VALUES(`nombre`);

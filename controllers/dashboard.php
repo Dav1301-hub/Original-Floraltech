@@ -49,6 +49,7 @@ class dashboard {
      */
     public function admin() {
     $user = $_SESSION['user'];
+    $usu = $_SESSION['user']; // Variable adicional para compatibilidad con las vistas
     $pageTitle = "Dashboard - Administrador";
     $totalUsuarios = $this->userModel->getTotalUsuarios();
     require_once 'views/admin/dashboard.php';
