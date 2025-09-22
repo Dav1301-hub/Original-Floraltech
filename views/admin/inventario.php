@@ -931,5 +931,150 @@ function verificarStockBajo() {
 document.addEventListener('DOMContentLoaded', function() {
     // Verificar stock bajo al cargar
     setTimeout(verificarStockBajo, 2000);
+    
+    // Configurar búsqueda de flores
+    const buscarFlor = document.getElementById('buscar-flor');
+    if (buscarFlor) {
+        buscarFlor.addEventListener('input', function() {
+            const busqueda = this.value.toLowerCase();
+            const filas = document.querySelectorAll('#tabla-flores tr');
+            
+            filas.forEach(function(fila) {
+                const texto = fila.textContent.toLowerCase();
+                fila.style.display = texto.includes(busqueda) ? '' : 'none';
+            });
+        });
+    }
 });
+
+// Función para gestionar flores
+function gestionarFlores() {
+    const modal = new bootstrap.Modal(document.getElementById('modal-gestion-flores'));
+    modal.show();
+}
+
+// Editar flor inline
+function editarFlor(florData) {
+    // Cambiar a la pestaña de nueva flor
+    const nuevaTab = new bootstrap.Tab(document.getElementById('nueva-tab'));
+    nuevaTab.show();
+    
+    // Rellenar el formulario con los datos existentes
+    document.querySelector('input[name="nombre"]').value = florData.nombre;
+    document.querySelector('select[name="naturaleza"]').value = florData.naturaleza;
+    document.querySelector('select[name="color"]').value = florData.color;
+    
+    const descripcion = document.querySelector('textarea[name="descripcion"]');
+    if (descripcion) {
+        descripcion.value = florData.descripcion || '';
+    }
+    
+    // Cambiar el formulario para edición
+    const accionInput = document.querySelector('#form-nueva-flor input[name="accion"]');
+    accionInput.value = 'editar_flor';
+    
+    // Agregar campo ID si no existe
+    let idInput = document.querySelector('#form-nueva-flor input[name="id_flor"]');
+    if (!idInput) {
+        idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'id_flor';
+        document.getElementById('form-nueva-flor').appendChild(idInput);
+    }
+    idInput.value = florData.idtflor;
+    
+    // Cambiar texto del botón
+    const submitBtn = document.querySelector('#form-nueva-flor button[type="submit"]');
+    submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Actualizar Flor';
+    submitBtn.className = 'btn btn-primary';
+    
+    // Agregar botón para cancelar edición
+    if (!document.getElementById('cancelar-edicion')) {
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'btn btn-secondary';
+        cancelBtn.id = 'cancelar-edicion';
+        cancelBtn.innerHTML = '<i class="fas fa-times me-1"></i>Cancelar Edición';
+        cancelBtn.onclick = cancelarEdicion;
+        
+        const buttonGroup = document.querySelector('#form-nueva-flor .mt-4 .gap-2');
+        buttonGroup.insertBefore(cancelBtn, buttonGroup.firstChild);
+    }
+}
+
+// Cancelar edición
+function cancelarEdicion() {
+    // Limpiar formulario
+    document.getElementById('form-nueva-flor').reset();
+    
+    // Restaurar acción
+    document.querySelector('#form-nueva-flor input[name="accion"]').value = 'nueva_flor';
+    
+    // Remover campo ID
+    const idInput = document.querySelector('#form-nueva-flor input[name="id_flor"]');
+    if (idInput) {
+        idInput.remove();
+    }
+    
+    // Restaurar botón
+    const submitBtn = document.querySelector('#form-nueva-flor button[type="submit"]');
+    submitBtn.innerHTML = '<i class="fas fa-seedling me-1"></i>Crear Flor';
+    submitBtn.className = 'btn btn-warning';
+    
+    // Remover botón cancelar
+    const cancelBtn = document.getElementById('cancelar-edicion');
+    if (cancelBtn) {
+        cancelBtn.remove();
+    }
+}
+
+// Agregar flor al inventario
+function agregarAInventario(idFlor, nombreFlor) {
+    if (confirm('¿Deseas agregar "' + nombreFlor + '" al inventario?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.style.display = 'none';
+        
+        const accionInput = document.createElement('input');
+        accionInput.name = 'accion';
+        accionInput.value = 'agregar_a_inventario';
+        
+        const idInput = document.createElement('input');
+        idInput.name = 'id_flor';
+        idInput.value = idFlor;
+        
+        form.appendChild(accionInput);
+        form.appendChild(idInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Eliminar flor
+function eliminarFlor(idFlor, nombreFlor) {
+    if (confirm('¿Estás seguro de que deseas eliminar "' + nombreFlor + '"?\n\nEsta acción no se puede deshacer.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.style.display = 'none';
+        
+        const accionInput = document.createElement('input');
+        accionInput.name = 'accion';
+        accionInput.value = 'eliminar_flor';
+        
+        const idInput = document.createElement('input');
+        idInput.name = 'id_flor';
+        idInput.value = idFlor;
+        
+        form.appendChild(accionInput);
+        form.appendChild(idInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Limpiar formulario de nueva flor
+function limpiarFormularioFlor() {
+    document.getElementById('form-nueva-flor').reset();
+    cancelarEdicion();
+}
 </script>
