@@ -1055,3 +1055,20 @@ INSERT INTO `empresa` (`nombre`, `direccion`, `telefono`, `email`, `horario`) VA
 ('FloralTech', 'Dirección de la empresa', '555-0123', 'info@floraltech.com', 'Lunes a Viernes 8:00 AM - 6:00 PM')
 ON DUPLICATE KEY UPDATE
 `nombre` = VALUES(`nombre`);
+
+-- Script para crear la tabla vacaciones en la base de datos FloralTech
+-- Crear tabla vacaciones
+CREATE TABLE IF NOT EXISTS `vacaciones` (
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `id_empleado` int(11) NOT NULL,
+    `fecha_inicio` date NOT NULL,
+    `fecha_fin` date NOT NULL,
+    `motivo` varchar(255) NOT NULL,
+    `estado` enum('Programadas','Aprobadas','Denegadas','Finalizadas') DEFAULT 'Programadas',
+    `fecha_solicitud` timestamp DEFAULT CURRENT_TIMESTAMP,
+    `fecha_actualizacion` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `fk_vacaciones_empleado` (`id_empleado`),
+    CONSTRAINT `fk_vacaciones_empleado` FOREIGN KEY (`id_empleado`) REFERENCES `usu` (`idusu`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

@@ -143,27 +143,7 @@ function editarVacacion(id) {
     });
 }
 
-// Actualizar vacación
-if (document.getElementById('formEditarVacacion')) {
-    document.getElementById('formEditarVacacion').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const fd = new FormData(this);
-        fd.append('action', 'update');
-        fetch('assets/ajax/ajax_vacacion.php', {
-            method: 'POST',
-            body: fd
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                alert('Vacación actualizada');
-                location.reload();
-            } else {
-                alert('Error al actualizar vacación');
-            }
-        });
-    });
-}
+
 
 // Eliminar vacación
 function eliminarVacacion(id) {
@@ -207,6 +187,7 @@ function cargarEmpleado(id) {
     document.getElementById('edit_fecha_ingreso').value = '';
     document.getElementById('edit_tipo_contrato').value = '';
     document.getElementById('edit_estado').value = '';
+    document.getElementById('edit_password').value = '';
 
     fetch('assets/ajax/ajax_empleado.php', {
         method: 'POST',
@@ -249,18 +230,27 @@ function actualizarEmpleado() {
     var fecha_ingreso = document.getElementById('edit_fecha_ingreso').value;
     var tipo_contrato = document.getElementById('edit_tipo_contrato').value;
     var estado = document.getElementById('edit_estado').value;
+    var password = document.getElementById('edit_password').value;
+    
+    var params = `action=update&id=${id}&nombre=${encodeURIComponent(nombre)}&apellido=${encodeURIComponent(apellido)}&cargo=${encodeURIComponent(cargo)}&fecha_ingreso=${fecha_ingreso}&tipo_contrato=${tipo_contrato}&estado=${estado}`;
+    
+    // Solo incluir la contraseña si se proporcionó
+    if (password.trim() !== '') {
+        params += `&password=${encodeURIComponent(password)}`;
+    }
+    
     fetch('assets/ajax/ajax_empleado.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: `action=update&id=${id}&nombre=${encodeURIComponent(nombre)}&apellido=${encodeURIComponent(apellido)}&cargo=${encodeURIComponent(cargo)}&fecha_ingreso=${fecha_ingreso}&tipo_contrato=${tipo_contrato}&estado=${estado}`
+        body: params
     })
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            alert('Empleado actualizado');
+            alert('Empleado actualizado exitosamente');
             location.reload();
         } else {
-            alert('Error al actualizar');
+            alert('Error al actualizar empleado');
         }
     });
 }
@@ -341,29 +331,78 @@ if (document.getElementById('formNuevoPermiso')) {
 }
 // Guardar nueva vacación
 if (document.getElementById('formNuevaVacacion')) {
-    document.getElementById('formNuevaVacacion').onsubmit = function(e) {
+    document.getElementById('formNuevaVacacion').addEventListener('submit', function(e) {
         e.preventDefault();
         console.log('formNuevaVacacion submitted');
         const submitBtn = this.querySelector('button[type="submit"]');
         if (submitBtn) submitBtn.disabled = true;
         const fd = new FormData(this);
         fd.append('action', 'create');
+        
+        // Validación previa
+        const empleado = fd.get('id_empleado');
+        const fechaInicio = fd.get('fecha_inicio');
+        const fechaFin = fd.get('fecha_fin');
+        const motivo = fd.get('motivo');
+        const estado = fd.get('estado');
+        
+        console.log('Datos a enviar:', {
+            empleado: empleado,
+            fechaInicio: fechaInicio,
+            fechaFin: fechaFin,
+            motivo: motivo,
+            estado: estado
+        });
+        
+        if (!empleado || !fechaInicio || !fechaFin || !motivo) {
+            alert('Todos los campos son obligatorios.');
+            if (submitBtn) submitBtn.disabled = false;
+            return;
+        }
+        
         fetch('assets/ajax/ajax_vacacion.php', {
             method: 'POST',
             body: fd
         })
-        .then(r => r.json())
+        .then(r => {
+            console.log('Response status:', r.status);
+            return r.json();
+        })
         .then(data => {
+            console.log('Response data:', data);
             if (submitBtn) submitBtn.disabled = false;
             if (data.success) {
-                alert('Vacación registrada');
+                alert('Vacación registrada exitosamente');
                 location.reload();
             } else {
-                alert('Error al registrar vacación');
+                alert('Error al registrar vacación: ' + (data.error || 'Error desconocido'));
             }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            if (submitBtn) submitBtn.disabled = false;
+            alert('Error de conexión: ' + err.message);
         });
-    };
+    });
 }
+
+// Alternativa: Event listener para el botón de guardar vacación (respaldo)
+document.addEventListener('DOMContentLoaded', function() {
+    const btnGuardarVacacion = document.querySelector('#formNuevaVacacion button[type="submit"]');
+    if (btnGuardarVacacion) {
+        btnGuardarVacacion.addEventListener('click', function(e) {
+            console.log('Botón Guardar clicked - fallback');
+            // Solo ejecutar si el evento submit no se dispara
+            setTimeout(function() {
+                const form = document.getElementById('formNuevaVacacion');
+                if (form) {
+                    console.log('Ejecutando submit manual');
+                    form.dispatchEvent(new Event('submit'));
+                }
+            }, 100);
+        });
+    }
+});
 // Guardar nuevo turno
 // Lógica dinámica para el modal de turnos
 document.addEventListener('DOMContentLoaded', function() {
@@ -526,6 +565,28 @@ window.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+// Eliminar vacación
+    document.querySelectorAll('#vacaciones .btn-outline-danger').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            var id = btn.closest('tr').querySelector('td').textContent;
+            if (!confirm('¿Seguro que deseas eliminar esta vacación?')) return;
+            fetch('assets/ajax/ajax_vacacion.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=delete&id=' + id
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Vacación eliminada');
+                    location.reload();
+                } else {
+                    alert('Error al eliminar vacación');
+                }
+            });
+        });
+    });
 // ...existing code...
     document.getElementById('formEditarPermiso').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -611,6 +672,20 @@ window.addEventListener('DOMContentLoaded', function() {
             } else {
                 alert('Error al actualizar turno');
             }
+        });
+    });
+// Editar vacación
+    document.querySelectorAll('#vacaciones .btn-outline-primary').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Buscar el ID en la primera celda de la fila
+            var tr = btn.closest('tr');
+            var id = tr ? tr.cells[0].textContent.trim() : null;
+            if (!id) {
+                alert('No se pudo obtener el ID de la vacación.');
+                return;
+            }
+            editarVacacion(id);
         });
     });
 // ...existing code...

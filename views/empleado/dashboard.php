@@ -552,10 +552,17 @@ unset($_SESSION['tipo_mensaje']);
                                     <i class="fas fa-credit-card"></i>
                                     Procesar Pagos
                                 </a>
+                                <?php if($user['tpusu_idtpusu'] == 3): // Empleado de inventario ?>
+                                <a href="index.php?ctrl=cinventario" class="btn btn-outline">
+                                    <i class="fas fa-boxes"></i>
+                                    Inventario Completo
+                                </a>
+                                <?php else: ?>
                                 <a href="index.php?ctrl=empleado&action=inventario" class="btn btn-outline">
                                     <i class="fas fa-boxes"></i>
                                     Inventario
                                 </a>
+                                <?php endif; ?>
                                 <a href="index.php?ctrl=EmpleadoPagosController&action=index" class="btn btn-outline">
                                     <i class="fas fa-chart-bar"></i>
                                     Reportes

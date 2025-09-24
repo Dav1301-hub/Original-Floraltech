@@ -13,12 +13,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_empleado'])) {
     $fecha_ingreso = $_POST['fecha_ingreso'] ?? date('Y-m-d');
     $tipo_contrato = $_POST['tipo_contrato'] ?? 'indefinido';
     $estado = $_POST['estado'] ?? 'activo';
+    $password = trim($_POST['password'] ?? '');
     $email = $username . '@floraltech.local'; // Email ficticio, puedes cambiarlo
     $telefono = '';
     $tpusu_idtpusu = 2; // Tipo usuario empleado, ajusta según tu sistema
     $activo = ($estado === 'activo') ? 1 : 0;
     $nombre_completo = $nombre . ' ' . $apellido;
-    $clave = password_hash('123456', PASSWORD_DEFAULT); // Contraseña por defecto
+    // Usar la contraseña proporcionada o una por defecto
+    $clave = password_hash($password ?: '123456', PASSWORD_DEFAULT);
 
     // Validaciones básicas
     if ($nombre === '' || $apellido === '' || $username === '' || $cargo === '') {
@@ -461,6 +463,12 @@ foreach ($turnos as $turno) {
                                         <option value="renuncia">Renuncia</option>
                                     </select>
                                 </div>
+                                <div class="col-md-6">
+                                    <label for="password" class="form-label">Contraseña</label>
+                                    <input type="password" class="form-control" id="password" name="password" 
+                                           placeholder="Dejar vacío para contraseña por defecto (123456)">
+                                    <small class="form-text text-muted">Si no se especifica, se usará "123456" como contraseña por defecto</small>
+                                </div>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -526,6 +534,12 @@ foreach ($turnos as $turno) {
                                         <option value="inactivo">Inactivo</option>
                                         <option value="renuncia">Renuncia</option>
                                     </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="edit_password" class="form-label">Nueva Contraseña</label>
+                                    <input type="password" class="form-control" id="edit_password" name="password" 
+                                           placeholder="Dejar vacío para mantener contraseña actual">
+                                    <small class="form-text text-muted">Solo llenar si desea cambiar la contraseña</small>
                                 </div>
                             </div>
                         </form>
@@ -698,7 +712,8 @@ foreach ($turnos as $turno) {
                                 <label for="vacacionEstado" class="form-label">Estado</label>
                                 <select class="form-select" id="vacacionEstado" name="estado">
                                     <option value="Programadas">Programadas</option>
-                                    <option value="En curso">En curso</option>
+                                    <option value="Aprobadas">Aprobadas</option>
+                                    <option value="Denegadas">Denegadas</option>
                                     <option value="Finalizadas">Finalizadas</option>
                                 </select>
                             </div>
@@ -747,7 +762,8 @@ foreach ($turnos as $turno) {
                                 <label for="edit_vacacionEstado" class="form-label">Estado</label>
                                 <select class="form-select" id="edit_vacacionEstado" name="estado">
                                     <option value="Programadas">Programadas</option>
-                                    <option value="En curso">En curso</option>
+                                    <option value="Aprobadas">Aprobadas</option>
+                                    <option value="Denegadas">Denegadas</option>
                                     <option value="Finalizadas">Finalizadas</option>
                                 </select>
                             </div>
@@ -757,6 +773,9 @@ foreach ($turnos as $turno) {
                             </div>
                         </form>
                     </div>
+                </div>
+            </div>
+        </div>
                 </div>
             </div>
         </div>
@@ -864,6 +883,7 @@ foreach ($turnos as $turno) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/ProyectoFloralTechhh/assets/dgemp.js"></script>
+    <script src="/ProyectoFloralTechhh/assets/test_vacaciones.js"></script>
     <!-- Script de lógica de turnos, debe ir al final -->
 </body>
 </html>
