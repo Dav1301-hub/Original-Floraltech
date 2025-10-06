@@ -17,6 +17,8 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+
 --
 -- Base de datos: `flores`
 --
@@ -32,6 +34,7 @@ USE `flores`;
 CREATE TABLE `cfg_sis` (
   `id_cfg` int(11) NOT NULL AUTO_INCREMENT,
   `idusu` int(11) NOT NULL,
+  `moneda` varchar(10) NOT NULL DEFAULT 'COP',
   `idioma` varchar(50) NOT NULL DEFAULT 'Español',
   `zona_hor` varchar(100) NOT NULL DEFAULT 'America/Bogota',
   `fmt_fecha` varchar(50) NOT NULL DEFAULT 'dd/mm/yyyy',
@@ -45,15 +48,16 @@ CREATE TABLE `cfg_sis` (
   `log_cambios` tinyint(1) NOT NULL DEFAULT 1,
   `retencion_log` int(11) NOT NULL DEFAULT 365,
   `id_usu_mod` int(11) DEFAULT NULL,
-  `fch_ult_mod` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `fch_ult_mod` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id_cfg`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `cfg_sis`
 --
 
-INSERT INTO `cfg_sis` (`id_cfg`, `moneda`, `idioma`, `zona_hor`, `fmt_fecha`, `estilo_ui`, `act_auto`, `notif_act`, `act_prog`, `auth_2fa`, `intentos_max`, `bloqueo_min`, `log_cambios`, `retencion_log`, `id_usu_mod`, `fch_ult_mod`) VALUES
-(1, 'USD', 'Inglés', 'America/New_York', 'dd/mm/yyyy', 'Oscuro', 0, 0, '', 0, 3, 30, 1, 365, NULL, '2025-07-07 20:28:26');
+INSERT INTO `cfg_sis` (`id_cfg`, `idusu`, `moneda`, `idioma`, `zona_hor`, `fmt_fecha`, `estilo_ui`, `act_auto`, `notif_act`, `act_prog`, `auth_2fa`, `intentos_max`, `bloqueo_min`, `log_cambios`, `retencion_log`, `id_usu_mod`, `fch_ult_mod`) VALUES
+(1, 4, 'USD', 'Inglés', 'America/New_York', 'dd/mm/yyyy', 'Oscuro', 0, 0, '', 0, 3, 30, 1, 365, NULL, '2025-07-07 20:28:26');
 
 -- --------------------------------------------------------
 
@@ -693,6 +697,51 @@ CREATE TABLE `turnos` (
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `empresa`
+--
+
+CREATE TABLE `empresa` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(255) NOT NULL DEFAULT '',
+  `direccion` varchar(255) DEFAULT '',
+  `telefono` varchar(100) DEFAULT '',
+  `email` varchar(255) DEFAULT '',
+  `horario` varchar(255) DEFAULT '',
+  `fecha_creacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `fecha_actualizacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `empresa`
+--
+
+INSERT INTO `empresa` (`nombre`, `direccion`, `telefono`, `email`, `horario`) VALUES
+('FloralTech', 'Dirección de la empresa', '555-0123', 'info@floraltech.com', 'Lunes a Viernes 8:00 AM - 6:00 PM');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `vacaciones`
+--
+
+CREATE TABLE `vacaciones` (
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `id_empleado` int(11) NOT NULL,
+    `fecha_inicio` date NOT NULL,
+    `fecha_fin` date NOT NULL,
+    `motivo` varchar(255) NOT NULL,
+    `estado` enum('Programadas','Aprobadas','Denegadas','Finalizadas') DEFAULT 'Programadas',
+    `fecha_solicitud` timestamp DEFAULT CURRENT_TIMESTAMP,
+    `fecha_actualizacion` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `fk_vacaciones_empleado` (`id_empleado`),
+    CONSTRAINT `fk_vacaciones_empleado` FOREIGN KEY (`id_empleado`) REFERENCES `usu` (`idusu`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Índices para tablas volcadas
 --
 
@@ -700,8 +749,8 @@ CREATE TABLE `turnos` (
 -- Indices de la tabla `cfg_sis`
 --
 ALTER TABLE `cfg_sis`
-  ADD PRIMARY KEY (`id_cfg`),
-  ADD KEY `fk_cfg_usu` (`id_usu_mod`);
+  ADD KEY `fk_cfg_usu` (`id_usu_mod`),
+  ADD KEY `fk_cfg_usu_idusu` (`idusu`);
 
 --
 -- Indices de la tabla `cli`
@@ -829,7 +878,6 @@ ALTER TABLE `tpusu`
 -- Indices de la tabla `usu`
 --
 ALTER TABLE `usu`
-  ADD PRIMARY KEY (`idusu`),
   ADD UNIQUE KEY `username` (`username`),
   ADD UNIQUE KEY `email` (`email`),
   ADD KEY `fk_usu_tpusu` (`tpusu_idtpusu`);
@@ -929,6 +977,18 @@ ALTER TABLE `usu`
   MODIFY `idusu` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
 
 --
+-- AUTO_INCREMENT de la tabla `empresa`
+--
+ALTER TABLE `empresa`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT de la tabla `vacaciones`
+--
+ALTER TABLE `vacaciones`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+
+--
 -- Restricciones para tablas volcadas
 --
 
@@ -936,7 +996,8 @@ ALTER TABLE `usu`
 -- Filtros para la tabla `cfg_sis`
 --
 ALTER TABLE `cfg_sis`
-  ADD CONSTRAINT `cfg_sis_ibfk_1` FOREIGN KEY (`id_usu_mod`) REFERENCES `usu` (`idusu`);
+  ADD CONSTRAINT `cfg_sis_ibfk_1` FOREIGN KEY (`id_usu_mod`) REFERENCES `usu` (`idusu`),
+  ADD CONSTRAINT `cfg_sis_ibfk_2` FOREIGN KEY (`idusu`) REFERENCES `usu` (`idusu`);
 
 --
 -- Filtros para la tabla `detped`
@@ -1013,62 +1074,11 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 
 -- --------------------------------------------------------
 --
--- Estructura de la tabla `vacaciones`
---
-CREATE TABLE `vacaciones` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `id_empleado` INT NOT NULL,
-  `fecha_inicio` DATE NOT NULL,
-  `fecha_fin` DATE NOT NULL,
-  `estado` VARCHAR(20) DEFAULT 'En curso',
-  `motivo` VARCHAR(255),
-  `fecha_creacion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`id_empleado`) REFERENCES `usu`(`idusu`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
---
--- Agregar columna de vacaciones a la tabla usuALTER TABLE usu ADD COLUMN vacaciones INT DEFAULT 0;
+-- Agregar columna de vacaciones a la tabla usu
 --
 ALTER TABLE usu ADD COLUMN vacaciones INT DEFAULT 0;
--- --------------------------------------------------------
--- Script para crear la tabla empresa faltante
-USE flores;
-
-CREATE TABLE IF NOT EXISTS `empresa` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nombre` varchar(255) NOT NULL DEFAULT '',
-  `direccion` varchar(255) DEFAULT '',
-  `telefono` varchar(100) DEFAULT '',
-  `email` varchar(255) DEFAULT '',
-  `horario` varchar(255) DEFAULT '',
-  `fecha_creacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `fecha_actualizacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Insertar un registro inicial para la empresa
-INSERT INTO `empresa` (`nombre`, `direccion`, `telefono`, `email`, `horario`) VALUES
-('FloralTech', 'Dirección de la empresa', '555-0123', 'info@floraltech.com', 'Lunes a Viernes 8:00 AM - 6:00 PM')
-ON DUPLICATE KEY UPDATE
-`nombre` = VALUES(`nombre`);
-
--- Script para crear la tabla vacaciones en la base de datos FloralTech
--- Crear tabla vacaciones
-CREATE TABLE IF NOT EXISTS `vacaciones` (
-    `id` int(11) NOT NULL AUTO_INCREMENT,
-    `id_empleado` int(11) NOT NULL,
-    `fecha_inicio` date NOT NULL,
-    `fecha_fin` date NOT NULL,
-    `motivo` varchar(255) NOT NULL,
-    `estado` enum('Programadas','Aprobadas','Denegadas','Finalizadas') DEFAULT 'Programadas',
-    `fecha_solicitud` timestamp DEFAULT CURRENT_TIMESTAMP,
-    `fecha_actualizacion` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    KEY `fk_vacaciones_empleado` (`id_empleado`),
-    CONSTRAINT `fk_vacaciones_empleado` FOREIGN KEY (`id_empleado`) REFERENCES `usu` (`idusu`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
