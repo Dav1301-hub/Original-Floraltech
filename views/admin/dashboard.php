@@ -7,21 +7,16 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/dashboard-cliente.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/dashboard-cliente.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/dashboard-admin.css">
+    <link rel="stylesheet" href="assets/dashboard-admin.css">
 </head>
 <body>
-    <?php include __DIR__ . '/../partials/header.php'; ?>
     <?php
     if (!isset($totalUsuarios)) {
         $totalUsuarios = 0;
     }
     ?>
     <div class="d-flex flex-column" style="min-height: 100vh; background: #f7f7fb;">
-        <!-- Barra superior estilo cliente -->
+        <!-- Barra superior única -->
         <div class="w-100 px-4 pt-3 pb-2" style="background: linear-gradient(90deg, #6a5af9 0%, #7c3aed 100%); border-radius: 16px; margin: 24px auto 0 auto; max-width: 98%; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
             <div class="d-flex align-items-center">
                 <span class="fs-3 fw-bold text-white me-3"><i class="fa-solid fa-seedling me-2"></i>FloralTech</span>
@@ -39,7 +34,6 @@
                     <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=empleados"><i class="fas fa-users me-2"></i> Gestión de Empleados</a></li>
                     <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=inventarios"><i class="fa-solid fa-server me-2"></i> Inventario</a></li>
                     <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=pedidos"><i class="fas fa-shopping-cart me-2"></i> Gestión de Pedidos</a></li>
-                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=pagos"><i class="fas fa-credit-card me-2"></i> Gestión de Pagos</a></li>
                     <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=configuracion"><i class="fas fa-cogs me-2"></i> Configuración</a></li>
                     <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=auditoria"><i class="fas fa-clipboard-list me-2"></i> Auditoría</a></li>
                     <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=reportes"><i class="fas fa-chart-bar me-2"></i> Reportes</a></li>
@@ -49,19 +43,27 @@
             <div class="main-content flex-grow-1 d-flex flex-column align-items-center justify-content-center" id="mainContent" style="margin: 24px 24px 24px 0; min-height: calc(100vh - 120px);">
                 <div class="w-100" style="max-width: 1100px;">
                     <?php
-                    $page = $_GET['page'] ?? 'general';
+            $page = $_GET['page'] ?? 'general';
                     $pg = $_GET['pg'] ?? null;
+
+
+                    // Priorizar $page si está definida (desde controlador), sino usar $_GET['page']
+                    if (!isset($page)) {
+                        $page = $_GET['page'] ?? 'general';
+                    }
 
                     $pages = [
                         'general' => 'dashboard_general.php',
                         'empleados' => 'dgemp.php',
-                        'inventarios' => 'inventario.php',
+                        'inventarios' => null, // Redirigir al controlador
+                        'inventario' => 'inventario.php', // Desde el controlador cinventario
                         'pedidos' => 'gestion_pedidos.php',
                         'pagos' => 'dashboard_pago.php',
                         'configuracion' => 'configuracion.php',
                         'auditoria' => 'auditoria_pago.php',
                         'reportes' => 'reportes.php'
                     ];
+
                     $pgs = [
                         'ggp' => 'catin.php'
                     ];
@@ -76,6 +78,26 @@
                         include $filePath;
                     } else {
                         echo '<div class="alert alert-warning">Página no encontrada.</div>';
+
+                    
+                    if ($page === 'inventarios') {
+                        // Redirigir al controlador de inventario
+                        header('Location: index.php?ctrl=cinventario');
+                        exit;
+                    } elseif ($page === 'general') {
+                        include __DIR__ . '/dashboard_general.php';
+                    } elseif ($page === 'empleados') {
+                        include __DIR__ . '/dgemp.php';
+                    } else {
+                        $file = isset($pages[$page]) ? $pages[$page] : $pages['general'];
+                        $filePath = __DIR__ . '/' . $file;
+                        
+                        if ($file && file_exists($filePath)) {
+                            include $filePath;
+                        } else {
+                            echo '<div class="alert alert-warning">Página no encontrada.</div>';
+                        }
+
                     }
                     ?>
                 </div>

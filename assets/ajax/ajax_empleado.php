@@ -24,10 +24,21 @@ if ($action === 'update') {
     $fecha_ingreso = $_POST['fecha_ingreso'] ?? date('Y-m-d');
     $tipo_contrato = $_POST['tipo_contrato'] ?? 'indefinido';
     $estado = $_POST['estado'] ?? 'activo';
+    $password = trim($_POST['password'] ?? '');
     $activo = ($estado === 'activo') ? 1 : 0;
     $nombre_completo = $nombre . ' ' . $apellido;
-    $stmt = $db->prepare('UPDATE usu SET nombre_completo=?, naturaleza=?, fecha_registro=?, activo=? WHERE idusu=?');
-    $ok = $stmt->execute([$nombre_completo, $cargo, $fecha_ingreso, $activo, $id]);
+    
+    // Si se proporcionó una nueva contraseña, incluirla en la actualización
+    if (!empty($password)) {
+        $clave_hash = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $db->prepare('UPDATE usu SET nombre_completo=?, naturaleza=?, fecha_registro=?, activo=?, clave=? WHERE idusu=?');
+        $ok = $stmt->execute([$nombre_completo, $cargo, $fecha_ingreso, $activo, $clave_hash, $id]);
+    } else {
+        // Si no se proporcionó contraseña, no actualizar el campo clave
+        $stmt = $db->prepare('UPDATE usu SET nombre_completo=?, naturaleza=?, fecha_registro=?, activo=? WHERE idusu=?');
+        $ok = $stmt->execute([$nombre_completo, $cargo, $fecha_ingreso, $activo, $id]);
+    }
+    
     $response['success'] = $ok;
     echo json_encode($response);
     exit;
