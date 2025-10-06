@@ -1,223 +1,13 @@
-<?php
-// Conexión a la base de datos
-require_once(__DIR__ . '/../config/database.php');
-
-try {
-    $db = new Database();
-    $conexion = $db->getConnection();
-    
-    // Obtener estadísticas del inventario
-    $sql_total = "SELECT COUNT(*) as total FROM inv";
-    $stmt_total = $conexion->prepare($sql_total);
-    $stmt_total->execute();
-    $total_productos = $stmt_total->fetch(PDO::FETCH_ASSOC)['total'];
-    
-    // Productos con stock bajo (menos de 20)
-    $sql_bajo = "SELECT COUNT(*) as bajo FROM inv WHERE stock < 20";
-    $stmt_bajo = $conexion->prepare($sql_bajo);
-    $stmt_bajo->execute();
-    $stock_bajo = $stmt_bajo->fetch(PDO::FETCH_ASSOC)['bajo'];
-    
-    // Productos sin stock
-    $sql_sin = "SELECT COUNT(*) as sin_stock FROM inv WHERE stock = 0";
-    $stmt_sin = $conexion->prepare($sql_sin);
-    $stmt_sin->execute();
-    $sin_stock = $stmt_sin->fetch(PDO::FETCH_ASSOC)['sin_stock'];
-    
-    // Valor total del inventario
-    $sql_valor = "SELECT SUM(stock * precio) as valor_total FROM inv";
-    $stmt_valor = $conexion->prepare($sql_valor);
-    $stmt_valor->execute();
-    $valor_total = $stmt_valor->fetch(PDO::FETCH_ASSOC)['valor_total'] ?? 0;
-    
-    // Obtener inventario con información de flores
-    $sql_inventario = "
-        SELECT 
-            i.idinv,
-            t.nombre as producto,
-            i.stock,
-            i.precio,
-            t.naturaleza,
-            t.color,
-            CASE 
-                WHEN i.stock = 0 THEN 'Sin Stock'
-                WHEN i.stock < 20 THEN 'Bajo'
-                ELSE 'Normal'
-            END as estado_stock
-        FROM inv i
-        INNER JOIN tflor t ON i.tflor_idtflor = t.idtflor
-        ORDER BY i.stock ASC
-    ";
-    $stmt_inventario = $conexion->prepare($sql_inventario);
-    $stmt_inventario->execute();
-    $inventario = $stmt_inventario->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Obtener todas las flores para gestión
-    $sql_todas_flores = "
-        SELECT 
-            t.idtflor,
-            t.nombre,
-            t.naturaleza,
-            t.color,
-            t.descripcion,
-            i.stock,
-            i.precio,
-            i.idinv,
-            CASE 
-                WHEN i.idinv IS NULL THEN 'No en inventario'
-                WHEN i.stock = 0 THEN 'Sin Stock'
-                WHEN i.stock < 20 THEN 'Stock Bajo'
-                ELSE 'Disponible'
-            END as estado_inventario
-        FROM tflor t
-        LEFT JOIN inv i ON t.idtflor = i.tflor_idtflor
-        ORDER BY t.nombre
-    ";
-    $stmt_todas_flores = $conexion->prepare($sql_todas_flores);
-    $stmt_todas_flores->execute();
-    $todas_las_flores = $stmt_todas_flores->fetchAll(PDO::FETCH_ASSOC);
-    
-} catch (PDOException $e) {
-    $error_message = "Error al conectar con la base de datos: " . $e->getMessage();
-    $inventario = [];
-    $total_productos = 0;
-    $stock_bajo = 0;
-    $sin_stock = 0;
-    $valor_total = 0;
-}
-
-// Procesamiento de formularios
-$mensaje_exito = '';
-$mensaje_error = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    try {
-        if (isset($_POST['accion'])) {
-            switch ($_POST['accion']) {
-                case 'nuevo_producto':
-                    // Validar datos requeridos
-                    if (empty($_POST['tflor_idtflor']) || empty($_POST['stock']) || empty($_POST['precio'])) {
-                        throw new Exception('Todos los campos marcados con (*) son obligatorios');
-                    }
-                    
-                    // Verificar si la flor ya existe en inventario
-                    $sql_verificar = "SELECT idinv FROM inv WHERE tflor_idtflor = :tflor_id";
-                    $stmt_verificar = $conexion->prepare($sql_verificar);
-                    $stmt_verificar->bindParam(':tflor_id', $_POST['tflor_idtflor'], PDO::PARAM_INT);
-                    $stmt_verificar->execute();
-                    
-                    if ($stmt_verificar->fetch()) {
-                        throw new Exception('Esta flor ya existe en el inventario. Use la opción de actualizar stock.');
-                    }
-                    
-                    // Insertar nuevo producto en inventario
-                    $sql_insertar = "INSERT INTO inv (tflor_idtflor, stock, precio) VALUES (:tflor_id, :stock, :precio)";
-                    $stmt_insertar = $conexion->prepare($sql_insertar);
-                    $stmt_insertar->bindParam(':tflor_id', $_POST['tflor_idtflor'], PDO::PARAM_INT);
-                    $stmt_insertar->bindParam(':stock', $_POST['stock'], PDO::PARAM_INT);
-                    $stmt_insertar->bindParam(':precio', $_POST['precio'], PDO::PARAM_STR);
-                    
-                    if ($stmt_insertar->execute()) {
-                        $mensaje_exito = 'Producto agregado al inventario exitosamente';
-                        // Recargar datos para mostrar el nuevo producto
-                        header('Location: ?page=inventarios&success=1');
-                        exit;
-                    } else {
-                        throw new Exception('Error al insertar el producto en inventario');
-                    }
-                    break;
-                    
-                case 'actualizar_parametros':
-                    // Aquí se pueden guardar parámetros en una tabla de configuración
-                    $mensaje_exito = 'Parámetros de inventario actualizados correctamente';
-                    break;
-                    
-                case 'nueva_flor':
-                    // Validar datos de nueva flor
-                    if (empty($_POST['nombre']) || empty($_POST['naturaleza']) || empty($_POST['color'])) {
-                        throw new Exception('Nombre, naturaleza y color son obligatorios');
-                    }
-                    
-                    // Verificar si ya existe una flor con el mismo nombre
-                    $sql_verificar_flor = "SELECT idtflor FROM tflor WHERE nombre = :nombre";
-                    $stmt_verificar_flor = $conexion->prepare($sql_verificar_flor);
-                    $stmt_verificar_flor->bindParam(':nombre', $_POST['nombre']);
-                    $stmt_verificar_flor->execute();
-                    
-                    if ($stmt_verificar_flor->fetch()) {
-                        throw new Exception('Ya existe una flor con ese nombre');
-                    }
-                    
-                    // Insertar nueva flor
-                    $sql_nueva_flor = "INSERT INTO tflor (nombre, naturaleza, color, descripcion) VALUES (:nombre, :naturaleza, :color, :descripcion)";
-                    $stmt_nueva_flor = $conexion->prepare($sql_nueva_flor);
-                    $stmt_nueva_flor->bindParam(':nombre', $_POST['nombre']);
-                    $stmt_nueva_flor->bindParam(':naturaleza', $_POST['naturaleza']);
-                    $stmt_nueva_flor->bindParam(':color', $_POST['color']);
-                    $stmt_nueva_flor->bindParam(':descripcion', $_POST['descripcion']);
-                    
-                    if ($stmt_nueva_flor->execute()) {
-                        $nuevo_id = $conexion->lastInsertId();
-                        
-                        // Si se especifica stock y precio, agregar al inventario
-                        if (!empty($_POST['stock_inicial']) && !empty($_POST['precio_inicial'])) {
-                            $sql_inv = "INSERT INTO inv (tflor_idtflor, stock, precio) VALUES (:tflor_id, :stock, :precio)";
-                            $stmt_inv = $conexion->prepare($sql_inv);
-                            $stmt_inv->bindParam(':tflor_id', $nuevo_id);
-                            $stmt_inv->bindParam(':stock', $_POST['stock_inicial']);
-                            $stmt_inv->bindParam(':precio', $_POST['precio_inicial']);
-                            $stmt_inv->execute();
-                        }
-                        
-                        $mensaje_exito = 'Nueva flor creada exitosamente';
-                        header('Location: ?page=inventarios&success=nueva_flor');
-                        exit;
-                    }
-                    break;
-                    
-                case 'editar_flor':
-                    // Validar ID de flor
-                    if (empty($_POST['idtflor'])) {
-                        throw new Exception('ID de flor requerido');
-                    }
-                    
-                    // Actualizar datos de la flor
-                    $sql_actualizar = "UPDATE tflor SET nombre = :nombre, naturaleza = :naturaleza, color = :color, descripcion = :descripcion WHERE idtflor = :id";
-                    $stmt_actualizar = $conexion->prepare($sql_actualizar);
-                    $stmt_actualizar->bindParam(':nombre', $_POST['nombre']);
-                    $stmt_actualizar->bindParam(':naturaleza', $_POST['naturaleza']);
-                    $stmt_actualizar->bindParam(':color', $_POST['color']);
-                    $stmt_actualizar->bindParam(':descripcion', $_POST['descripcion']);
-                    $stmt_actualizar->bindParam(':id', $_POST['idtflor']);
-                    
-                    if ($stmt_actualizar->execute()) {
-                        // Actualizar inventario si existe
-                        if (!empty($_POST['stock']) && !empty($_POST['precio'])) {
-                            $sql_update_inv = "UPDATE inv SET stock = :stock, precio = :precio WHERE tflor_idtflor = :tflor_id";
-                            $stmt_update_inv = $conexion->prepare($sql_update_inv);
-                            $stmt_update_inv->bindParam(':stock', $_POST['stock']);
-                            $stmt_update_inv->bindParam(':precio', $_POST['precio']);
-                            $stmt_update_inv->bindParam(':tflor_id', $_POST['idtflor']);
-                            $stmt_update_inv->execute();
-                        }
-                        
-                        $mensaje_exito = 'Flor actualizada exitosamente';
-                        header('Location: ?page=inventarios&success=flor_editada');
-                        exit;
-                    }
-                    break;
-            }
-        }
-    } catch (Exception $e) {
-        $mensaje_error = $e->getMessage();
-    } catch (PDOException $e) {
-        $mensaje_error = 'Error de base de datos: ' . $e->getMessage();
-    }
-}
-?>
-
+<!-- Gestión de Inventario - Vista -->
 <main class="container-fluid py-4">
     <h2 class="mb-4 fw-bold">Gestión de Inventario</h2>
+    
+    <!-- DEBUG: Confirmar que la vista correcta se está cargando -->
+    <div class="alert alert-info">
+        <strong>DEBUG:</strong> Vista de inventario cargada correctamente. 
+        Elementos disponibles: <?= isset($inventario) ? count($inventario) : 0 ?> 
+        de <?= $total_elementos ?? 0 ?> total.
+    </div>
     
     <!-- Mensajes de éxito y error -->
     <?php if (!empty($mensaje_exito)): ?>
@@ -247,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="card-body">
                     <i class="fas fa-boxes h2 text-primary"></i>
                     <h6 class="fw-bold mt-2">Total Productos</h6>
-                    <div class="h4"><?= $total_productos ?></div>
+                    <div class="h4"><?= $total_productos ?? 0 ?></div>
                 </div>
             </div>
         </div>
@@ -256,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="card-body">
                     <i class="fas fa-exclamation-triangle h2 text-warning"></i>
                     <h6 class="fw-bold mt-2">Stock Bajo</h6>
-                    <div class="h4"><?= $stock_bajo ?></div>
+                    <div class="h4"><?= $stock_bajo ?? 0 ?></div>
                 </div>
             </div>
         </div>
@@ -265,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="card-body">
                     <i class="fas fa-times-circle h2 text-danger"></i>
                     <h6 class="fw-bold mt-2">Sin Stock</h6>
-                    <div class="h4"><?= $sin_stock ?></div>
+                    <div class="h4"><?= $sin_stock ?? 0 ?></div>
                 </div>
             </div>
         </div>
@@ -274,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="card-body">
                     <i class="fas fa-dollar-sign h2 text-success"></i>
                     <h6 class="fw-bold mt-2">Valor Total</h6>
-                    <div class="h4">$<?= number_format($valor_total, 0, ',', '.') ?></div>
+                    <div class="h4">$<?= number_format($valor_total ?? 0, 0, ',', '.') ?></div>
                 </div>
             </div>
         </div>
@@ -283,99 +73,134 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Filtros de Inventario -->
     <fieldset class="border rounded p-3 mb-4 bg-light">
         <legend class="float-none w-auto px-2 mb-2 fw-bold"><i class="fas fa-filter"></i> Filtros de Inventario</legend>
-        <form class="row g-2 flex-wrap align-items-end" method="get" action="">
+        <form class="row g-2 flex-wrap align-items-end" method="get" action="?ctrl=cinventario">
+            <input type="hidden" name="ctrl" value="cinventario">
             <div class="col-12 col-md-3">
                 <label for="categoria" class="form-label mb-1">Naturaleza</label>
                 <select id="categoria" name="categoria" class="form-select">
                     <option value="">Todas las naturalezas</option>
-                    <option value="Natural">Natural</option>
-                    <option value="Artificial">Artificial</option>
+                    <option value="Natural" <?= (isset($_GET['categoria']) && $_GET['categoria'] == 'Natural') ? 'selected' : '' ?>>Natural</option>
+                    <option value="Artificial" <?= (isset($_GET['categoria']) && $_GET['categoria'] == 'Artificial') ? 'selected' : '' ?>>Artificial</option>
                 </select>
             </div>
             <div class="col-12 col-md-3">
                 <label for="estado_stock" class="form-label mb-1">Estado de Stock</label>
                 <select id="estado_stock" name="estado_stock" class="form-select">
                     <option value="">Todos los estados</option>
-                    <option value="bajo">Bajo</option>
-                    <option value="sin_stock">Sin Stock</option>
-                    <option value="normal">Normal</option>
+                    <option value="bajo" <?= (isset($_GET['estado_stock']) && $_GET['estado_stock'] == 'bajo') ? 'selected' : '' ?>>Bajo</option>
+                    <option value="sin_stock" <?= (isset($_GET['estado_stock']) && $_GET['estado_stock'] == 'sin_stock') ? 'selected' : '' ?>>Sin Stock</option>
+                    <option value="normal" <?= (isset($_GET['estado_stock']) && $_GET['estado_stock'] == 'normal') ? 'selected' : '' ?>>Normal</option>
                 </select>
             </div>
             <div class="col-12 col-md-3">
                 <label for="buscar" class="form-label mb-1">Buscar</label>
-                <input type="text" id="buscar" name="buscar" class="form-control" placeholder="Nombre de la flor...">
+                <input type="text" id="buscar" name="buscar" class="form-control" placeholder="Nombre de la flor..." value="<?= htmlspecialchars($_GET['buscar'] ?? '') ?>">
             </div>
             <div class="col-12 col-md-3">
                 <button type="submit" class="btn btn-primary w-100">Filtrar</button>
-                <a href="?page=inventarios" class="d-block mt-2 text-secondary">Limpiar Filtros</a>
+                <a href="?ctrl=cinventario" class="d-block mt-2 text-secondary">Limpiar Filtros</a>
             </div>
         </form>
     </fieldset>
 
     <!-- Botones de acción de inventario -->
     <div class="d-flex justify-content-center flex-wrap gap-2 mb-4">
-        <button class="btn btn-success shadow-sm" onclick="abrirproducto()">
+        <button class="btn btn-success shadow-sm" onclick="abrirproducto()" id="btn-nuevo-producto">
             <i class="fas fa-plus me-2"></i>Nuevo Producto
         </button>
         <button class="btn btn-info shadow-sm" onclick="abrirproveedor()">
             <i class="fas fa-truck me-2"></i>Proveedores
         </button>
-        <button class="btn btn-primary shadow-sm" onclick="abrirReportes()">
-            <i class="fas fa-chart-bar me-2"></i>Reportes Inventario
-        </button>
         <button class="btn btn-secondary shadow-sm" onclick="abrirParametros()">
             <i class="fas fa-cog me-2"></i>Parámetros Inventario
         </button>
-        <button class="btn btn-warning shadow-sm" onclick="abrirGestionFlores()">
+        <button class="btn btn-warning shadow-sm" onclick="gestionarFlores()">
             <i class="fas fa-seedling me-2"></i>Gestión de Flores
         </button>
     </div>
 
+    <!-- Controles de listado -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <label for="itemsPerPage" class="form-label mb-0">Mostrar:</label>
+            <select id="itemsPerPage" class="form-select form-select-sm" style="width: auto;" onchange="cambiarLimite()">
+                <option value="10" <?= (($elementos_por_pagina ?? 10) == 10) ? 'selected' : '' ?>>10</option>
+                <option value="25" <?= (($elementos_por_pagina ?? 10) == 25) ? 'selected' : '' ?>>25</option>
+                <option value="50" <?= (($elementos_por_pagina ?? 10) == 50) ? 'selected' : '' ?>>50</option>
+                <option value="100" <?= (($elementos_por_pagina ?? 10) == 100) ? 'selected' : '' ?>>100</option>
+            </select>
+            <span class="text-muted">productos por página</span>
+        </div>
+        
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" onclick="recargarListado()" title="Actualizar listado">
+                <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+            <button class="btn btn-outline-danger btn-sm" onclick="detenerCarga()" title="Detener carga" style="display: none;" id="stopLoadingBtn">
+                <i class="fas fa-stop"></i> Detener
+            </button>
+            <button class="btn btn-outline-info btn-sm" onclick="exportarInventario()" title="Exportar a Excel">
+                <i class="fas fa-file-excel"></i> Exportar
+            </button>
+        </div>
+    </div>
+
     <!-- Tabla de inventario -->
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>Producto</th>
-                    <th>Naturaleza</th>
-                    <th>Color</th>
-                    <th>Stock</th>
-                    <th>Estado</th>
-                    <th>Precio Unitario</th>
-                    <th>Valor Total</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (!empty($inventario)): ?>
-                    <?php foreach ($inventario as $item): ?>
-                        <tr>
-                            <td class="fw-bold"><?= htmlspecialchars($item['producto']) ?></td>
-                            <td><?= htmlspecialchars($item['naturaleza']) ?></td>
-                            <td><?= htmlspecialchars($item['color']) ?></td>
-                            <td>
-                                <span class="badge <?= $item['stock'] == 0 ? 'bg-danger' : ($item['stock'] < 20 ? 'bg-warning' : 'bg-success') ?>">
-                                    <?= $item['stock'] ?>
-                                </span>
-                            </td>
-                            <td>
-                                <?php
-                                $estado_class = '';
-                                switch($item['estado_stock']) {
-                                    case 'Sin Stock':
-                                        $estado_class = 'text-danger';
-                                        break;
-                                    case 'Bajo':
-                                        $estado_class = 'text-warning';
-                                        break;
-                                    default:
-                                        $estado_class = 'text-success';
-                                }
-                                ?>
-                                <span class="<?= $estado_class ?> fw-bold"><?= $item['estado_stock'] ?></span>
-                            </td>
-                            <td>$<?= number_format($item['precio'], 0, ',', '.') ?></td>
-                            <td>$<?= number_format($item['stock'] * $item['precio'], 0, ',', '.') ?></td>
+    <div class="position-relative">
+        <!-- Loading indicator -->
+        <div id="loadingIndicator" class="position-absolute w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="display: none !important; z-index: 10;">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="mt-2 text-muted">Actualizando inventario...</p>
+            </div>
+        </div>
+        
+        <div class="table-responsive" id="productListContainer">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Producto</th>
+                        <th>Naturaleza</th>
+                        <th>Color</th>
+                        <th>Stock</th>
+                        <th>Estado</th>
+                        <th>Precio Unitario</th>
+                        <th>Valor Total</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="inventarioTableBody">
+                    <?php if (!empty($inventario)): ?>
+                        <?php foreach ($inventario as $item): ?>
+                            <tr>
+                                <td class="fw-bold"><?= htmlspecialchars($item['producto']) ?></td>
+                                <td><?= htmlspecialchars($item['naturaleza']) ?></td>
+                                <td><?= htmlspecialchars($item['color']) ?></td>
+                                <td>
+                                    <span class="badge <?= $item['stock'] == 0 ? 'bg-danger' : ($item['stock'] < 20 ? 'bg-warning' : 'bg-success') ?>">
+                                        <?= $item['stock'] ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <?php
+                                    $estado_class = '';
+                                    switch($item['estado_stock']) {
+                                        case 'Sin Stock':
+                                            $estado_class = 'text-danger';
+                                            break;
+                                        case 'Bajo':
+                                            $estado_class = 'text-warning';
+                                            break;
+                                        default:
+                                            $estado_class = 'text-success';
+                                    }
+                                    ?>
+                                    <span class="<?= $estado_class ?> fw-bold"><?= $item['estado_stock'] ?></span>
+                                </td>
+                                <td>$<?= number_format($item['precio'], 0, ',', '.') ?></td>
+                                <td>$<?= number_format($item['stock'] * $item['precio'], 0, ',', '.') ?></td>
                             <td>
                                 <div class="btn-group" role="group">
                                     <button type="button" class="btn btn-warning btn-sm" title="Editar">
@@ -403,6 +228,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </tbody>
         </table>
     </div>
+    
+    <!-- Paginación AJAX -->
+    <div id="paginationContainer">
+        <?php if (isset($total_paginas) && $total_paginas > 1): ?>
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <div class="text-muted" id="paginationInfo">
+                Mostrando <?= min(($offset ?? 0) + 1, $total_elementos ?? 0) ?> - <?= min(($offset ?? 0) + ($elementos_por_pagina ?? 10), $total_elementos ?? 0) ?> 
+                de <?= $total_elementos ?? 0 ?> productos
+            </div>
+            
+            <nav aria-label="Paginación del inventario">
+                <ul class="pagination pagination-sm mb-0">
+                    <!-- Botón anterior -->
+                    <li class="page-item <?= ($pagina_actual ?? 1) <= 1 ? 'disabled' : '' ?>">
+                        <a class="page-link" href="#" onclick="cargarPagina(<?= ($pagina_actual ?? 1) - 1 ?>)" aria-label="Anterior">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    
+                    <?php
+                    // Mostrar páginas
+                    $pagina_actual = $pagina_actual ?? 1;
+                    $total_paginas = $total_paginas ?? 1;
+                    
+                    $inicio = max(1, $pagina_actual - 2);
+                    $fin = min($total_paginas, $pagina_actual + 2);
+                    
+                    // Primera página si no está en el rango visible
+                    if ($inicio > 1) {
+                        echo '<li class="page-item"><a class="page-link" href="#" onclick="cargarPagina(1)">1</a></li>';
+                        if ($inicio > 2) {
+                            echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                        }
+                    }
+                    
+                    // Páginas en el rango visible
+                    for ($i = $inicio; $i <= $fin; $i++):
+                    ?>
+                        <li class="page-item <?= $i == $pagina_actual ? 'active' : '' ?>">
+                            <a class="page-link" href="#" onclick="cargarPagina(<?= $i ?>)"><?= $i ?></a>
+                        </li>
+                    <?php 
+                    endfor;
+                    
+                    // Última página si no está en el rango visible
+                    if ($fin < $total_paginas) {
+                        if ($fin < $total_paginas - 1) {
+                            echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                        }
+                        echo '<li class="page-item"><a class="page-link" href="#" onclick="cargarPagina(' . $total_paginas . ')">' . $total_paginas . '</a></li>';
+                    }
+                    ?>
+                    
+                    <!-- Botón siguiente -->
+                    <li class="page-item <?= ($pagina_actual ?? 1) >= ($total_paginas ?? 1) ? 'disabled' : '' ?>">
+                        <a class="page-link" href="#" onclick="cargarPagina(<?= ($pagina_actual ?? 1) + 1 ?>)" aria-label="Siguiente">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <!-- Selector de elementos por página -->
+            <div class="d-flex align-items-center">
+                <span class="text-muted me-2 small">Mostrar:</span>
+                <select class="form-select form-select-sm" style="width: auto;" onchange="cambiarElementosPorPagina(this.value)">
+                    <option value="10" <?= ($elementos_por_pagina ?? 10) == 10 ? 'selected' : '' ?>>10</option>
+                    <option value="25" <?= ($elementos_por_pagina ?? 10) == 25 ? 'selected' : '' ?>>25</option>
+                    <option value="50" <?= ($elementos_por_pagina ?? 10) == 50 ? 'selected' : '' ?>>50</option>
+                    <option value="100" <?= ($elementos_por_pagina ?? 10) == 100 ? 'selected' : '' ?>>100</option>
+                </select>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
 </main>
 
 <!-- Modales -->
@@ -411,57 +311,101 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Nuevo Producto al Inventario</h5>
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Agregar Nuevo Producto al Inventario</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form method="POST" action="" id="form-nuevo-producto">
+                <form method="POST" action="?ctrl=cinventario" id="form-nuevo-producto">
                     <input type="hidden" name="accion" value="nuevo_producto">
                     
                     <div class="row g-3">
+                        <!-- Tipo de Producto -->
                         <div class="col-md-6">
-                            <label class="form-label"><i class="fas fa-tag me-1"></i>Seleccionar Flor *</label>
-                            <select class="form-select" name="tflor_idtflor" required>
-                                <option value="">Selecciona una flor...</option>
-                                <?php
-                                try {
-                                    $sql_flores = "SELECT idtflor, nombre, naturaleza, color FROM tflor ORDER BY nombre";
-                                    $stmt_flores = $conexion->prepare($sql_flores);
-                                    $stmt_flores->execute();
-                                    $flores = $stmt_flores->fetchAll(PDO::FETCH_ASSOC);
-                                    
-                                    foreach ($flores as $flor) {
-                                        echo "<option value='{$flor['idtflor']}'>{$flor['nombre']} ({$flor['naturaleza']} - {$flor['color']})</option>";
-                                    }
-                                } catch (PDOException $e) {
-                                    echo "<option value=''>Error al cargar flores</option>";
-                                }
-                                ?>
+                            <label class="form-label"><i class="fas fa-layer-group me-1"></i>Tipo de Producto *</label>
+                            <select class="form-select" name="tipo_producto" id="tipo_producto" required onchange="cambiarTipoProducto()">
+                                <option value="">Selecciona el tipo...</option>
+                                <option value="flor">🌸 Flor Natural/Artificial</option>
+                                <option value="chocolate">🍫 Chocolate</option>
+                                <option value="tarjeta">💌 Tarjeta</option>
+                                <option value="peluche">🧸 Peluche</option>
+                                <option value="globo">🎈 Globo</option>
+                                <option value="accesorio">✨ Accesorio</option>
+                                <option value="otro">📦 Otro</option>
                             </select>
-                            <small class="text-muted">Selecciona la flor para agregar al inventario</small>
                         </div>
                         
+                        <!-- Nombre del Producto -->
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-tag me-1"></i>Nombre del Producto *</label>
+                            <input type="text" class="form-control" name="nombre_producto" required placeholder="Ej: Rosa Roja, Chocolate Ferrero, Tarjeta de Amor">
+                            <small class="text-muted">Nombre descriptivo del producto</small>
+                        </div>
+                        
+                        <!-- Selección de Flor (solo visible para flores) -->
+                        <div class="col-12" id="seccion_flor" style="display: none;">
+                            <label class="form-label"><i class="fas fa-seedling me-1"></i>Seleccionar Flor Existente (Opcional)</label>
+                            <select class="form-select" name="tflor_idtflor" id="flor_select">
+                                <option value="">Crear nueva flor o dejar en blanco para producto genérico</option>
+                                <?php if (!empty($flores_para_select)): ?>
+                                    <?php foreach ($flores_para_select as $flor): ?>
+                                        <option value="<?= $flor['idtflor'] ?>"><?= htmlspecialchars($flor['nombre']) ?> (<?= htmlspecialchars($flor['naturaleza']) ?> - <?= htmlspecialchars($flor['color']) ?>)</option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                            <small class="text-muted">Si es una flor nueva, déjalo en blanco y se creará automáticamente</small>
+                        </div>
+                        
+                        <!-- Categoría/Naturaleza -->
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-list me-1"></i>Categoría *</label>
+                            <select class="form-select" name="categoria" required>
+                                <option value="">Selecciona categoría...</option>
+                                <option value="Natural">Natural</option>
+                                <option value="Artificial">Artificial</option>
+                                <option value="Comestible">Comestible</option>
+                                <option value="Decorativo">Decorativo</option>
+                                <option value="Regalo">Regalo</option>
+                                <option value="Accesorio">Accesorio</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Color -->
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-palette me-1"></i>Color Principal</label>
+                            <select class="form-select" name="color">
+                                <option value="Multicolor">Multicolor</option>
+                                <option value="Rojo">Rojo</option>
+                                <option value="Rosa">Rosa</option>
+                                <option value="Blanco">Blanco</option>
+                                <option value="Amarillo">Amarillo</option>
+                                <option value="Naranja">Naranja</option>
+                                <option value="Morado">Morado</option>
+                                <option value="Azul">Azul</option>
+                                <option value="Verde">Verde</option>
+                                <option value="Negro">Negro</option>
+                                <option value="Dorado">Dorado</option>
+                                <option value="Plateado">Plateado</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Stock Inicial -->
                         <div class="col-md-6">
                             <label class="form-label"><i class="fas fa-boxes me-1"></i>Stock Inicial *</label>
                             <input type="number" class="form-control" name="stock" min="0" required placeholder="Ej: 50">
                             <small class="text-muted">Cantidad inicial en inventario</small>
                         </div>
                         
+                        <!-- Precio -->
                         <div class="col-md-6">
                             <label class="form-label"><i class="fas fa-dollar-sign me-1"></i>Precio Unitario *</label>
                             <input type="number" step="0.01" class="form-control" name="precio" min="0" required placeholder="0.00">
                             <small class="text-muted">Precio de venta por unidad</small>
                         </div>
                         
-                        <div class="col-md-6">
-                            <label class="form-label"><i class="fas fa-exclamation-triangle me-1"></i>Stock Mínimo</label>
-                            <input type="number" class="form-control" name="stock_minimo" min="0" value="10" placeholder="Ej: 10">
-                            <small class="text-muted">Cantidad mínima antes de alerta</small>
-                        </div>
-                        
+                        <!-- Descripción -->
                         <div class="col-12">
-                            <label class="form-label"><i class="fas fa-sticky-note me-1"></i>Observaciones</label>
-                            <textarea class="form-control" name="observaciones" rows="3" placeholder="Notas adicionales sobre el producto..."></textarea>
+                            <label class="form-label"><i class="fas fa-align-left me-1"></i>Descripción</label>
+                            <textarea class="form-control" name="descripcion" rows="3" placeholder="Descripción detallada del producto, características especiales, etc."></textarea>
                         </div>
                     </div>
                     
@@ -530,10 +474,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     </tr>
                                 </thead>
                                 <tbody id="tabla-flores">
-                                    <?php foreach ($todas_las_flores as $flor): ?>
-                                    <tr data-flor-id="<?= $flor['idtflor'] ?>">
-                                        <td><span class="badge bg-secondary"><?= $flor['idtflor'] ?></span></td>
-                                        <td><strong><?= htmlspecialchars($flor['nombre']) ?></strong></td>
+                                    <?php if (isset($todas_las_flores) && is_array($todas_las_flores)): ?>
+                                        <?php foreach ($todas_las_flores as $flor): ?>
+                                        <tr data-flor-id="<?= $flor['idtflor'] ?>">
+                                            <td><span class="badge bg-secondary"><?= $flor['idtflor'] ?></span></td>
+                                            <td><strong><?= htmlspecialchars($flor['nombre']) ?></strong></td>
                                         <td>
                                             <span class="badge bg-<?= $flor['naturaleza'] === 'Natural' ? 'success' : 'info' ?>">
                                                 <?= htmlspecialchars($flor['naturaleza']) ?>
@@ -582,7 +527,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             </div>
                                         </td>
                                     </tr>
-                                    <?php endforeach; ?>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="7" class="text-center">
+                                                <div class="alert alert-info mb-0">
+                                                    <i class="fas fa-info-circle"></i>
+                                                    No hay flores registradas en el sistema.
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
@@ -590,7 +545,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <!-- Nueva flor -->
                     <div class="tab-pane fade" id="nueva-flor" role="tabpanel">
-                        <form method="POST" action="" id="form-nueva-flor">
+                        <form method="POST" action="?ctrl=cinventario" id="form-nueva-flor">
                             <input type="hidden" name="accion" value="nueva_flor">
                             <div class="row g-3">
                                 <div class="col-md-6">
@@ -652,7 +607,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="card-body">
                                         <i class="fas fa-seedling fa-2x text-success mb-2"></i>
                                         <h6>Total Flores</h6>
-                                        <h4 class="text-success"><?= count($todas_las_flores) ?></h4>
+                                        <h4 class="text-success"><?= isset($todas_las_flores) && is_array($todas_las_flores) ? count($todas_las_flores) : 0 ?></h4>
                                     </div>
                                 </div>
                             </div>
@@ -724,37 +679,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="modal fade" id="modal-proveedores" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Nuevo Proveedor</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-truck me-2"></i>Nuevo Proveedor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form>
-                    <div class="mb-3">
-                        <label class="form-label">Nombre:</label>
-                        <input type="text" class="form-control">
+                <form method="POST" action="?ctrl=cinventario" id="form-nuevo-proveedor">
+                    <input type="hidden" name="accion" value="nuevo_proveedor">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-building me-1"></i>Nombre del Proveedor *</label>
+                            <input type="text" class="form-control" name="nombre_proveedor" required 
+                                   placeholder="Ej: Flores del Valle S.A.">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-tags me-1"></i>Categoría *</label>
+                            <select class="form-select" name="categoria_proveedor" required>
+                                <option value="">Seleccionar categoría...</option>
+                                <option value="flores_frescas">Flores Frescas</option>
+                                <option value="flores_artificiales">Flores Artificiales</option>
+                                <option value="plantas">Plantas y Arbustos</option>
+                                <option value="chocolates">Chocolates y Dulces</option>
+                                <option value="caramelos">Caramelos Gourmet</option>
+                                <option value="fotografias">Servicios de Fotografía</option>
+                                <option value="globos">Globos y Decoraciones</option>
+                                <option value="tarjetas">Tarjetas y Papelería</option>
+                                <option value="perfumes">Perfumes y Fragancias</option>
+                                <option value="velas">Velas Aromáticas</option>
+                                <option value="accesorios">Accesorios Florales</option>
+                                <option value="macetas">Macetas y Contenedores</option>
+                                <option value="fertilizantes">Fertilizantes y Nutrientes</option>
+                                <option value="herramientas">Herramientas de Jardinería</option>
+                                <option value="cestas">Cestas y Canastas</option>
+                                <option value="lazos">Lazos y Cintas</option>
+                                <option value="empaques">Materiales de Empaque</option>
+                                <option value="preservantes">Preservantes Florales</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-phone me-1"></i>Teléfono</label>
+                            <input type="tel" class="form-control" name="telefono_proveedor" 
+                                   placeholder="Ej: +503 2234-5678">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-envelope me-1"></i>Email</label>
+                            <input type="email" class="form-control" name="email_proveedor" 
+                                   placeholder="contacto@proveedor.com">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-map-marker-alt me-1"></i>Dirección</label>
+                            <textarea class="form-control" name="direccion_proveedor" rows="2" 
+                                      placeholder="Dirección completa del proveedor..."></textarea>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Categoría:</label>
-                        <select class="form-select">
-                            <option value="flores">Flores</option>
-                            <option value="plantas">Plantas</option>
-                            <option value="accesorios">Accesorios</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Teléfono:</label>
-                        <input type="text" class="form-control">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Dirección:</label>
-                        <input type="text" class="form-control">
+                    
+                    <div class="mt-4 d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-info">
+                            <i class="fas fa-truck me-1"></i>Agregar Proveedor
+                        </button>
                     </div>
                 </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-primary">Guardar</button>
             </div>
         </div>
     </div>
@@ -763,70 +751,149 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script>
 // Función para abrir modal de nuevo producto
 function abrirproducto() {
-    const modal = new bootstrap.Modal(document.getElementById('modal-nuevo-producto'));
-    modal.show();
+    console.log('🔧 Función abrirproducto() llamada');
+    
+    try {
+        const modalElement = document.getElementById('modal-nuevo-producto');
+        console.log('🔍 Modal element:', modalElement);
+        
+        if (!modalElement) {
+            console.error('❌ Modal no encontrado');
+            alert('Error: Modal no encontrado');
+            return;
+        }
+        
+        console.log('📋 Bootstrap object:', typeof bootstrap);
+        console.log('🎭 Bootstrap.Modal:', typeof bootstrap?.Modal);
+        
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            console.log('✅ Creando modal...');
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            console.log('🎉 Modal mostrado exitosamente');
+        } else {
+            console.error('❌ Bootstrap no está disponible');
+            // Fallback: usar jQuery si está disponible
+            if (typeof $ !== 'undefined') {
+                console.log('🔄 Usando jQuery como fallback');
+                $(modalElement).modal('show');
+            } else {
+                console.log('🔄 Usando método alternativo manual');
+                abrirModalAlternativo();
+            }
+        }
+    } catch (error) {
+        console.error('💥 Error al abrir modal:', error);
+        alert('Error al abrir el modal: ' + error.message);
+    }
 }
+
+// Función alternativa para abrir modal (fallback)
+function abrirModalAlternativo() {
+    console.log('🔄 Usando método alternativo para abrir modal');
+    const modalElement = document.getElementById('modal-nuevo-producto');
+    if (modalElement) {
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+        modalElement.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        
+        // Agregar evento para cerrar modal
+        const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"], .btn-secondary');
+        closeButtons.forEach(btn => {
+            btn.onclick = function() {
+                modalElement.style.display = 'none';
+                modalElement.classList.remove('show');
+            };
+        });
+    }
+}
+
+// Verificar al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 Página cargada');
+    console.log('🔍 Bootstrap disponible:', typeof bootstrap !== 'undefined');
+    console.log('🔍 jQuery disponible:', typeof $ !== 'undefined');
+    
+    // Agregar listener alternativo al botón
+    const btnNuevoProducto = document.getElementById('btn-nuevo-producto');
+    if (btnNuevoProducto) {
+        console.log('✅ Botón encontrado, agregando listener adicional');
+        btnNuevoProducto.addEventListener('click', function(e) {
+            console.log('🖱️ Click detectado en botón');
+            e.preventDefault();
+            abrirproducto();
+        });
+    }
+});
 
 // Función para abrir modal de proveedores
 function abrirproveedor() {
-    const modal = new bootstrap.Modal(document.getElementById('modal-proveedores'));
-    modal.show();
+    try {
+        const modalElement = document.getElementById('modal-proveedores');
+        if (!modalElement) {
+            alert('Error: Modal de proveedores no encontrado');
+            return;
+        }
+        
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        } else {
+            alert('Error: Bootstrap no está cargado correctamente');
+        }
+    } catch (error) {
+        console.error('Error al abrir modal:', error);
+        alert('Error al abrir el modal de proveedores');
+    }
 }
 
-// Función para abrir reportes de inventario
-function abrirReportes() {
-    // Crear modal dinámico para reportes
-    const modalHTML = `
-        <div class="modal fade" id="modal-reportes" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-chart-bar me-2"></i>Reportes de Inventario</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <button class="btn btn-outline-primary w-100" onclick="generarReporte('stock-bajo')">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    Productos con Stock Bajo
-                                </button>
-                            </div>
-                            <div class="col-md-6">
-                                <button class="btn btn-outline-danger w-100" onclick="generarReporte('sin-stock')">
-                                    <i class="fas fa-times-circle me-2"></i>
-                                    Productos sin Stock
-                                </button>
-                            </div>
-                            <div class="col-md-6">
-                                <button class="btn btn-outline-success w-100" onclick="generarReporte('valoracion')">
-                                    <i class="fas fa-dollar-sign me-2"></i>
-                                    Valoración de Inventario
-                                </button>
-                            </div>
-                            <div class="col-md-6">
-                                <button class="btn btn-outline-info w-100" onclick="generarReporte('movimientos')">
-                                    <i class="fas fa-exchange-alt me-2"></i>
-                                    Movimientos de Stock
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+/ Función para cambiar elementos por página (con fallback robusto)
+function cambiarElementosPorPagina(nuevoValor) {
+    console.log('Cambiando elementos por página a:', nuevoValor);
     
-    // Remover modal anterior si existe
-    const existingModal = document.getElementById('modal-reportes');
-    if (existingModal) {
-        existingModal.remove();
+    // Verificar si AJAX está disponible
+    const productContainer = document.getElementById('productListContainer');
+    const ajaxDisponible = productContainer && 
+                          typeof actualizarListado === 'function' && 
+                          window.navigator.onLine !== false;
+    
+    if (ajaxDisponible) {
+        console.log('Intentando cambio vía AJAX...');
+        currentLimit = parseInt(nuevoValor);
+        currentPage = 1; // Resetear a primera página
+        
+        try {
+            actualizarListado();
+            return;
+        } catch (error) {
+            console.error('Error en AJAX, usando recarga tradicional:', error);
+        }
     }
     
-    // Agregar y mostrar nuevo modal
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    const modal = new bootstrap.Modal(document.getElementById('modal-reportes'));
-    modal.show();
+    // Fallback: recarga tradicional (siempre funciona)
+    console.log('Usando recarga tradicional para cambio de límite');
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('per_page', nuevoValor);
+    urlParams.set('pagina', 1); // Siempre volver a la primera página
+    
+    // Mantener filtros existentes
+    const buscar = document.querySelector('input[name="buscar"]');
+    if (buscar && buscar.value) {
+        urlParams.set('buscar', buscar.value);
+    }
+    
+    const categoria = document.querySelector('select[name="categoria"]');
+    if (categoria && categoria.value) {
+        urlParams.set('categoria', categoria.value);
+    }
+    
+    // Mantener el parámetro 'ctrl' si existe
+    if (!urlParams.has('ctrl')) {
+        urlParams.set('ctrl', 'cinventario');
+    }
+    
+    console.log('Redirigiendo con nuevo límite a:', '?' + urlParams.toString());
+    window.location.href = '?' + urlParams.toString();
 }
 
 // Función para abrir parámetros de inventario
@@ -834,36 +901,65 @@ function abrirParametros() {
     // Crear modal dinámico para parámetros
     const modalHTML = `
         <div class="modal fade" id="modal-parametros" tabindex="-1">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-lg">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-cog me-2"></i>Parámetros de Inventario</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <div class="modal-header bg-secondary text-white">
+                        <h5 class="modal-title"><i class="fas fa-cog me-2"></i>Configuración de Inventario</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <form method="POST" action="">
+                        <form method="POST" action="?ctrl=cinventario" id="form-parametros">
                             <input type="hidden" name="accion" value="actualizar_parametros">
-                            <div class="mb-3">
-                                <label class="form-label">Stock Mínimo para Alerta</label>
-                                <input type="number" class="form-control" name="stock_minimo" value="20" min="1">
-                                <small class="text-muted">Productos con stock menor a este número aparecerán como "Stock Bajo"</small>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Días para Reporte de Vencimiento</label>
-                                <input type="number" class="form-control" name="dias_vencimiento" value="30" min="1">
-                                <small class="text-muted">Días de anticipación para alertas de vencimiento</small>
-                            </div>
-                            <div class="mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="alertas_email" id="alertas_email" checked>
-                                    <label class="form-check-label" for="alertas_email">
-                                        Enviar alertas por email
-                                    </label>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label"><i class="fas fa-exclamation-triangle me-1"></i>Stock Mínimo para Alerta</label>
+                                    <input type="number" class="form-control" name="stock_minimo" value="20" min="1" max="100">
+                                    <small class="text-muted">Productos con stock menor a este número aparecerán como "Stock Bajo"</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label"><i class="fas fa-calendar-alt me-1"></i>Días para Alerta de Vencimiento</label>
+                                    <input type="number" class="form-control" name="dias_vencimiento" value="30" min="1" max="365">
+                                    <small class="text-muted">Días de anticipación para alertas de vencimiento</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label"><i class="fas fa-money-bill me-1"></i>Moneda</label>
+                                    <select class="form-select" name="moneda">
+                                        <option value="USD">Dólares (USD)</option>
+                                        <option value="EUR">Euros (EUR)</option>
+                                        <option value="GTQ">Quetzales (GTQ)</option>
+                                        <option value="HNL">Lempiras (HNL)</option>
+                                        <option value="NIO">Córdobas (NIO)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label"><i class="fas fa-percent me-1"></i>IVA (%)</label>
+                                    <input type="number" step="0.01" class="form-control" name="iva_porcentaje" value="13.00" min="0" max="100">
+                                    <small class="text-muted">Porcentaje de IVA aplicado a los precios</small>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="alertas_email" id="alertas_email" checked>
+                                        <label class="form-check-label" for="alertas_email">
+                                            <i class="fas fa-envelope me-1"></i>Enviar alertas por email
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>Nota:</strong> Estos parámetros afectarán el cálculo de alertas y reportes en todo el sistema.
+                                    </div>
                                 </div>
                             </div>
-                            <div class="d-flex justify-content-end gap-2">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                            
+                            <div class="mt-4 d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    <i class="fas fa-times me-1"></i>Cancelar
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>Guardar Configuración
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -880,36 +976,27 @@ function abrirParametros() {
     
     // Agregar y mostrar nuevo modal
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    const modal = new bootstrap.Modal(document.getElementById('modal-parametros'));
-    modal.show();
+    
+    try {
+        const modalElement = document.getElementById('modal-parametros');
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        } else {
+            alert('Error: Bootstrap no está cargado correctamente');
+        }
+    } catch (error) {
+        console.error('Error al mostrar modal:', error);
+        alert('Error al mostrar el modal de parámetros');
+    }
 }
 
-// Función para generar reportes específicos
-function generarReporte(tipo) {
-    let url = '';
-    switch(tipo) {
-        case 'stock-bajo':
-            url = '?page=inventarios&reporte=stock_bajo';
-            break;
-        case 'sin-stock':
-            url = '?page=inventarios&reporte=sin_stock';
-            break;
-        case 'valoracion':
-            url = '?page=inventarios&reporte=valoracion';
-            break;
-        case 'movimientos':
-            url = '?page=inventarios&reporte=movimientos';
-            break;
-    }
-    
-    // Abrir reporte en nueva ventana
-    window.open(url, '_blank');
-}
+// Función para generar reportes específicos - MOVIDO A VISTA DE REPORTES
 
 // Función para mostrar alertas de stock
 function verificarStockBajo() {
-    const stockBajo = <?= $stock_bajo ?>;
-    const sinStock = <?= $sin_stock ?>;
+    const stockBajo = <?= $stock_bajo ?? 0 ?>;
+    const sinStock = <?= $sin_stock ?? 0 ?>;
     
     if (stockBajo > 0 || sinStock > 0) {
         let mensaje = '';
@@ -919,11 +1006,9 @@ function verificarStockBajo() {
         if (stockBajo > 0) {
             mensaje += `⚠️ ${stockBajo} producto(s) con stock bajo\n`;
         }
-        mensaje += '\n¿Deseas ver los reportes de inventario?';
+        mensaje += '\nPuedes revisar estos productos en la sección de reportes.';
         
-        if (confirm(mensaje)) {
-            abrirReportes();
-        }
+        alert(mensaje);
     }
 }
 
@@ -949,77 +1034,113 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Función para gestionar flores
 function gestionarFlores() {
-    const modal = new bootstrap.Modal(document.getElementById('modal-gestion-flores'));
-    modal.show();
+    try {
+        const modalElement = document.getElementById('modal-gestion-flores');
+        if (!modalElement) {
+            alert('Error: Modal de gestión de flores no encontrado');
+            return;
+        }
+        
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        } else {
+            alert('Error: Bootstrap no está cargado correctamente');
+        }
+    } catch (error) {
+        console.error('Error al abrir modal:', error);
+        alert('Error al abrir el modal de gestión de flores');
+    }
 }
 
 // Editar flor inline
 function editarFlor(florData) {
-    // Cambiar a la pestaña de nueva flor
-    const nuevaTab = new bootstrap.Tab(document.getElementById('nueva-tab'));
-    nuevaTab.show();
-    
-    // Rellenar el formulario con los datos existentes
-    document.querySelector('input[name="nombre"]').value = florData.nombre;
-    document.querySelector('select[name="naturaleza"]').value = florData.naturaleza;
-    document.querySelector('select[name="color"]').value = florData.color;
-    
-    const descripcion = document.querySelector('textarea[name="descripcion"]');
-    if (descripcion) {
-        descripcion.value = florData.descripcion || '';
+    // Cambiar a la pestaña de nueva flor usando trigger
+    const nuevaTab = document.getElementById('nueva-tab');
+    if (nuevaTab) {
+        nuevaTab.click();
     }
     
-    // Cambiar el formulario para edición
-    const accionInput = document.querySelector('#form-nueva-flor input[name="accion"]');
-    accionInput.value = 'editar_flor';
-    
-    // Agregar campo ID si no existe
-    let idInput = document.querySelector('#form-nueva-flor input[name="id_flor"]');
-    if (!idInput) {
-        idInput = document.createElement('input');
-        idInput.type = 'hidden';
-        idInput.name = 'id_flor';
-        document.getElementById('form-nueva-flor').appendChild(idInput);
-    }
-    idInput.value = florData.idtflor;
-    
-    // Cambiar texto del botón
-    const submitBtn = document.querySelector('#form-nueva-flor button[type="submit"]');
-    submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Actualizar Flor';
-    submitBtn.className = 'btn btn-primary';
-    
-    // Agregar botón para cancelar edición
-    if (!document.getElementById('cancelar-edicion')) {
-        const cancelBtn = document.createElement('button');
-        cancelBtn.type = 'button';
-        cancelBtn.className = 'btn btn-secondary';
-        cancelBtn.id = 'cancelar-edicion';
-        cancelBtn.innerHTML = '<i class="fas fa-times me-1"></i>Cancelar Edición';
-        cancelBtn.onclick = cancelarEdicion;
+    // Esperar un poco para que se muestre la pestaña
+    setTimeout(function() {
+        // Rellenar el formulario con los datos existentes
+        const nombreInput = document.querySelector('#form-nueva-flor input[name="nombre"]');
+        const naturalezaSelect = document.querySelector('#form-nueva-flor select[name="naturaleza"]');
+        const colorSelect = document.querySelector('#form-nueva-flor select[name="color"]');
+        const descripcionTextarea = document.querySelector('#form-nueva-flor textarea[name="descripcion"]');
         
-        const buttonGroup = document.querySelector('#form-nueva-flor .mt-4 .gap-2');
-        buttonGroup.insertBefore(cancelBtn, buttonGroup.firstChild);
-    }
+        if (nombreInput) nombreInput.value = florData.nombre || '';
+        if (naturalezaSelect) naturalezaSelect.value = florData.naturaleza || '';
+        if (colorSelect) colorSelect.value = florData.color || '';
+        if (descripcionTextarea) descripcionTextarea.value = florData.descripcion || '';
+        
+        // Cambiar el formulario para edición
+        const accionInput = document.querySelector('#form-nueva-flor input[name="accion"]');
+        if (accionInput) {
+            accionInput.value = 'editar_flor';
+        }
+        
+        // Agregar campo ID si no existe  
+        let idInput = document.querySelector('#form-nueva-flor input[name="idtflor"]');
+        if (!idInput) {
+            idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'idtflor';
+            const form = document.getElementById('form-nueva-flor');
+            if (form) form.appendChild(idInput);
+        }
+        if (idInput) idInput.value = florData.idtflor;
+        
+        // Cambiar texto del botón
+        const submitBtn = document.querySelector('#form-nueva-flor button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Actualizar Flor';
+            submitBtn.className = 'btn btn-primary';
+        }
+        
+        // Agregar botón para cancelar edición
+        if (!document.getElementById('cancelar-edicion')) {
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'btn btn-secondary';
+            cancelBtn.id = 'cancelar-edicion';
+            cancelBtn.innerHTML = '<i class="fas fa-times me-1"></i>Cancelar Edición';
+            cancelBtn.onclick = cancelarEdicion;
+            
+            const buttonGroup = document.querySelector('#form-nueva-flor .mt-4 .gap-2');
+            if (buttonGroup) {
+                buttonGroup.insertBefore(cancelBtn, buttonGroup.firstChild);
+            }
+        }
+    }, 100);
 }
 
 // Cancelar edición
 function cancelarEdicion() {
     // Limpiar formulario
-    document.getElementById('form-nueva-flor').reset();
+    const form = document.getElementById('form-nueva-flor');
+    if (form) {
+        form.reset();
+    }
     
     // Restaurar acción
-    document.querySelector('#form-nueva-flor input[name="accion"]').value = 'nueva_flor';
+    const accionInput = document.querySelector('#form-nueva-flor input[name="accion"]');
+    if (accionInput) {
+        accionInput.value = 'nueva_flor';
+    }
     
     // Remover campo ID
-    const idInput = document.querySelector('#form-nueva-flor input[name="id_flor"]');
+    const idInput = document.querySelector('#form-nueva-flor input[name="idtflor"]');
     if (idInput) {
         idInput.remove();
     }
     
     // Restaurar botón
     const submitBtn = document.querySelector('#form-nueva-flor button[type="submit"]');
-    submitBtn.innerHTML = '<i class="fas fa-seedling me-1"></i>Crear Flor';
-    submitBtn.className = 'btn btn-warning';
+    if (submitBtn) {
+        submitBtn.innerHTML = '<i class="fas fa-seedling me-1"></i>Crear Flor';
+        submitBtn.className = 'btn btn-warning';
+    }
     
     // Remover botón cancelar
     const cancelBtn = document.getElementById('cancelar-edicion');
@@ -1030,6 +1151,11 @@ function cancelarEdicion() {
 
 // Agregar flor al inventario
 function agregarAInventario(idFlor, nombreFlor) {
+    if (!idFlor || !nombreFlor) {
+        alert('Error: Datos de flor inválidos');
+        return;
+    }
+    
     if (confirm('¿Deseas agregar "' + nombreFlor + '" al inventario?')) {
         const form = document.createElement('form');
         form.method = 'POST';
@@ -1052,6 +1178,11 @@ function agregarAInventario(idFlor, nombreFlor) {
 
 // Eliminar flor
 function eliminarFlor(idFlor, nombreFlor) {
+    if (!idFlor || !nombreFlor) {
+        alert('Error: Datos de flor inválidos');
+        return;
+    }
+    
     if (confirm('¿Estás seguro de que deseas eliminar "' + nombreFlor + '"?\n\nEsta acción no se puede deshacer.')) {
         const form = document.createElement('form');
         form.method = 'POST';
@@ -1074,7 +1205,463 @@ function eliminarFlor(idFlor, nombreFlor) {
 
 // Limpiar formulario de nueva flor
 function limpiarFormularioFlor() {
-    document.getElementById('form-nueva-flor').reset();
+    const form = document.getElementById('form-nueva-flor');
+    if (form) {
+        form.reset();
+    }
     cancelarEdicion();
 }
+
+// ==================== FUNCIONES DE PAGINACIÓN AJAX ====================
+
+// Variables globales para paginación
+let currentPage = <?= $pagina_actual ?? 1 ?>;
+let currentLimit = <?= $elementos_por_pagina ?? 10 ?>;
+let currentFilters = {};
+let loadingTimeout;
+
+// Función para detener la carga manualmente
+function detenerCarga() {
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const productContainer = document.getElementById('productListContainer');
+    const stopBtn = document.getElementById('stopLoadingBtn');
+    
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'none';
+        loadingIndicator.style.visibility = 'hidden';
+    }
+    if (productContainer) {
+        productContainer.style.opacity = '1';
+    }
+    if (stopBtn) {
+        stopBtn.style.display = 'none';
+    }
+    
+    if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+    }
+    
+    console.log('Carga detenida manualmente');
+}
+
+// Función para ocultar el loading al cargar la página
+function ocultarLoadingInicial() {
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const productContainer = document.getElementById('productListContainer');
+    const stopBtn = document.getElementById('stopLoadingBtn');
+    
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'none';
+        loadingIndicator.style.visibility = 'hidden';
+    }
+    if (productContainer) {
+        productContainer.style.opacity = '1';
+    }
+    if (stopBtn) {
+        stopBtn.style.display = 'none';
+    }
+    
+    // También ocultar cualquier alerta de error
+    const errorAlert = document.querySelector('.alert-danger');
+    if (errorAlert) {
+        errorAlert.style.display = 'none';
+    }
+}
+
+// Función para cargar página específica (con fallback robusto)
+function cargarPagina(page) {
+    console.log('=== cargarPagina llamada con página:', page, '===');
+    if (page < 1) {
+        console.log('Página inválida:', page);
+        return;
+    }
+    
+    // Verificar si AJAX está disponible y funcionando
+    const productContainer = document.getElementById('productListContainer');
+    const ajaxDisponible = productContainer && 
+                          typeof fetch !== 'undefined' && 
+                          window.navigator.onLine !== false;
+    
+    if (ajaxDisponible) {
+        console.log('Intentando cargar vía AJAX...');
+        currentPage = page;
+        
+        try {
+            actualizarListado();
+        } catch (error) {
+            console.error('Error en AJAX, usando recarga tradicional:', error);
+            recargarPaginaTradicional(page);
+        }
+    } else {
+        console.log('AJAX no disponible, usando recarga tradicional');
+        recargarPaginaTradicional(page);
+    }
+}
+
+// Función para recarga tradicional (siempre funciona)
+function recargarPaginaTradicional(page) {
+    const url = new URL(window.location);
+    url.searchParams.set('pagina', page);
+    
+    // Mantener filtros existentes
+    const buscar = document.querySelector('input[name="buscar"]');
+    if (buscar && buscar.value) {
+        url.searchParams.set('buscar', buscar.value);
+    }
+    
+    const categoria = document.querySelector('select[name="categoria"]');
+    if (categoria && categoria.value) {
+        url.searchParams.set('categoria', categoria.value);
+    }
+    
+    // Mantener el controlador
+    if (!url.searchParams.has('ctrl')) {
+        url.searchParams.set('ctrl', 'cinventario');
+    }
+    
+    console.log('Redirigiendo a:', url.toString());
+    window.location.href = url.toString();
+}
+
+// Función para cambiar límite de elementos
+function cambiarLimite() {
+    const limitSelect = document.getElementById('itemsPerPage');
+    if (limitSelect) {
+        currentLimit = limitSelect.value;
+        currentPage = 1; // Resetear a primera página
+        
+        try {
+            actualizarListado();
+        } catch (error) {
+            console.error('Error en AJAX, usando fallback tradicional:', error);
+            // Fallback: recargar página con nuevo límite
+            const url = new URL(window.location);
+            url.searchParams.set('per_page', currentLimit);
+            url.searchParams.set('pagina', 1);
+            window.location.href = url.toString();
+        }
+    }
+}
+
+// Función para recargar listado
+function recargarListado() {
+    try {
+        actualizarListado();
+    } catch (error) {
+        console.error('Error en AJAX, recargando página:', error);
+        window.location.reload();
+    }
+}
+
+// Función principal para actualizar listado vía AJAX
+function actualizarListado() {
+    console.log('=== INICIO actualizarListado ===');
+    
+    // Mostrar indicador de carga
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const productContainer = document.getElementById('productListContainer');
+    const stopBtn = document.getElementById('stopLoadingBtn');
+    
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'flex';
+        loadingIndicator.style.visibility = 'visible';
+    }
+    if (productContainer) {
+        productContainer.style.opacity = '0.6';
+    }
+    if (stopBtn) {
+        stopBtn.style.display = 'inline-block';
+    }
+    
+    // Timeout de seguridad para evitar carga infinita
+    loadingTimeout = setTimeout(() => {
+        console.warn('Timeout: La carga tardó más de 10 segundos');
+        detenerCarga();
+        mostrarError('La carga tardó demasiado. Intenta nuevamente.');
+    }, 10000);
+    
+    // Obtener filtros actuales del formulario
+    const params = new URLSearchParams();
+    params.append('action', 'getListado');
+    params.append('page', currentPage);
+    params.append('limit', currentLimit);
+    
+    // Agregar filtros si existen
+    const buscarInput = document.querySelector('input[name="buscar"]');
+    if (buscarInput && buscarInput.value) {
+        params.append('buscar', buscarInput.value);
+    }
+    
+    const categoriaSelect = document.querySelector('select[name="categoria"]');
+    if (categoriaSelect && categoriaSelect.value && categoriaSelect.value !== '') {
+        params.append('categoria', categoriaSelect.value);
+    }
+    
+    const estadoStockSelect = document.querySelector('select[name="estado_stock"]');
+    if (estadoStockSelect && estadoStockSelect.value) {
+        params.append('estado_stock', estadoStockSelect.value);
+    }
+    
+    // Realizar petición AJAX
+    const url = 'controllers/InventarioApiController.php?' + params.toString();
+    console.log('Solicitando:', url);
+    
+    fetch(url)
+    .then(response => {
+        console.log('Respuesta recibida:', response.status, response.statusText);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.text(); // Primero obtener como texto para debug
+    })
+    .then(text => {
+        clearTimeout(loadingTimeout);
+        console.log('Respuesta cruda (primeros 200 chars):', text.substring(0, 200));
+        
+        try {
+            const data = JSON.parse(text);
+            console.log('Datos parseados:', data);
+            
+            if (data.success) {
+                // Reemplazar todo el contenedor de la tabla con el nuevo HTML
+                if (productContainer) {
+                    productContainer.innerHTML = data.html;
+                    productContainer.style.opacity = '1';
+                }
+                
+                // Actualizar el contenedor de paginación también si está fuera de la tabla
+                const paginationContainer = document.getElementById('paginationContainer');
+                if (paginationContainer) {
+                    // Buscar la nueva paginación en el HTML recibido
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = data.html;
+                    const newPagination = tempDiv.querySelector('#paginationContainer');
+                    if (newPagination) {
+                        paginationContainer.innerHTML = newPagination.innerHTML;
+                    }
+                }
+                
+                // Actualizar variables globales
+                currentPage = data.pagination.current_page;
+                currentLimit = data.pagination.per_page;
+                
+                // Actualizar selector de elementos por página
+                const limitSelect = document.getElementById('itemsPerPage');
+                if (limitSelect && limitSelect.value != data.pagination.per_page) {
+                    limitSelect.value = data.pagination.per_page;
+                }
+                
+                // Scroll suave hacia arriba del listado
+                const listadoSection = document.querySelector('.table-responsive');
+                if (listadoSection) {
+                    listadoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+                
+                console.log('Listado actualizado exitosamente');
+                
+            } else {
+                console.error('Error en la respuesta:', data.error);
+                mostrarError('Error al cargar el listado: ' + (data.error || 'Error desconocido'));
+            }
+        } catch (parseError) {
+            console.error('Error al parsear JSON:', parseError);
+            console.error('Texto recibido completo:', text);
+            mostrarError('Error en el formato de respuesta del servidor. Revisa la consola para más detalles.');
+        }
+    })
+    .catch(error => {
+        clearTimeout(loadingTimeout);
+        console.error('Error en la petición:', error);
+        mostrarError('Error de conexión: ' + error.message);
+    })
+    .finally(() => {
+        // Ocultar indicador de carga
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
+            loadingIndicator.style.visibility = 'hidden';
+        }
+        if (productContainer) {
+            productContainer.style.opacity = '1';
+        }
+        if (stopBtn) {
+            stopBtn.style.display = 'none';
+        }
+        console.log('=== FIN actualizarListado ===');
+    });
+}
+
+// Función para actualizar información de paginación en la UI
+function actualizarInfoPaginacion(pagination) {
+    // Actualizar selector de elementos por página
+    const limitSelect = document.getElementById('itemsPerPage');
+    if (limitSelect && limitSelect.value != pagination.per_page) {
+        limitSelect.value = pagination.per_page;
+    }
+    
+    currentPage = pagination.current_page;
+    currentLimit = pagination.per_page;
+}
+
+// Función para mostrar errores
+function mostrarError(mensaje) {
+    // Crear o actualizar alerta de error
+    let alertContainer = document.getElementById('ajax-alert-container');
+    if (!alertContainer) {
+        alertContainer = document.createElement('div');
+        alertContainer.id = 'ajax-alert-container';
+        alertContainer.style.position = 'fixed';
+        alertContainer.style.top = '20px';
+        alertContainer.style.right = '20px';
+        alertContainer.style.zIndex = '9999';
+        document.body.appendChild(alertContainer);
+    }
+    
+    alertContainer.innerHTML = `
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            ${mensaje}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        const alert = alertContainer.querySelector('.alert');
+        if (alert) {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }
+    }, 5000);
+}
+
+// Función para aplicar filtros y actualizar listado
+function aplicarFiltros() {
+    currentPage = 1; // Resetear a primera página cuando se aplican filtros
+    actualizarListado();
+}
+
+// Event listeners para formulario de filtros
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== INICIALIZANDO INVENTARIO ===');
+    console.log('Página actual:', currentPage, 'Límite:', currentLimit);
+    
+    // Ocultar loading inicial
+    ocultarLoadingInicial();
+    
+    // Interceptar envío del formulario de filtros
+    const formFiltros = document.querySelector('form[method="GET"]');
+    if (formFiltros) {
+        console.log('Form de filtros encontrado');
+        formFiltros.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Form enviado - aplicando filtros');
+            aplicarFiltros();
+        });
+    }
+    
+    // Auto-filtrado en tiempo real para el campo de búsqueda
+    const buscarInput = document.querySelector('input[name="buscar"]');
+    if (buscarInput) {
+        console.log('Input de búsqueda encontrado');
+        let timeout;
+        buscarInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                console.log('Aplicando filtro de búsqueda:', this.value);
+                aplicarFiltros();
+            }, 500); // Esperar 500ms después de dejar de escribir
+        });
+    }
+    
+    // Auto-filtrado para selects
+    const selectores = document.querySelectorAll('select[name="categoria"], select[name="estado_stock"]');
+    selectores.forEach(select => {
+        console.log('Select encontrado:', select.name);
+        select.addEventListener('change', function() {
+            console.log('Select cambió:', this.name, '=', this.value);
+            aplicarFiltros();
+        });
+    });
+    
+    // Interceptar clicks en enlaces de paginación existentes
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.pagination .page-link')) {
+            e.preventDefault();
+            const link = e.target.closest('.page-link');
+            const onClick = link.getAttribute('onclick');
+            
+            console.log('Click en paginación detectado:', onClick);
+            
+            if (onClick && onClick.includes('cargarPagina')) {
+                // El onclick ya maneja la lógica
+                return;
+            }
+            
+            // Fallback para enlaces sin onclick
+            const href = link.getAttribute('href');
+            if (href && href.includes('pagina=')) {
+                const pageMatch = href.match(/pagina=(\d+)/);
+                if (pageMatch) {
+                    console.log('Cargando página via href:', pageMatch[1]);
+                    cargarPagina(parseInt(pageMatch[1]));
+                }
+            }
+        }
+    });
+    
+    console.log('=== INICIALIZACIÓN COMPLETA ===');
+});
+});
+
+// Función para cambiar tipo de producto
+function cambiarTipoProducto() {
+    const tipoProducto = document.getElementById('tipo_producto').value;
+    const seccionFlor = document.getElementById('seccion_flor');
+    const florSelect = document.getElementById('flor_select');
+    
+    if (tipoProducto === 'flor') {
+        seccionFlor.style.display = 'block';
+        florSelect.removeAttribute('required');
+    } else {
+        seccionFlor.style.display = 'none';
+        florSelect.value = '';
+        florSelect.removeAttribute('required');
+    }
+    
+    // Actualizar placeholder del nombre según el tipo
+    const nombreInput = document.querySelector('input[name="nombre_producto"]');
+    const ejemplos = {
+        'flor': 'Ej: Rosa Roja Premium, Tulipán Holandés',
+        'chocolate': 'Ej: Ferrero Rocher, Chocolate Godiva',
+        'tarjeta': 'Ej: Tarjeta de Amor, Tarjeta de Cumpleaños',
+        'peluche': 'Ej: Osito de Peluche, Peluche Unicornio',
+        'globo': 'Ej: Globo Corazón, Globo Número',
+        'accesorio': 'Ej: Lazo Decorativo, Papel de Regalo',
+        'otro': 'Ej: Vela Aromática, Mini Jarrón'
+    };
+    
+    if (nombreInput && ejemplos[tipoProducto]) {
+        nombreInput.placeholder = ejemplos[tipoProducto];
+    }
+}
+
+// Función bonus para exportar inventario
+function exportarInventario() {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'controllers/ExportarInventarioController.php';
+    form.style.display = 'none';
+    
+    const actionInput = document.createElement('input');
+    actionInput.name = 'action';
+    actionInput.value = 'exportar_excel';
+    
+    form.appendChild(actionInput);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+}
 </script>
+
+</main>
+<!-- Fin de la vista de inventario -->
