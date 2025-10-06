@@ -2,7 +2,7 @@
 <?php
 // Este archivo es incluido por dashboard.php, no es una página independiente
 
-// Variables para mensajes
+// Variables para mensajes .
 $mensaje_exito = '';
 $mensaje_error = '';
 
