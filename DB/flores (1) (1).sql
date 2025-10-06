@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.2.2
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 27-08-2025 a las 17:46:18
+-- Tiempo de generación: 22-09-2025 a las 02:23:23
 -- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.0.30
+-- Versión de PHP: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -20,8 +20,6 @@ SET time_zone = "+00:00";
 --
 -- Base de datos: `flores`
 --
-CREATE DATABASE IF NOT EXISTS `flores` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `flores`;
 
 -- --------------------------------------------------------
 
@@ -30,8 +28,8 @@ USE `flores`;
 --
 
 CREATE TABLE `cfg_sis` (
-  `id_cfg` int(11) NOT NULL AUTO_INCREMENT,
-  `idusu` int(11) NOT NULL,
+  `id_cfg` int(11) NOT NULL,
+  `moneda` varchar(50) NOT NULL DEFAULT 'COP',
   `idioma` varchar(50) NOT NULL DEFAULT 'Español',
   `zona_hor` varchar(100) NOT NULL DEFAULT 'America/Bogota',
   `fmt_fecha` varchar(50) NOT NULL DEFAULT 'dd/mm/yyyy',
@@ -87,7 +85,9 @@ INSERT INTO `cli` (`idcli`, `nombre`, `direccion`, `telefono`, `email`, `fecha_r
 (8, 'Jorge Luis Puentes Brochero', 'Sin dirección', '3217837594', 'jorgepb2007@gmail.com', '2025-07-30', NULL, NULL),
 (9, 'juan', 'Sin dirección', '789456', 'juan@gmail.com', '2025-08-05', NULL, NULL),
 (10, 'david parada', 'Sin dirección', '32135', 'david@gmail.com', '2025-08-11', NULL, NULL),
-(11, 'maria sanchez', 'Sin dirección', '456', 'maria@gmail.com', '2025-08-14', NULL, NULL);
+(11, 'maria sanchez', 'Sin dirección', '456', 'maria@gmail.com', '2025-08-14', NULL, NULL),
+(12, 'wfv', 'Sin dirección', '3142729682', 'admin@floreria.com', '2025-09-03', NULL, NULL),
+(13, 'maury echeverria', 'Sin dirección', '3137970263', 'mauryecheverria948@gmail.com', '2025-09-08', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -187,37 +187,19 @@ INSERT INTO `ent` (`ident`, `fecha_ent`, `hora_ent`, `direccion`, `estado_ent`, 
 
 CREATE TABLE `inv` (
   `idinv` int(11) NOT NULL,
-  `alimentacion` varchar(255) DEFAULT NULL,
-  `tflor_idtflor` int(11) NOT NULL,
+  `nomcat` varchar(255) DEFAULT NULL,
   `stock` int(11) NOT NULL DEFAULT 0,
-  `precio` decimal(10,2) NOT NULL,
-  `fecha_actualizacion` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `empleado_id` int(11) DEFAULT NULL COMMENT 'ID del empleado que realizó el movimiento',
-  `motivo` varchar(255) DEFAULT NULL COMMENT 'Motivo del movimiento de inventario',
-  `cantidad_disponible` int(11) DEFAULT 0
+  `precio` decimal(10,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `inv`
 --
 
-INSERT INTO `inv` (`idinv`, `alimentacion`, `tflor_idtflor`, `stock`, `precio`, `fecha_actualizacion`, `empleado_id`, `motivo`, `cantidad_disponible`) VALUES
-(1, 'Agua y nutrientes', 1, 150, 5.99, '2025-07-28 22:13:32', NULL, NULL, 150),
-(2, 'Agua y nutrientes', 2, 80, 7.50, '2025-07-28 22:13:32', NULL, NULL, 80),
-(3, 'Agua y luz solar', 3, 59, 4.75, '2025-07-28 22:13:32', NULL, NULL, 59),
-(4, 'Humedad controlada', 4, 40, 12.99, '2025-07-28 22:13:32', NULL, NULL, 40),
-(5, 'Agua y nutrientes', 5, 70, 6.25, '2025-07-28 22:13:32', NULL, NULL, 70),
-(6, 'N/A', 6, 18, 3.50, '2025-08-11 15:57:37', NULL, NULL, 199),
-(7, 'Luz indirecta', 7, 90, 8.99, '2025-07-28 22:13:32', NULL, NULL, 90),
-(8, 'Poca agua', 8, 120, 2.99, '2025-07-28 22:13:32', NULL, NULL, 120),
-(9, 'Agua diaria', 1, 50, 25.99, '2025-07-28 22:13:32', NULL, NULL, 50),
-(10, 'Agua cada 2 días', 2, 30, 18.50, '2025-07-28 22:13:32', NULL, NULL, 30),
-(11, 'Agua semanal', 3, 25, 35.00, '2025-07-28 22:13:32', NULL, NULL, 25),
-(12, 'Agua diaria', 4, 40, 22.75, '2025-07-28 22:13:32', NULL, NULL, 40),
-(13, 'Agua semanal', 5, 15, 85.00, '2025-07-28 22:13:32', NULL, NULL, 15),
-(14, 'Agua diaria', 20, 22, 16.55, '2025-08-05 13:28:10', NULL, NULL, 0),
-(15, 'Agua diaria', 21, 16, 15.96, '2025-08-05 13:28:10', NULL, NULL, 0);
-
+INSERT INTO `inv` (`idinv`, `nomcat`, `stock`, `precio`) VALUES
+(1, 'Agua y nutrientes', 1, 5.99),
+(2, 'Agua y nutrientes', 2, 7.50),
+(3, 'Agua y luz solar', 3, 4.75);
 -- --------------------------------------------------------
 
 --
@@ -240,13 +222,13 @@ CREATE TABLE `inv_historial` (
 
 INSERT INTO `inv_historial` (`idhistorial`, `idinv`, `stock_anterior`, `stock_nuevo`, `fecha_cambio`, `idusu`, `motivo`) VALUES
 (1, 1, 150, 145, '2025-07-07 14:43:34', 4, 'Venta PED-20230001'),
-(2, 3, 60, 58, '2025-07-07 14:43:34', 4, 'Venta PED-20230001'),
-(3, 8, 120, 117, '2025-07-07 14:43:34', 4, 'Venta PED-20230001'),
-(4, 2, 80, 76, '2025-07-07 14:43:34', 4, 'Venta PED-20230002'),
-(5, 5, 70, 69, '2025-07-07 14:43:34', 4, 'Venta PED-20230002'),
+(2, 1, 60, 58, '2025-07-07 14:43:34', 4, 'Venta PED-20230001'),
+(3, 1, 120, 117, '2025-07-07 14:43:34', 4, 'Venta PED-20230001'),
+(4, 1, 80, 76, '2025-07-07 14:43:34', 4, 'Venta PED-20230002'),
+(5, 1, 70, 69, '2025-07-07 14:43:34', 4, 'Venta PED-20230002'),
 (6, 1, 145, 143, '2025-07-07 14:43:34', 4, 'Venta PED-20230004'),
-(7, 6, 200, 195, '2025-07-07 14:43:34', 4, 'Venta PED-20230004'),
-(8, 8, 117, 111, '2025-07-07 14:43:34', 4, 'Venta PED-20230006');
+(7, 1, 200, 195, '2025-07-07 14:43:34', 4, 'Venta PED-20230004'),
+(8, 1, 117, 111, '2025-07-07 14:43:34', 4, 'Venta PED-20230006');
 
 -- --------------------------------------------------------
 
@@ -474,6 +456,32 @@ INSERT INTO `perm` (`idperm`, `nombre`, `codigo`, `descripcion`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `permisos`
+--
+
+CREATE TABLE `permisos` (
+  `idpermiso` int(11) NOT NULL,
+  `idempleado` int(11) NOT NULL,
+  `tipo` varchar(100) NOT NULL,
+  `fecha_inicio` date NOT NULL,
+  `fecha_fin` date NOT NULL,
+  `estado` varchar(50) NOT NULL DEFAULT 'Pendiente'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `permisos`
+--
+
+INSERT INTO `permisos` (`idpermiso`, `idempleado`, `tipo`, `fecha_inicio`, `fecha_fin`, `estado`) VALUES
+(1, 46, 'Licencia no remunerada', '2025-09-05', '2025-09-05', 'Pendiente'),
+(2, 4, 'Citas médicas', '2025-09-04', '2025-09-04', 'Pendiente'),
+(3, 41, 'Estudio/capacitación', '2025-09-03', '2025-09-03', 'Aprobado'),
+(4, 45, 'Licencia no remunerada', '2025-09-01', '2025-09-01', 'Rechazado'),
+(6, 4, 'Personal', '2025-09-02', '2025-09-02', 'Aprobado');
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `perm_tpusu`
 --
 
@@ -549,6 +557,7 @@ INSERT INTO `pxp` (`idperf`, `idpag`) VALUES
 
 CREATE TABLE `tflor` (
   `idtflor` int(11) NOT NULL,
+  `idinv` int(11) NOT NULL,
   `nombre` varchar(255) NOT NULL,
   `naturaleza` varchar(255) DEFAULT NULL,
   `descripcion` text DEFAULT NULL,
@@ -556,7 +565,6 @@ CREATE TABLE `tflor` (
   `fecha_creacion` datetime DEFAULT current_timestamp() COMMENT 'Fecha de creación del producto',
   `activo` tinyint(1) DEFAULT 1 COMMENT 'Si el producto está activo',
   `color` varchar(100) DEFAULT 'Multicolor',
-  `precio_venta` decimal(10,2) DEFAULT 0.00,
   `estado` varchar(50) DEFAULT 'activo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -564,26 +572,26 @@ CREATE TABLE `tflor` (
 -- Volcado de datos para la tabla `tflor`
 --
 
-INSERT INTO `tflor` (`idtflor`, `nombre`, `naturaleza`, `descripcion`, `precio`, `fecha_creacion`, `activo`, `color`, `precio_venta`, `estado`) VALUES
-(1, 'Rosas', 'Natural', 'Rosas de diversos colores, ideales para arreglos florales', 15000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
-(2, 'Tulipanes', 'Natural', 'Tulipanes frescos importados de Holanda', 18000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
-(3, 'Girasoles', 'Natural', 'Girasoles grandes y brillantes', 10000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
-(4, 'Orquídeas', 'Natural', 'Orquídeas exóticas de diversas variedades', 25000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
-(5, 'Lirios', 'Natural', 'Lirios elegantes y fragantes', 10000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
-(6, 'Flores Artificiales', 'Artificial', 'Flores decorativas de alta calidad', 10000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
-(7, 'Plantas de Interior', 'Natural', 'Variedad de plantas para decoración interior', 10000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
-(8, 'Suculentas', 'Natural', 'Pequeñas plantas suculentas para arreglos', 10000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
-(9, 'Rosa Roja', 'Natural', 'Rosa roja clásica para ocasiones especiales', 15000.00, '2025-07-22 13:32:07', 1, 'Multicolor', 15.00, 'activo'),
-(10, 'Tulipán Amarillo', 'Natural', 'Tulipán amarillo fresco de temporada', 18000.00, '2025-07-22 13:32:07', 1, 'Multicolor', 15.00, 'activo'),
-(11, 'Lirio Blanco', 'Natural', 'Lirio blanco elegante para eventos', 10000.00, '2025-07-22 13:32:07', 1, 'Multicolor', 15.00, 'activo'),
-(12, 'Girasol', 'Natural', 'Girasol brillante y alegre', 10000.00, '2025-07-22 13:32:07', 1, 'Multicolor', 15.00, 'activo'),
-(13, 'Orquídea Morada', 'Natural', 'Orquídea exótica de alta calidad', 25000.00, '2025-07-22 13:32:07', 1, 'Multicolor', 15.00, 'activo'),
-(14, 'Rosa Roja', 'Flor natural', 'Hermosa rosa roja perfecta para ocasiones especiales', 15000.00, '2025-07-28 17:15:22', 1, 'Rojo', 15.50, 'activo'),
-(15, 'Tulipán Amarillo', 'Flor natural', 'Tulipán amarillo vibrante, ideal para primavera', 18000.00, '2025-07-28 17:15:22', 1, 'Amarillo', 12.00, 'activo'),
-(17, 'Orquídea Blanca', 'Flor natural', 'Elegante orquídea blanca para ocasiones elegantes', 25000.00, '2025-07-28 17:15:22', 1, 'Blanco', 35.00, 'activo'),
-(19, 'Margarita', 'Flor natural', 'Margarita blanca simple y hermosa', 10000.00, '2025-07-28 17:15:22', 1, 'Blanco', 6.75, 'activo'),
-(20, 'Margarita Blanca', 'Blanco', 'Margarita blanca pura, representa la inocencia', 10000.00, '2025-08-05 08:28:10', 1, 'Multicolor', 0.00, 'activo'),
-(21, 'Lirio Morado', 'Morado', 'Elegante lirio morado, representa la nobleza', 10000.00, '2025-08-05 08:28:10', 1, 'Multicolor', 0.00, 'activo');
+INSERT INTO `tflor` (`idtflor`, `idinv`, `nombre`, `naturaleza`, `descripcion`, `precio`, `fecha_creacion`, `activo`, `color`, `estado`) VALUES
+(1, 1, 'Rosas', 'Natural', 'Rosas de diversos colores, ideales para arreglos florales', 15000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 'activo'),
+(2, 1, 'Tulipanes', 'Natural', 'Tulipanes frescos importados de Holanda', 18000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 'activo'),
+(3, 1, 'Girasoles', 'Natural', 'Girasoles grandes y brillantes', 10000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 'activo'),
+(4, 1, 'Orquídeas', 'Natural', 'Orquídeas exóticas de diversas variedades', 25000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 'activo'),
+(5, 1, 'Lirios', 'Natural', 'Lirios elegantes y fragantes', 10000.00, '0000-00-00 00:00:00', 1, 'Multicolor', 'activo'),
+(6, 1, 'Flores Artificiales', 'Artificial', 'Flores decorativas de alta calidad', 10000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 'activo'),
+(7, 1, 'Plantas de Interior', 'Natural', 'Variedad de plantas para decoración interior', 10000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 'activo'),
+(8, 1, 'Suculentas', 'Natural', 'Pequeñas plantas suculentas para arreglos', 10000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 'activo'),
+(9, 1, 'Rosa Roja', 'Natural', 'Rosa roja clásica para ocasiones especiales', 15000.00, '2025-07-22 13:32:07', 1, 'Multicolor', 'activo'),
+(10, 1, 'Tulipán Amarillo', 'Natural', 'Tulipán amarillo fresco de temporada', 18000.00, '2025-07-22 13:32:07', 1, 'Multicolor', 'activo'),
+(11, 1, 'Lirio Blanco', 'Natural', 'Lirio blanco elegante para eventos', 10000.00, '2025-07-22 13:32:07', 1, 'Multicolor', 'activo'),
+(12, 1, 'Girasol', 'Natural', 'Girasol brillante y alegre', 10000.00, '2025-07-22 13:32:07', 1, 'Multicolor', 'activo'),
+(13, 1, 'Orquídea Morada', 'Natural', 'Orquídea exótica de alta calidad', 25000.00, '2025-07-22 13:32:07', 1, 'Multicolor', 'activo'),
+(14, 1, 'Rosa Roja', 'Flor natural', 'Hermosa rosa roja perfecta para ocasiones especiales', 15000.00, '2025-07-28 17:15:22', 1, 'Rojo', 'activo'),
+(15, 1, 'Tulipán Amarillo', 'Flor natural', 'Tulipán amarillo vibrante, ideal para primavera', 18000.00, '2025-07-28 17:15:22', 1, 'Amarillo', 'activo'),
+(17, 1, 'Orquídea Blanca', 'Flor natural', 'Elegante orquídea blanca para ocasiones elegantes', 25000.00, '2025-07-28 17:15:22', 1, 'Blanco', 'activo'),
+(19, 1, 'Margarita', 'Flor natural', 'Margarita blanca simple y hermosa', 10000.00, '2025-07-28 17:15:22', 1, 'Blanco', 'activo'),
+(20, 1, 'Margarita Blanca', 'Blanco', 'Margarita blanca pura, representa la inocencia', 10000.00, '2025-08-05 08:28:10', 1, 'Multicolor', 'activo'),
+(21, 1, 'Lirio Morado', 'Morado', 'Elegante lirio morado, representa la nobleza', 10000.00, '2025-08-05 08:28:10', 1, 'Multicolor', 'activo');
 
 -- --------------------------------------------------------
 
@@ -632,11 +640,34 @@ INSERT INTO `tpusu` (`idtpusu`, `nombre`, `descripcion`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `turnos`
+--
+
+CREATE TABLE `turnos` (
+  `idturno` int(11) NOT NULL,
+  `idempleado` int(11) NOT NULL,
+  `fecha_inicio` date NOT NULL,
+  `fecha_fin` date NOT NULL,
+  `horario` varchar(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `turnos`
+--
+
+INSERT INTO `turnos` (`idturno`, `idempleado`, `fecha_inicio`, `fecha_fin`, `horario`) VALUES
+(2, 4, '2025-08-31', '2025-08-31', '9:00 am – 6:00 pm'),
+(3, 41, '2025-08-30', '2025-08-31', '9:00 am – 6:00 pm'),
+(4, 45, '2025-09-06', '2025-09-06', '7:00-19:00');
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `usu`
 --
 
 CREATE TABLE `usu` (
-  `idusu` int(11) NOT NULL AUTO_INCREMENT,
+  `idusu` int(11) NOT NULL,
   `username` varchar(255) NOT NULL,
   `nombre_completo` varchar(255) NOT NULL,
   `naturaleza` varchar(255) DEFAULT NULL,
@@ -646,51 +677,53 @@ CREATE TABLE `usu` (
   `tpusu_idtpusu` int(11) NOT NULL,
   `fecha_registro` datetime DEFAULT current_timestamp(),
   `activo` tinyint(1) DEFAULT 1,
-  PRIMARY KEY (`idusu`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE `permisos` (
-  `idpermiso` INT NOT NULL AUTO_INCREMENT,
-  `idempleado` INT NOT NULL,
-  `tipo` VARCHAR(100) NOT NULL,
-  `fecha_inicio` DATE NOT NULL,
-  `fecha_fin` DATE NOT NULL,
-  `estado` VARCHAR(50) NOT NULL DEFAULT 'Pendiente',
-  PRIMARY KEY (`idpermiso`),
-  FOREIGN KEY (`idempleado`) REFERENCES `usu`(`idusu`) ON DELETE CASCADE
+  `vacaciones` int(11) DEFAULT 0,
+  `intentos_fallidos` int(11) DEFAULT 0,
+  `fecha_bloqueo` datetime DEFAULT NULL,
+  `motivo_bloqueo` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `usu`
 --
 
-INSERT INTO `usu` (`idusu`, `username`, `nombre_completo`, `naturaleza`, `telefono`, `email`, `clave`, `tpusu_idtpusu`, `fecha_registro`, `activo`) VALUES
-(4, 'inventario', 'Pedro Rojas', 'Persona', '3204567890', 'pedro@floreria.com', '35de1a09ec425493170e5b83380e4fd5fba692fc2e6b48f2b9c042644bcfef74', 3, '2025-07-07 14:43:34', 1),
-(40, 'jorge', 'Jorge Luis Puentes Brochero', 'Carrera 5#20-65', '3217837594', 'jorgepb2007@gmail.com', '$2y$10$7nY2k7SQxRQ8rPXf/mcZW..il8iOAZZs.IGOonV4eHMZAPvtlV7nK', 5, '2025-08-05 09:52:19', 1),
-(41, 'david', 'david parada', 'ljjhh', '32135', 'david@gmail.com', '$2y$10$zykB2BQdQwivfueZ6a1KF.IXDvnODmn2vo9n1N8a1sZkqzc6DL8TW', 2, '2025-08-05 10:41:00', 1),
-(42, 'juan', 'juan luis', '23', '5', 'juan@gmail.com', '$2y$10$GSHbrGQ2eZDJDHeyviNxluSZcMvm8MjTi8E7IGm8rkyM8XT8A/Xpy', 1, '2025-08-14 21:27:21', 1),
-(43, 'maria', 'maria sanchez', 'sd', '456', 'maria@gmail.com', '$2y$10$KIkPfVcQMKLKVDGFbh9sCO1vgk9N4m.fzIopEV8bzh02Vl6fgCMVG', 5, '2025-08-14 21:28:27', 1),
-(44, 'mauecheveria', 'mauricio', 'vcs#', '32145', 'mau@gmail.com', '$2y$10$gqUA70VS4LNnmsj9mKdUbeA4OP.VRU4Z0CVFjZjRtST4tsSoVn/KK', 5, '2025-08-26 10:03:00', 1);
+INSERT INTO `usu` (`idusu`, `username`, `nombre_completo`, `naturaleza`, `telefono`, `email`, `clave`, `tpusu_idtpusu`, `fecha_registro`, `activo`, `vacaciones`, `intentos_fallidos`, `fecha_bloqueo`, `motivo_bloqueo`) VALUES
+(4, 'inventario', 'Pedro Rojas pinilla', 'Persona', '3204567890', 'pedro@floreria.com', '35de1a09ec425493170e5b83380e4fd5fba692fc2e6b48f2b9c042644bcfef74', 3, '2025-07-07 00:00:00', 1, 0, 0, NULL, NULL),
+(40, 'jorge', 'Jorge Luis Puentes Brochero', 'Carrera 5#20-65', '3217837594', 'jorgepb2007@gmail.com', '$2y$10$7nY2k7SQxRQ8rPXf/mcZW..il8iOAZZs.IGOonV4eHMZAPvtlV7nK', 3, '2025-08-05 09:52:19', 1, 0, 0, NULL, NULL),
+(41, 'david', 'david parada', 'ljjhh', '32135', 'david@gmail.com', '$2y$10$zykB2BQdQwivfueZ6a1KF.IXDvnODmn2vo9n1N8a1sZkqzc6DL8TW', 2, '2025-08-05 10:41:00', 1, 0, 0, NULL, NULL),
+(43, 'maria', 'maria sanchez', 'Administrador jr', '456', 'maria@gmail.com', '$2y$10$KIkPfVcQMKLKVDGFbh9sCO1vgk9N4m.fzIopEV8bzh02Vl6fgCMVG', 1, '2025-08-14 00:00:00', 1, 0, 0, NULL, NULL),
+(44, 'mauecheveria', 'mauricio', 'vcs#', '32145', 'mau@gmail.com', '$2y$10$gqUA70VS4LNnmsj9mKdUbeA4OP.VRU4Z0CVFjZjRtST4tsSoVn/KK', 5, '2025-08-26 10:03:00', 1, 0, 0, NULL, NULL),
+(45, '1070981833', 'Laura Lucia Moreno Gonzalez', 'Decorador', '', '1070981833@floraltech.local', '$2y$10$0KQL6Cu.7PEjImNczbMCTegryo.EN97opFUNuNQc757yxKOl4G/na', 2, '2025-08-29 00:00:00', 1, 0, 0, NULL, NULL),
+(46, '1015449927', 'Gloria Lopez Ruiz', 'vendedor mostrador', '', '1015449927@floraltech.local', '$2y$10$WkCKuFvepdXcCrdCif6bHeeO1Xk7/YkFUBhGbiF2o6.4MWEJsBRX2', 2, '2025-09-01 00:00:00', 1, 0, 0, NULL, NULL),
+(49, '35529431', 'Claudia Patricia Gonzalez Jimenez', 'Contadora', '', '35529431@floraltech.local', '$2y$10$a3F2S2qlNC4UI3NJ0eOK8O0ZWtRUplR1ibducKvEBTwzwI4uldlRu', 2, '2025-08-27 00:00:00', 1, 0, 0, NULL, NULL),
+(52, 'asde', 'wfv', 'Diagonal 6 #6-33, Cerro Fuerte 2, Torre 12 Apartamento 103', '3142729682', 'admin@floreria.com', '$2y$10$D4h.gx3HeWr/ZgFTg59WL.uJe9NspyscIDGY0S257toJDU2k6YAVC', 5, '2025-09-03 12:28:22', 1, 0, 0, NULL, NULL),
+(53, 'maury278', 'maury echeverria', 'Kilometro 26 Autopista Norte Conjunto Residencial Refugio El Sol Sindamanoy Chia Cundinamarca', '3137970263', 'mauryecheverria948@gmail.com', '$2y$10$EVDwLGdf1yCITMvuHBRKWe1EaNg7AWkruCC6EDi6wR/ukgz33YI22', 1, '2025-09-08 09:20:17', 1, 0, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
 --
--- Tabla de turnos para gestión de empleados
+-- Estructura de tabla para la tabla `vacaciones`
 --
 
-CREATE TABLE `turnos` (
-  `idturno` INT NOT NULL AUTO_INCREMENT,
-  `idempleado` INT NOT NULL,
-  `fecha_inicio` DATE NOT NULL,
-  `fecha_fin` DATE NOT NULL,
-  `horario` VARCHAR(100) NOT NULL,
-  PRIMARY KEY (`idturno`),
-  FOREIGN KEY (`idempleado`) REFERENCES `usu`(`idusu`) ON DELETE CASCADE
+CREATE TABLE `vacaciones` (
+  `id` int(11) NOT NULL,
+  `id_empleado` int(11) NOT NULL,
+  `fecha_inicio` date NOT NULL,
+  `fecha_fin` date NOT NULL,
+  `estado` varchar(20) DEFAULT 'En curso',
+  `motivo` varchar(255) DEFAULT NULL,
+  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Puedes agregar más campos si lo necesitas (tipo_turno, temporada, observaciones)
+--
+-- Volcado de datos para la tabla `vacaciones`
+--
 
--- --------------------------------------------------------
+INSERT INTO `vacaciones` (`id`, `id_empleado`, `fecha_inicio`, `fecha_fin`, `estado`, `motivo`, `fecha_creacion`) VALUES
+(7, 45, '2025-09-08', '2025-09-13', 'Programadas', 'vacaciones', '2025-09-01 14:18:55'),
+(10, 46, '2025-09-15', '2025-09-20', 'En curso', 'vacaciones', '2025-09-01 14:20:43'),
+(17, 43, '2025-09-08', '2025-09-13', 'Programadas', 'vacaciones', '2025-09-01 14:57:19'),
+(19, 4, '2025-10-01', '2025-10-05', 'Programadas', 'vacaciones ', '2025-09-01 17:36:51');
 
 --
 -- Índices para tablas volcadas
@@ -728,12 +761,12 @@ ALTER TABLE `ent`
   ADD KEY `fk_ent_ped` (`ped_idped`);
 
 --
--- Indices de la tabla `inv`
---
 ALTER TABLE `inv`
-  ADD PRIMARY KEY (`idinv`),
-  ADD KEY `fk_inv_tflor` (`tflor_idtflor`),
-  ADD KEY `idx_inv_empleado` (`empleado_id`);
+  ADD PRIMARY KEY (`idinv`);
+--
+ALTER TABLE `tflor`
+  ADD PRIMARY KEY (`idtflor`),
+  ADD KEY `fkidinv` (`idinv`);
 
 --
 -- Indices de la tabla `inv_historial`
@@ -789,6 +822,13 @@ ALTER TABLE `perm`
   ADD UNIQUE KEY `codigo` (`codigo`);
 
 --
+-- Indices de la tabla `permisos`
+--
+ALTER TABLE `permisos`
+  ADD PRIMARY KEY (`idpermiso`),
+  ADD KEY `idempleado` (`idempleado`);
+
+--
 -- Indices de la tabla `perm_tpusu`
 --
 ALTER TABLE `perm_tpusu`
@@ -807,8 +847,7 @@ ALTER TABLE `pxp`
 --
 -- Indices de la tabla `tflor`
 --
-ALTER TABLE `tflor`
-  ADD PRIMARY KEY (`idtflor`);
+
 
 --
 -- Indices de la tabla `tokens_recuperacion`
@@ -826,6 +865,13 @@ ALTER TABLE `tpusu`
   ADD PRIMARY KEY (`idtpusu`);
 
 --
+-- Indices de la tabla `turnos`
+--
+ALTER TABLE `turnos`
+  ADD PRIMARY KEY (`idturno`),
+  ADD KEY `idempleado` (`idempleado`);
+
+--
 -- Indices de la tabla `usu`
 --
 ALTER TABLE `usu`
@@ -833,6 +879,13 @@ ALTER TABLE `usu`
   ADD UNIQUE KEY `username` (`username`),
   ADD UNIQUE KEY `email` (`email`),
   ADD KEY `fk_usu_tpusu` (`tpusu_idtpusu`);
+
+--
+-- Indices de la tabla `vacaciones`
+--
+ALTER TABLE `vacaciones`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `id_empleado` (`id_empleado`);
 
 --
 -- AUTO_INCREMENT de las tablas volcadas
@@ -848,7 +901,7 @@ ALTER TABLE `cfg_sis`
 -- AUTO_INCREMENT de la tabla `cli`
 --
 ALTER TABLE `cli`
-  MODIFY `idcli` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `idcli` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT de la tabla `detped`
@@ -866,7 +919,7 @@ ALTER TABLE `ent`
 -- AUTO_INCREMENT de la tabla `inv`
 --
 ALTER TABLE `inv`
-  MODIFY `idinv` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `idinv` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT de la tabla `inv_historial`
@@ -905,10 +958,16 @@ ALTER TABLE `perm`
   MODIFY `idperm` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
+-- AUTO_INCREMENT de la tabla `permisos`
+--
+ALTER TABLE `permisos`
+  MODIFY `idpermiso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
 -- AUTO_INCREMENT de la tabla `tflor`
 --
 ALTER TABLE `tflor`
-  MODIFY `idtflor` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `idtflor` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 
 --
 -- AUTO_INCREMENT de la tabla `tokens_recuperacion`
@@ -923,10 +982,22 @@ ALTER TABLE `tpusu`
   MODIFY `idtpusu` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
+-- AUTO_INCREMENT de la tabla `turnos`
+--
+ALTER TABLE `turnos`
+  MODIFY `idturno` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
 -- AUTO_INCREMENT de la tabla `usu`
 --
 ALTER TABLE `usu`
-  MODIFY `idusu` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
+  MODIFY `idusu` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
+
+--
+-- AUTO_INCREMENT de la tabla `vacaciones`
+--
+ALTER TABLE `vacaciones`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- Restricciones para tablas volcadas
@@ -954,14 +1025,14 @@ ALTER TABLE `ent`
 --
 -- Filtros para la tabla `inv`
 --
-ALTER TABLE `inv`
-  ADD CONSTRAINT `inv_ibfk_1` FOREIGN KEY (`tflor_idtflor`) REFERENCES `tflor` (`idtflor`);
+ALTER TABLE `tflor`
+  ADD CONSTRAINT `fkidinv` FOREIGN KEY (`idinv`) REFERENCES `inv` (`idinv`);
 
 --
 -- Filtros para la tabla `inv_historial`
 --
 ALTER TABLE `inv_historial`
-  ADD CONSTRAINT `inv_historial_ibfk_1` FOREIGN KEY (`idinv`) REFERENCES `inv` (`idinv`),
+  ADD CONSTRAINT `fk_invhist_inv` FOREIGN KEY (`idinv`) REFERENCES `inv` (`idinv`),
   ADD CONSTRAINT `inv_historial_ibfk_2` FOREIGN KEY (`idusu`) REFERENCES `usu` (`idusu`);
 
 --
@@ -984,6 +1055,12 @@ ALTER TABLE `perf_perm`
   ADD CONSTRAINT `perf_perm_ibfk_2` FOREIGN KEY (`idperm`) REFERENCES `perm` (`idperm`);
 
 --
+-- Filtros para la tabla `permisos`
+--
+ALTER TABLE `permisos`
+  ADD CONSTRAINT `permisos_ibfk_1` FOREIGN KEY (`idempleado`) REFERENCES `usu` (`idusu`) ON DELETE CASCADE;
+
+--
 -- Filtros para la tabla `perm_tpusu`
 --
 ALTER TABLE `perm_tpusu`
@@ -1004,34 +1081,24 @@ ALTER TABLE `tokens_recuperacion`
   ADD CONSTRAINT `tokens_recuperacion_ibfk_1` FOREIGN KEY (`idUsuario`) REFERENCES `usu` (`idusu`) ON DELETE CASCADE;
 
 --
+-- Filtros para la tabla `turnos`
+--
+ALTER TABLE `turnos`
+  ADD CONSTRAINT `turnos_ibfk_1` FOREIGN KEY (`idempleado`) REFERENCES `usu` (`idusu`) ON DELETE CASCADE;
+
+--
 -- Filtros para la tabla `usu`
 --
 ALTER TABLE `usu`
   ADD CONSTRAINT `usu_ibfk_1` FOREIGN KEY (`tpusu_idtpusu`) REFERENCES `tpusu` (`idtpusu`);
+
+--
+-- Filtros para la tabla `vacaciones`
+--
+ALTER TABLE `vacaciones`
+  ADD CONSTRAINT `vacaciones_ibfk_1` FOREIGN KEY (`id_empleado`) REFERENCES `usu` (`idusu`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-
--- --------------------------------------------------------
---
--- Estructura de la tabla `vacaciones`
---
-CREATE TABLE `vacaciones` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `id_empleado` INT NOT NULL,
-  `fecha_inicio` DATE NOT NULL,
-  `fecha_fin` DATE NOT NULL,
-  `estado` VARCHAR(20) DEFAULT 'En curso',
-  `motivo` VARCHAR(255),
-  `fecha_creacion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`id_empleado`) REFERENCES `usu`(`idusu`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
---
--- Agregar columna de vacaciones a la tabla usuALTER TABLE usu ADD COLUMN vacaciones INT DEFAULT 0;
---
-ALTER TABLE usu ADD COLUMN vacaciones INT DEFAULT 0;
--- --------------------------------------------------------

@@ -47,32 +47,3 @@ class MDashboardGeneral {
         ];
     }
 }
-
-<?php
-// filepath: c:\xampp\htdocs\Floraltech\models\MDashboardGeneral.php
-class MDashboardGeneral {
-    public function getDashboardData() {
-        // Aquí va la lógica real de consulta a la base de datos.
-        // Ejemplo de datos simulados:
-        return [
-            'totalPagos' => 120,
-            'pagosPendientes' => 15,
-            'pagosRechazados' => 3,
-            'usuariosRegistrados' => 50,
-            'nuevosUsuarios' => 5,
-            'tendenciaPagos' => 8,
-            'tendenciaPendientes' => 2,
-            'tendenciaRechazados' => -1,
-            'actividadReciente' => [
-                ['fecha' => '2024-09-18 10:00', 'descripcion' => 'Pago realizado'],
-                ['fecha' => '2024-09-19 12:30', 'descripcion' => 'Nuevo usuario registrado'],
-            ],
-            'resumenPedidosMes' => [
-                'pedidosMes' => 40,
-                'pedidosCompletados' => 30,
-                'pedidosPendientes' => 8,
-                'pedidosRechazados' => 2,
-            ],
-        ];
-    }
-}

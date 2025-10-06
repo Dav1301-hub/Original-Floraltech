@@ -50,6 +50,8 @@
                 <div class="w-100" style="max-width: 1100px;">
                     <?php
                     $page = $_GET['page'] ?? 'general';
+                    $pg = $_GET['pg'] ?? null;
+
                     $pages = [
                         'general' => 'dashboard_general.php',
                         'empleados' => 'dgemp.php',
@@ -58,20 +60,22 @@
                         'pagos' => 'dashboard_pago.php',
                         'configuracion' => 'configuracion.php',
                         'auditoria' => 'auditoria_pago.php',
-                        'reportes' => 'reportes_pago.php'
+                        'reportes' => 'reportes.php'
                     ];
-                    if ($page === 'general') {
-                        include __DIR__ . '/dashboard_general.php';
-                    } elseif ($page === 'empleados') {
-                        include __DIR__ . '/dgemp.php';
+                    $pgs = [
+                        'ggp' => 'catin.php'
+                    ];
+
+                    if ($pg && isset($pgs[$pg])) {
+                        $file = $pgs[$pg];
                     } else {
                         $file = isset($pages[$page]) ? $pages[$page] : $pages['general'];
-                        $filePath = __DIR__ . '/' . $file;
-                        if ($file && file_exists($filePath)) {
-                            include $filePath;
-                        } else {
-                            echo '<div class="alert alert-warning">Página no encontrada.</div>';
-                        }
+                    }
+                    $filePath = __DIR__ . '/' . $file;
+                    if ($file && file_exists($filePath)) {
+                        include $filePath;
+                    } else {
+                        echo '<div class="alert alert-warning">Página no encontrada.</div>';
                     }
                     ?>
                 </div>
