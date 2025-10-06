@@ -562,8 +562,12 @@ unset($_SESSION['tipo_mensaje']);
                                     <i class="fas fa-boxes"></i>
                                     Inventario
                                 </a>
+
+                                <a href="index.php?ctrl=empleadoPagos&action=index" class="btn btn-outline">
+
                                 <?php endif; ?>
                                 <a href="index.php?ctrl=EmpleadoPagosController&action=index" class="btn btn-outline">
+
                                     <i class="fas fa-chart-bar"></i>
                                     Reportes
                                 </a>

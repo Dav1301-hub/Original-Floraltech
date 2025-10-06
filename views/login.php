@@ -33,9 +33,9 @@ unset($_SESSION['forgot_success']);
     <div class="row w-75 shadow-lg rounded overflow-hidden">
         <!-- Sección del Logo -->
         <div class="col-md-6 d-flex flex-column align-items-center justify-content-center" style="background:#b5b4b4; padding: 40px 0;">
-            <img src="../assets/images/logoepymes.png"  class="mb-4" style="width:320px;">
+            <img src="/ProyectoFloralTechhh/assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:320px;">
             <p class="text-center px-3" style="font-size:1.2rem;">"Gestiona tu floristería con facilidad, ¡deja que la tecnología florezca contigo!"</p>
-        </div>  
+        </div>
 
         <!-- Sección de Inicio de Sesión -->
         <div class="col-md-6 bg-white d-flex flex-column justify-content-center align-items-center" style="padding: 40px 0;">

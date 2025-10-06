@@ -43,11 +43,15 @@
             <div class="main-content flex-grow-1 d-flex flex-column align-items-center justify-content-center" id="mainContent" style="margin: 24px 24px 24px 0; min-height: calc(100vh - 120px);">
                 <div class="w-100" style="max-width: 1100px;">
                     <?php
+            $page = $_GET['page'] ?? 'general';
+                    $pg = $_GET['pg'] ?? null;
+
+
                     // Priorizar $page si está definida (desde controlador), sino usar $_GET['page']
                     if (!isset($page)) {
                         $page = $_GET['page'] ?? 'general';
                     }
-                    
+
                     $pages = [
                         'general' => 'dashboard_general.php',
                         'empleados' => 'dgemp.php',
@@ -57,8 +61,24 @@
                         'pagos' => 'dashboard_pago.php',
                         'configuracion' => 'configuracion.php',
                         'auditoria' => 'auditoria_pago.php',
-                        'reportes' => 'reportes_pago.php'
+                        'reportes' => 'reportes.php'
                     ];
+
+                    $pgs = [
+                        'ggp' => 'catin.php'
+                    ];
+
+                    if ($pg && isset($pgs[$pg])) {
+                        $file = $pgs[$pg];
+                    } else {
+                        $file = isset($pages[$page]) ? $pages[$page] : $pages['general'];
+                    }
+                    $filePath = __DIR__ . '/' . $file;
+                    if ($file && file_exists($filePath)) {
+                        include $filePath;
+                    } else {
+                        echo '<div class="alert alert-warning">Página no encontrada.</div>';
+
                     
                     if ($page === 'inventarios') {
                         // Redirigir al controlador de inventario
@@ -77,6 +97,7 @@
                         } else {
                             echo '<div class="alert alert-warning">Página no encontrada.</div>';
                         }
+
                     }
                     ?>
                 </div>

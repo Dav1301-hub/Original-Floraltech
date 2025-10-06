@@ -1,13 +1,12 @@
 <?php
-require_once 'config/db.php'; // Incluye la conexión
+require_once 'config/db.php'; 
 
 require_once 'models/Dashboard.php';
 
-$dashboard = new Dashboard($conn); // Le pasas la conexión
+$dashboard = new Dashboard($conn);
 $data = $dashboard->getData();
 ?>
 <?php
-// models/Dashboard.php
 class Dashboard {
     private $db;
 
@@ -16,8 +15,7 @@ class Dashboard {
     }
 
     public function getData() {
-        // Obtener datos para el dashboard
-        // Ejemplo: Obtener estadísticas de ventas
+        //saasasasasasasasaasas
         $sql = "SELECT * FROM sales";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();

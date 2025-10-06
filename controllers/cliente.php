@@ -55,7 +55,6 @@ class FacturaPDF extends FPDF {
 class cliente {
     private $db;
     private $cliente_id;
-    private $pedidoModel; // ← Agregar esta propiedad
     
     public function __construct() {
         // Verificar que el usuario esté logueado y sea cliente
@@ -71,10 +70,6 @@ class cliente {
         
         // Obtener el ID del cliente
         $this->cliente_id = $this->obtenerClienteId();
-        
-        // Inicializar el modelo de pedidos
-        require_once 'models/PedidoModel.php';
-        $this->pedidoModel = new PedidoModel($this->db); // ← Inicializar correctamente
     }
     
     private function obtenerClienteId() {
@@ -117,15 +112,27 @@ class cliente {
     }
     
     public function nuevo_pedido() {
-        // Obtener flores disponibles usando el modelo (solo con stock > 0)
-        $flores_disponibles = $this->pedidoModel->obtenerFloresDisponibles();
+        // Obtener flores disponibles para mostrar en la vista
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    tf.idtflor,
+                    tf.nombre,
+                    tf.naturaleza as color,
+                    tf.precio,
+                    tf.descripcion,
+                    COALESCE(i.cantidad_disponible, 0) as stock
+                FROM tflor tf
+                LEFT JOIN inv i ON tf.idtflor = i.tflor_idtflor
+                ORDER BY tf.nombre
+            ");
+            $stmt->execute();
+            $flores_disponibles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error obteniendo flores: " . $e->getMessage());
+            $flores_disponibles = [];
+        }
         
-        // Pasar a la vista
-        $datos_vista = [
-            'flores_disponibles' => $flores_disponibles
-        ];
-        
-        extract($datos_vista);
         include 'views/cliente/nuevo_pedido.php';
     }
     
@@ -141,116 +148,140 @@ class cliente {
         include 'views/cliente/configuracion.php';
     }
     
-    // Modificar el método procesar_pedido para usar el modelo
-public function procesar_pedido() {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        try {
-            error_log("Datos POST recibidos: " . print_r($_POST, true));
-            
-            $direccion_entrega = $_POST['direccion_entrega'] ?? '';
-            $fecha_entrega = $_POST['fecha_entrega'] ?? '';
-            $metodo_pago = $_POST['metodo_pago'] ?? 'efectivo';
-            
-            $detalles_pedido = [];
-            $monto_total = 0;
-            
-            // Recopilar detalles del pedido
-            foreach ($_POST as $key => $value) {
-                if (strpos($key, 'flor_') === 0 && $value === 'on') {
-                    $idtflor = str_replace('flor_', '', $key);
-                    $cantidad_key = 'cantidad_' . $idtflor;
-                    $cantidad = intval($_POST[$cantidad_key] ?? 0);
-                    
-                    if ($cantidad > 0) {
-                        // Obtener precio de la flor
-                        $florInfo = $this->obtenerInfoFlor($idtflor);
+    public function procesar_pedido() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            try {
+                error_log("Datos POST recibidos: " . print_r($_POST, true));
+                
+                $direccion_entrega = $_POST['direccion_entrega'] ?? '';
+                $fecha_entrega = $_POST['fecha_entrega'] ?? '';
+                $metodo_pago = $_POST['metodo_pago'] ?? 'efectivo';
+                
+                $detalles_pedido = [];
+                $monto_total = 0;
+                
+                foreach ($_POST as $key => $value) {
+                    if (strpos($key, 'flor_') === 0 && $value === 'on') {
+                        $idtflor = str_replace('flor_', '', $key);
+                        $cantidad_key = 'cantidad_' . $idtflor;
+                        $cantidad = intval($_POST[$cantidad_key] ?? 0);
                         
-                        if ($florInfo) {
-                            $precio_unitario = $florInfo['precio'];
-                            $subtotal = $precio_unitario * $cantidad;
-                            $monto_total += $subtotal;
+                        if ($cantidad > 0) {
+                            $stmt = $this->db->prepare("SELECT precio FROM tflor WHERE idtflor = ?");
+                            $stmt->execute([$idtflor]);
+                            $flor = $stmt->fetch(PDO::FETCH_ASSOC);
                             
-                            $detalles_pedido[] = [
-                                'idtflor' => $idtflor,
-                                'cantidad' => $cantidad,
-                                'precio_unitario' => $precio_unitario,
-                                'subtotal' => $subtotal
-                            ];
+                            if ($flor) {
+                                $precio_unitario = $flor['precio'];
+                                $subtotal = $precio_unitario * $cantidad;
+                                $monto_total += $subtotal;
+                                
+                                $detalles_pedido[] = [
+                                    'idtflor' => $idtflor,
+                                    'cantidad' => $cantidad,
+                                    'precio_unitario' => $precio_unitario,
+                                    'subtotal' => $subtotal
+                                ];
+                            }
                         }
                     }
                 }
+                
+                if (empty($detalles_pedido)) {
+                    throw new Exception("Debe seleccionar al menos una flor");
+                }
+                
+                if ($monto_total <= 0) {
+                    throw new Exception("El monto total debe ser mayor a cero");
+                }
+                
+                $this->db->beginTransaction();
+                
+                $numped = 'PED-' . date('YmdHis') . '-' . $this->cliente_id;
+                
+                $stmt = $this->db->prepare("
+                    INSERT INTO ped (numped, fecha_pedido, monto_total, estado, cli_idcli, direccion_entrega, fecha_entrega_solicitada) 
+                    VALUES (?, NOW(), ?, 'Pendiente', ?, ?, ?)
+                ");
+                $stmt->execute([$numped, $monto_total, $this->cliente_id, $direccion_entrega, $fecha_entrega]);
+                $pedido_id = $this->db->lastInsertId();
+                
+                foreach ($detalles_pedido as $detalle) {
+                    $stmt = $this->db->prepare("
+                        INSERT INTO detped (idped, idtflor, cantidad, precio_unitario) 
+                        VALUES (?, ?, ?, ?)
+                    ");
+                    $stmt->execute([
+                        $pedido_id,
+                        $detalle['idtflor'],
+                        $detalle['cantidad'],
+                        $detalle['precio_unitario']
+                    ]);
+                }
+                
+                $estado_pago = ($metodo_pago === 'transferencia') ? 'Pendiente' : 'Pendiente';
+                $stmt = $this->db->prepare("
+                    INSERT INTO pagos (ped_idped, monto, metodo_pago, estado_pag, fecha_pago) 
+                    VALUES (?, ?, ?, ?, NOW())
+                ");
+                $stmt->execute([$pedido_id, $monto_total, $metodo_pago, $estado_pago]);
+                
+                $this->db->commit();
+                
+                if ($metodo_pago === 'transferencia') {
+                    $_SESSION['mensaje'] = "Pedido creado exitosamente. Número de pedido: $numped. Su pago por transferencia está pendiente de verificación por nuestro equipo.";
+                    $_SESSION['info_transferencia'] = "Recuerde que debe realizar la transferencia bancaria según los datos mostrados en el formulario. Un empleado verificará su pago para procesar el pedido.";
+                } else {
+                    $_SESSION['mensaje'] = "Pedido creado exitosamente. Número de pedido: $numped";
+                }
+                $_SESSION['tipo_mensaje'] = "success";
+                
+                error_log("Pedido creado exitosamente: $numped, Cliente ID: $this->cliente_id, Detalles: " . count($detalles_pedido) . " items");
+                
+                header('Location: index.php?ctrl=cliente&action=dashboard');
+                exit();
+                
+            } catch (Exception $e) {
+                if ($this->db->inTransaction()) {
+                    $this->db->rollback();
+                }
+                
+                $_SESSION['mensaje'] = "Error al procesar el pedido: " . $e->getMessage();
+                $_SESSION['tipo_mensaje'] = "danger";
+                header('Location: index.php?ctrl=cliente&action=realizar_pago');
+                exit();
             }
-            
-            if (empty($detalles_pedido)) {
-                throw new Exception("Debe seleccionar al menos una flor");
-            }
-            
-            if ($monto_total <= 0) {
-                throw new Exception("El monto total debe ser mayor a cero");
-            }
-            
-            // Preparar datos para el modelo
-            $datosPedido = [
-                'numped' => 'PED-' . date('YmdHis') . '-' . $this->cliente_id,
-                'monto_total' => $monto_total,
-                'cli_idcli' => $this->cliente_id,
-                'direccion_entrega' => $direccion_entrega,
-                'fecha_entrega' => $fecha_entrega,
-                'metodo_pago' => $metodo_pago,
-                'detalles' => $detalles_pedido,
-                'id_usuario' => $_SESSION['user']['idusu'] ?? null
-            ];
-            
-            // Usar el modelo para crear el pedido y actualizar stock
-            $pedido_id = $this->pedidoModel->crearPedido($datosPedido);
-            
-            if ($metodo_pago === 'transferencia') {
-                $_SESSION['mensaje'] = "Pedido creado exitosamente. Número de pedido: {$datosPedido['numped']}. Su pago por transferencia está pendiente de verificación por nuestro equipo.";
-                $_SESSION['info_transferencia'] = "Recuerde que debe realizar la transferencia bancaria según los datos mostrados en el formulario. Un empleado verificará su pago para procesar el pedido.";
-            } else {
-                $_SESSION['mensaje'] = "Pedido creado exitosamente. Número de pedido: {$datosPedido['numped']}";
-            }
-            $_SESSION['tipo_mensaje'] = "success";
-            
-            error_log("Pedido creado exitosamente: {$datosPedido['numped']}, Cliente ID: $this->cliente_id");
-            
-            header('Location: index.php?ctrl=cliente&action=dashboard');
-            exit();
-            
-        } catch (Exception $e) {
-            $_SESSION['mensaje'] = "Error al procesar el pedido: " . $e->getMessage();
-            $_SESSION['tipo_mensaje'] = "danger";
-            header('Location: index.php?ctrl=cliente&action=nuevo_pedido');
+        } else {
+            header('Location: index.php?ctrl=cliente&action=realizar_pago');
             exit();
         }
-    } else {
-        header('Location: index.php?ctrl=cliente&action=nuevo_pedido');
+    }
+    
+    public function obtener_flores() {
+        header('Content-Type: application/json');
+        
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    tf.idtflor,
+                    tf.nombre,
+                    tf.naturaleza as color,
+                    tf.precio,
+                    tf.descripcion,
+                    COALESCE(i.cantidad_disponible, 0) as stock
+                FROM tflor tf
+                LEFT JOIN inv i ON tf.idtflor = i.tflor_idtflor
+                ORDER BY tf.nombre
+            ");
+            $stmt->execute();
+            $flores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            echo json_encode(['success' => true, 'flores' => $flores]);
+        } catch (PDOException $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
         exit();
     }
-}
-    
-private function obtenerInfoFlor($idFlor) {
-    try {
-        $stmt = $this->db->prepare("SELECT precio FROM tflor WHERE idtflor = ?");
-        $stmt->execute([$idFlor]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        error_log("Error obteniendo info flor: " . $e->getMessage());
-        return false;
-    }
-}
-
-    public function obtener_flores() {
-    header('Content-Type: application/json');
-    
-    try {
-        $flores = $this->pedidoModel->obtenerFloresDisponibles();
-        echo json_encode(['success' => true, 'flores' => $flores]);
-    } catch (Exception $e) {
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-    }
-    exit();
-}
     
     public function actualizar_perfil() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {

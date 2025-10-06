@@ -209,4 +209,19 @@ class PagoModel {
         
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    // Obtener detalle completo de un pago
+    public function obtenerDetallePago($idPago) {
+        $query = "SELECT p.*, pe.numped, pe.monto_total, c.nombre as cliente, c.email
+                  FROM pagos p
+                  JOIN ped pe ON p.ped_idped = pe.idped
+                  JOIN cli c ON pe.cli_idcli = c.idcli
+                  WHERE p.idpago = :id";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':id', $idPago, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 }
