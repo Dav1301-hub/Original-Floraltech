@@ -7,7 +7,7 @@ $mreportes = new Mreportes();
 
 $idped = isset($_REQUEST['idped']) ? $_REQUEST['idped'] : null;
 $ope = isset($_REQUEST['ope']) ? $_REQUEST['ope'] : null;
-
+$idusu = isset($_REQUEST['idusu']) ? $_REQUEST['idusu'] : null;
 $dtOne = null;
 
 // Si se solicita ver un solo reporte
@@ -20,9 +20,19 @@ if ($ope === "ver" && $idped) {
         }
     }
 }
+if ($ope === "ver_usuario" && $idusu) {
+    $todosUsu = $mreportes->getAllusu();
+    foreach ($todosUsu as $usuario) {
+        if ($usuario['idusu'] == $idusu) {
+            $dtOne = $usuario;
+            break;
+        }
+    }
+}
 
 // Obtener todos los reportes
 $dtAll = $mreportes->getAll();
+
 
 // --- FILTRO PARA EL MODAL ---
 $modalPedidos = $dtAll ?? [];
@@ -42,6 +52,16 @@ if (!empty($_GET['estado'])) {
         return strtolower($p['estado']) === strtolower($_GET['estado']);
     });
 }
+// --- FILTRO PARA EL MODAL DE USUARIOS ---
+$dtAllUsu = $mreportes->getAllusu();
+$modalUsuarios = $dtAllUsu ?? [];
+if (!empty($_GET['tipo'])) {
+    $modalUsuarios = array_filter($modalUsuarios, function($u) {
+        return strtolower($u['tipo_usuario']) === strtolower($_GET['tipo']);
+    });
+}
+
+
 
 // Aquí puedes incluir la vista y pasarle $dtAll y $dtOne
 // Ejemplo de uso para pruebas (puedes eliminar estos print_r en producción):
