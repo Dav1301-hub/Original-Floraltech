@@ -1,7 +1,5 @@
-
-// ===============================
 // 🔹 FILTRO Y PDF DE PEDIDOS
-// ===============================
+
 document.getElementById('btnFiltrarModal')?.addEventListener('click', function() {
     const fechaInicio = document.getElementById('modal_fecha_inicio')?.value;
     const fechaFin = document.getElementById('modal_fecha_fin')?.value;
@@ -46,9 +44,9 @@ document.getElementById('formPdfPedidos')?.addEventListener('submit', function(e
     }
     console.log('Pedidos seleccionados:', seleccionados);
 });
-// ===============================
+
 // 🔹 FILTRO Y PDF DE USUARIOS
-// ===============================
+
 document.getElementById('btnFiltrarModalUsuarios')?.addEventListener('click', function() {
     const tipoSeleccionado = document.getElementById('modal_estado_usuarios')?.value.toLowerCase();
     const filas = document.querySelectorAll('#tablaUsuariosModal tbody tr');
