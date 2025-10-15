@@ -114,6 +114,64 @@ class Cinventario {
                         header('Location: ?ctrl=Cinventario&success=proveedor_agregado');
                         exit;
                         break;
+                        
+                    case 'editar_producto':
+                        $resultado = $this->inventarioModel->editarProducto($_POST);
+                        if ($resultado['success']) {
+                            echo json_encode(['success' => true, 'message' => 'Producto actualizado correctamente']);
+                        } else {
+                            echo json_encode(['success' => false, 'message' => $resultado['message']]);
+                        }
+                        exit;
+                        break;
+                        
+                    case 'obtener_producto':
+                        $id = $_GET['id'] ?? $_POST['id'] ?? null;
+                        if ($id) {
+                            $producto = $this->inventarioModel->obtenerProductoPorId($id);
+                            if ($producto) {
+                                echo json_encode(['success' => true, 'producto' => $producto]);
+                            } else {
+                                echo json_encode(['success' => false, 'message' => 'Producto no encontrado']);
+                            }
+                        } else {
+                            echo json_encode(['success' => false, 'message' => 'ID de producto requerido']);
+                        }
+                        exit;
+                        break;
+                        
+                    case 'agregar_stock':
+                        $id = $_GET['id'] ?? $_POST['id'] ?? null;
+                        $cantidad = $_GET['cantidad'] ?? $_POST['cantidad'] ?? null;
+                        $motivo = $_GET['motivo'] ?? $_POST['motivo'] ?? '';
+                        
+                        if ($id && $cantidad && $cantidad > 0) {
+                            $resultado = $this->inventarioModel->agregarStock($id, $cantidad, $motivo);
+                            if ($resultado['success']) {
+                                echo json_encode(['success' => true, 'message' => 'Stock agregado correctamente']);
+                            } else {
+                                echo json_encode(['success' => false, 'message' => $resultado['message']]);
+                            }
+                        } else {
+                            echo json_encode(['success' => false, 'message' => 'Datos incompletos']);
+                        }
+                        exit;
+                        break;
+                        
+                    case 'eliminar_producto':
+                        $id = $_GET['id'] ?? $_POST['id'] ?? null;
+                        if ($id) {
+                            $resultado = $this->inventarioModel->eliminarProducto($id);
+                            if ($resultado['success']) {
+                                echo json_encode(['success' => true, 'message' => 'Producto eliminado correctamente']);
+                            } else {
+                                echo json_encode(['success' => false, 'message' => $resultado['message']]);
+                            }
+                        } else {
+                            echo json_encode(['success' => false, 'message' => 'ID de producto requerido']);
+                        }
+                        exit;
+                        break;
                 }
             }
         } catch (Exception $e) {
