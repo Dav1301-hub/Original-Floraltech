@@ -1,5 +1,5 @@
 <?php
-require_once 'models/FlorModel.php';
+require_once __DIR__ . '/../models/FlorModel.php';
 
 class FlorController {
     private $model;

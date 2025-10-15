@@ -1,5 +1,5 @@
 <?php
-require_once 'models/FlorModel.php';
+require_once __DIR__ . '/../models/FlorModel.php';
 header('Content-Type: application/json');
 
 class FlorApiController {
