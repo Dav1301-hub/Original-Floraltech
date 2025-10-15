@@ -1,7 +1,7 @@
 <?php
 require_once 'conexion.php';
 
-class FlorModel {
+class Mflor {
     private $db;
 
     public function __construct() {

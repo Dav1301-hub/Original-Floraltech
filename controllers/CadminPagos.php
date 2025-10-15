@@ -1,5 +1,5 @@
 <?php
-class AdminPagosController {
+class CadminPagos {
     public function index() {
         // Puedes personalizar la vista que se muestra aquí
         $this->dashboard();
@@ -9,9 +9,9 @@ class AdminPagosController {
 
     public function __construct() {
         require_once __DIR__ . '/../config/db.php';
-        require_once __DIR__ . '/../models/PagoModel.php';
+        require_once __DIR__ . '/../models/Mpago.php';
         $db = (new Database())->connect();
-        $this->model = new PagoModel($db);
+        $this->model = new Mpago($db);
         $this->rol = $_SESSION['rol'] ?? null;
     }
 
@@ -21,7 +21,7 @@ class AdminPagosController {
         $estadisticas = $this->model->obtenerEstadisticasPagos();
         $pagosRecientes = $this->model->obtenerTodosLosPagos();
         $resumenMetodosPago = $this->model->obtenerResumenMetodosPago();
-        include 'views/admin/dashboard_pago.php';
+        include 'views/admin/VadashboardPagos.php';
     }
 
     public function generarReporte($tipo) {

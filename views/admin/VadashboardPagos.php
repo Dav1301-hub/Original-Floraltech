@@ -139,7 +139,7 @@ $pagosRecientes = $pagosRecientes ?? [];
             </div>
 
             <div class="mt-3">
-                <a href="/floraltech/views/admin/reportes.php" class="btn btn-outline-secondary">
+                <a href="/floraltech/views/admin/Vareportes.php" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> Volver a reportes
                 </a>
             </div>

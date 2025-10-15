@@ -1,7 +1,7 @@
 <?php
 // Vista para procesar pagos de pedidos
-require_once __DIR__ . '/../../controllers/ProcesarPagosController.php';
-$controller = new ProcesarPagosController();
+require_once __DIR__ . '/../../controllers/CprocesarPagos.php';
+$controller = new CprocesarPagos();
 
 // Procesar pago si se envía el formulario
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pago_id'])) {

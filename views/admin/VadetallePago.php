@@ -74,7 +74,7 @@
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-arrow-repeat"></i> Actualizar Estado
                 </button>
-                <a href="/floraltech/views/admin/reportes.php" class="btn btn-outline-secondary">
+                <a href="/floraltech/views/admin/Vareportes.php" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-left"></i> Volver
                 </a>
             </form>

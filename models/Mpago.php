@@ -1,6 +1,6 @@
 <?php
 
-class PagoModel {
+class Mpago {
     // Resumen de Ganancias
     public function getResumenGanancias() {
         $query = "SELECT SUM(CASE WHEN estado_pag = 'Completado' THEN monto ELSE 0 END) as total_recaudado,

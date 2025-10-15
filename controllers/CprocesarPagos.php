@@ -1,11 +1,11 @@
 <?php
 // Controlador para procesar pagos
-require_once __DIR__ . '/../models/ProcesarPagosModel.php';
+require_once __DIR__ . '/../models/MprocesarPagos.php';
 
-class ProcesarPagosController {
+class CprocesarPagos {
     private $model;
     public function __construct() {
-        $this->model = new ProcesarPagosModel();
+        $this->model = new MprocesarPagos();
     }
     public function obtenerPagosPendientes() {
         return $this->model->getPagosPendientes();

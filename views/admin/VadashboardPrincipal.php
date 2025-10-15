@@ -51,15 +51,15 @@
                     }
 
                     $pages = [
-                        'general' => 'dashboard_general.php',
-                        'empleados' => 'dgemp.php',
+                        'general' => 'VadashboardGeneral.php',
+                        'empleados' => 'VagestionarEmpleados.php',
                         'inventarios' => null, // Redirigir al controlador
-                        'inventario' => 'inventario.php', // Desde el controlador cinventario
-                        'pedidos' => 'gestion_pedidos.php',
-                        'pagos' => 'dashboard_pago.php',
-                        'configuracion' => 'configuracion.php',
-                        'auditoria' => 'auditoria_pago.php',
-                        'reportes' => 'reportes.php'
+                        'inventario' => 'Vainventario.php', // Desde el controlador cinventario
+                        'pedidos' => 'VagestionPedidos.php',
+                        'pagos' => 'VadashboardPagos.php',
+                        'configuracion' => 'Vaconfiguracion.php',
+                        'auditoria' => 'VaauditoriaPagos.php',
+                        'reportes' => 'Vareportes.php'
                     ];
 
                     $pgs = [

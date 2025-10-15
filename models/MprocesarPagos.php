@@ -2,7 +2,7 @@
 // Modelo para procesar pagos
 require_once __DIR__ . '/conexion.php';
 
-class ProcesarPagosModel {
+class MprocesarPagos {
     private $db;
     public function __construct() {
         $this->db = new conexion();

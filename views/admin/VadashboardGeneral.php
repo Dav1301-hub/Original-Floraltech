@@ -1,22 +1,35 @@
 <?php
+// Obtener datos reales del dashboard general mediante el controller
 if (!isset($dashboardData) || !is_array($dashboardData)) {
-    $dashboardData = [
-        'totalPagos' => 0,
-        'pagosPendientes' => 0,
-        'pagosRechazados' => 0,
-        'usuariosRegistrados' => 0,
-        'nuevosUsuarios' => 0,
-        'tendenciaPagos' => 0,
-        'tendenciaPendientes' => 0,
-        'tendenciaRechazados' => 0,
-        'actividadReciente' => [],
-        'resumenPedidosMes' => [
-            'pedidosMes' => 0,
-            'pedidosCompletados' => 0,
-            'pedidosPendientes' => 0,
-            'pedidosRechazados' => 0
-        ]
-    ];
+    // Solo ejecutar el controller si no tenemos datos (evitar duplicación)
+    require_once __DIR__ . '/../../controllers/CDashboardGeneral.php';
+    
+    try {
+        $dashboardController = new CDashboardGeneral();
+        $dashboardData = $dashboardController->getDashboardData();
+    } catch (Exception $e) {
+        // Si hay error, usar datos por defecto para mantener funcionalidad
+        error_log("Error en Dashboard General: " . $e->getMessage());
+        $dashboardData = [
+            'totalPagos' => 0,
+            'pagosPendientes' => 0,
+            'pagosRechazados' => 0,
+            'usuariosRegistrados' => 0,
+            'nuevosUsuarios' => 0,
+            'tendenciaPagos' => 0,
+            'tendenciaPendientes' => 0,
+            'tendenciaRechazados' => 0,
+            'actividadReciente' => [],
+            'resumenPedidosMes' => [
+                'pedidosMes' => 0,
+                'pedidosCompletados' => 0,
+                'pedidosPendientes' => 0,
+                'pedidosEnProceso' => 0,
+                'pedidosCancelados' => 0,
+                'mesReferencia' => date('m/Y')
+            ]
+        ];
+    }
 }
 ?>
 
@@ -37,7 +50,9 @@ $actividadReciente = $dashboardData['actividadReciente'];
 $pedidosMes = $dashboardData['resumenPedidosMes']['pedidosMes'];
 $pedidosCompletados = $dashboardData['resumenPedidosMes']['pedidosCompletados'];
 $pedidosPendientesMes = $dashboardData['resumenPedidosMes']['pedidosPendientes'];
-$pedidosRechazadosMes = $dashboardData['resumenPedidosMes']['pedidosRechazados'];
+$pedidosEnProcesoMes = $dashboardData['resumenPedidosMes']['pedidosEnProceso'];
+$pedidosCanceladosMes = $dashboardData['resumenPedidosMes']['pedidosCancelados'];
+$mesReferencia = $dashboardData['resumenPedidosMes']['mesReferencia'] ?? date('m/Y');
 ?>
 
 <!DOCTYPE html>
@@ -110,13 +125,14 @@ $pedidosRechazadosMes = $dashboardData['resumenPedidosMes']['pedidosRechazados']
                 </div>
             </div>
             <div class="card card-resumen mb-3">
-                <div class="card-header bg-primary text-white"><i class="fas fa-calendar-alt me-2"></i>Resumen Mensual de Pedidos</div>
+                <div class="card-header bg-primary text-white"><i class="fas fa-calendar-alt me-2"></i>Resumen Mensual de Pedidos (<?= $mesReferencia ?>)</div>
                 <div class="card-body">
                     <ul class="list-group">
                         <li class="list-group-item"><span class="icon text-primary"><i class="fas fa-shopping-bag"></i></span>Pedidos este mes: <strong><?= $pedidosMes ?></strong></li>
                         <li class="list-group-item"><span class="icon text-success"><i class="fas fa-check"></i></span>Completados: <strong><?= $pedidosCompletados ?></strong></li>
                         <li class="list-group-item"><span class="icon text-warning"><i class="fas fa-clock"></i></span>Pendientes: <strong><?= $pedidosPendientesMes ?></strong></li>
-                        <li class="list-group-item"><span class="icon text-danger"><i class="fas fa-ban"></i></span>Rechazados: <strong><?= $pedidosRechazadosMes ?></strong></li>
+                        <li class="list-group-item"><span class="icon text-info"><i class="fas fa-cog"></i></span>En proceso: <strong><?= $pedidosEnProcesoMes ?></strong></li>
+                        <li class="list-group-item"><span class="icon text-danger"><i class="fas fa-ban"></i></span>Cancelados: <strong><?= $pedidosCanceladosMes ?></strong></li>
                     </ul>
                 </div>
             </div>
@@ -164,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             dateClick: function(info) {
                 var fecha = info.dateStr;
-                fetch('/Floraltech/controllers/ccalendar_api.php?fecha=' + fecha)
+                fetch('/Original-Floraltech/controllers/ccalendar_api.php?fecha=' + fecha)
                     .then(response => response.json())
                     .then(data => {
                         var html = '';
@@ -201,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 btn.onclick = function() {
                                     var fecha = btn.getAttribute('data-fecha');
                                     document.getElementById('modalPedidosDiaBody').innerHTML = '<div class="text-center"><div class="spinner-border text-success" role="status"></div><p>Cargando formulario...</p></div>';
-                                    fetch('/FloralTech/controllers/ajax_nuevo_pedido.php?fecha=' + fecha)
+                                    fetch('/Original-Floraltech/controllers/ajax_nuevo_pedido.php?fecha=' + fecha)
                                         .then(resp => resp.text())
                                         .then(formHtml => {
                                             document.getElementById('modalPedidosDiaBody').innerHTML = formHtml;

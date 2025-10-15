@@ -1,78 +1,51 @@
 <?php
-// Procesar formulario de nueva vacación antes de cualquier salida
+// Procesar formulario de nuevo empleado antes de cualquier salida
+
+// Cargar modelo de usuario
+require_once __DIR__ . '/../../models/Mdgemp.php';
+$userModel = new Mdgemp();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_empleado'])) {
-    require_once __DIR__ . '/../../models/conexion.php';
-    $conn = new conexion();
-    $db = $conn->get_conexion();
-
     $nombre = trim($_POST['nombre'] ?? '');
     $apellido = trim($_POST['apellido'] ?? '');
-    $username = trim($_POST['documento'] ?? '');
+    $documento = trim($_POST['documento'] ?? '');
     $cargo = trim($_POST['cargo'] ?? '');
-    $fecha_ingreso = $_POST['fecha_ingreso'] ?? date('Y-m-d');
-    $tipo_contrato = $_POST['tipo_contrato'] ?? 'indefinido';
-    $estado = $_POST['estado'] ?? 'activo';
     $password = trim($_POST['password'] ?? '');
-    $email = $username . '@floraltech.local'; // Email ficticio, puedes cambiarlo
-    $telefono = '';
-    $tpusu_idtpusu = 2; // Tipo usuario empleado, ajusta según tu sistema
-    $activo = ($estado === 'activo') ? 1 : 0;
-    $nombre_completo = $nombre . ' ' . $apellido;
-    // Usar la contraseña proporcionada o una por defecto
-    $clave = password_hash($password ?: '123456', PASSWORD_DEFAULT);
 
     // Validaciones básicas
-    if ($nombre === '' || $apellido === '' || $username === '' || $cargo === '') {
+    if ($nombre === '' || $apellido === '' || $documento === '' || $cargo === '') {
         $mensaje = 'Todos los campos son obligatorios.';
         $tipo_mensaje = 'danger';
     } else {
-        // Verificar si el usuario ya existe
-        $stmt = $db->prepare("SELECT COUNT(*) FROM usu WHERE username = ?");
-        $stmt->execute([$username]);
-        if ($stmt->fetchColumn() > 0) {
-            $mensaje = 'El documento/usuario ya existe.';
-            $tipo_mensaje = 'warning';
-        } else {
-            // Insertar empleado
-            try {
-                $stmt = $db->prepare("INSERT INTO usu (username, nombre_completo, naturaleza, telefono, email, clave, tpusu_idtpusu, fecha_registro, activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$username, $nombre_completo, $cargo, $telefono, $email, $clave, $tpusu_idtpusu, $fecha_ingreso, $activo]);
-                $mensaje = 'Empleado creado exitosamente.';
-                $tipo_mensaje = 'success';
-                // Redirigir para evitar reenvío del formulario
-                header('Location: ' . $_SERVER['REQUEST_URI'] . '?msg=success');
-                exit();
-            } catch (Exception $e) {
-                $mensaje = 'Error al crear el empleado.';
-                $tipo_mensaje = 'danger';
-            }
+        try {
+            // Usar el modelo para crear el empleado
+            $userModel->crearEmpleado($_POST);
+            $mensaje = 'Empleado creado exitosamente.';
+            $tipo_mensaje = 'success';
+            // Redirigir para evitar reenvío del formulario
+            header('Location: ' . $_SERVER['REQUEST_URI'] . '?msg=success');
+            exit();
+        } catch (Exception $e) {
+            $mensaje = $e->getMessage();
+            $tipo_mensaje = 'danger';
         }
     }
 }
 
-// Conexión a la base de datos
-require_once __DIR__ . '/../../models/conexion.php';
-$conn = new conexion();
-$db = $conn->get_conexion();
+// Obtener datos usando el modelo
+$empleados = $userModel->getAllEmpleados();
+$tipos_usuario = $userModel->getTiposUsuario();
+$empleados_activos = $userModel->getEmpleadosActivos();
+
+// Variables para mensajes
 $mensaje = $mensaje ?? '';
 $tipo_mensaje = $tipo_mensaje ?? '';
 
-// Consulta empleados
-$stmt = $db->prepare("SELECT idusu, nombre_completo, username, email, telefono, tpusu_idtpusu, activo, naturaleza, fecha_registro FROM usu");
-$stmt->execute();
-$empleados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Consulta permisos (mantener por ahora - podría moverse al modelo después)
+require_once __DIR__ . '/../../models/conexion.php';
+$conn = new conexion();
+$db = $conn->get_conexion();
 
-// Mapeo de tipos de usuario
-$tipos_usuario = [
-    1 => 'Administrador',
-    2 => 'Vendedor',
-    3 => 'Inventario',
-    4 => 'Repartidor',
-    5 => 'Cliente'
-];
-
-// Consulta permisos
 $permisos = [];
 try {
     $stmt = $db->prepare("SELECT p.idpermiso, u.nombre_completo as empleado, p.tipo, p.fecha_inicio, p.fecha_fin, p.estado FROM permisos p LEFT JOIN usu u ON p.idempleado = u.idusu");
@@ -96,12 +69,7 @@ try {
     $vacaciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {}
 
-// Estadísticas para las tarjetas
-$empleados_activos = 0;
-foreach ($empleados as $empleado) {
-    if ($empleado['activo']) $empleados_activos++;
-}
-
+// Estadísticas para las tarjetas (empleados_activos ya se obtuvo del modelo)
 $vacaciones_activas = 0;
 foreach ($vacaciones as $vacacion) {
     if ($vacacion['estado'] == 'En curso') $vacaciones_activas++;
@@ -128,7 +96,7 @@ foreach ($turnos as $turno) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/ProyectoFloralTechhh/assets/dgemp.css">
+    <link rel="stylesheet" href="/Original-Floraltech/assets/dgemp.css">
 </head>
 <body>
     <div class="container-fluid">
@@ -882,8 +850,8 @@ foreach ($turnos as $turno) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/ProyectoFloralTechhh/assets/dgemp.js"></script>
-    <script src="/ProyectoFloralTechhh/assets/test_vacaciones.js"></script>
+    <script src="/Original-Floraltech/assets/dgemp.js"></script>
+    <script src="/Original-Floraltech/assets/test_vacaciones.js"></script>
     <!-- Script de lógica de turnos, debe ir al final -->
 </body>
 </html>
