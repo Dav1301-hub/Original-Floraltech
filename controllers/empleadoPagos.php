@@ -1,6 +1,6 @@
 <?php
 require_once 'models/conexion.php';
-require_once 'models/PagoModel.php';
+require_once 'models/Mpago.php';
 
 class empleadoPagos {
     private $model;
@@ -9,7 +9,7 @@ class empleadoPagos {
         try {
             $conn = new conexion();
             $db = $conn->get_conexion();
-            $this->model = new PagoModel($db);
+            $this->model = new Mpago($db);
         } catch (Exception $e) {
             error_log("Error inicializando empleadoPagos: " . $e->getMessage());
             $_SESSION['error'] = "Error de conexión a la base de datos";

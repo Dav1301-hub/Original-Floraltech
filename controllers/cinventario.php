@@ -1,7 +1,7 @@
 <?php
-require_once 'models/InventarioModel.php';
+require_once 'models/Minventario.php';
 
-class cinventario {
+class Cinventario {
     private $inventarioModel;
     private $mensaje_exito = '';
     private $mensaje_error = '';
@@ -38,9 +38,9 @@ class cinventario {
         }
         
         try {
-            $this->inventarioModel = new InventarioModel();
+            $this->inventarioModel = new Minventario();
         } catch (Exception $e) {
-            error_log("Error crítico al cargar InventarioModel: " . $e->getMessage());
+            error_log("Error crítico al cargar Minventario: " . $e->getMessage());
             $this->error_message = "Error de conexión a la base de datos. Por favor, inténtelo más tarde.";
             $this->inventarioModel = null;
         }
@@ -69,49 +69,49 @@ class cinventario {
                     case 'nuevo_producto':
                         $this->inventarioModel->agregarProducto($_POST);
                         $this->mensaje_exito = 'Producto agregado al inventario exitosamente';
-                        header('Location: ?ctrl=cinventario&success=1');
+                        header('Location: ?ctrl=Cinventario&success=1');
                         exit;
                         break;
                         
                     case 'actualizar_parametros':
                         $this->inventarioModel->actualizarParametros($_POST);
                         $this->mensaje_exito = 'Parámetros de inventario actualizados correctamente';
-                        header('Location: ?ctrl=cinventario&success=parametros_actualizados');
+                        header('Location: ?ctrl=Cinventario&success=parametros_actualizados');
                         exit;
                         break;
                         
                     case 'nueva_flor':
                         $this->inventarioModel->crearNuevaFlor($_POST);
                         $this->mensaje_exito = 'Nueva flor creada exitosamente';
-                        header('Location: ?ctrl=cinventario&success=nueva_flor');
+                        header('Location: ?ctrl=Cinventario&success=nueva_flor');
                         exit;
                         break;
                         
                     case 'editar_flor':
                         $this->inventarioModel->actualizarFlor($_POST);
                         $this->mensaje_exito = 'Flor actualizada exitosamente';
-                        header('Location: ?ctrl=cinventario&success=flor_editada');
+                        header('Location: ?ctrl=Cinventario&success=flor_editada');
                         exit;
                         break;
                         
                     case 'eliminar_flor':
                         $this->inventarioModel->eliminarFlor($_POST['id_flor']);
                         $this->mensaje_exito = 'Flor eliminada exitosamente';
-                        header('Location: ?ctrl=cinventario&success=flor_eliminada');
+                        header('Location: ?ctrl=Cinventario&success=flor_eliminada');
                         exit;
                         break;
                         
                     case 'agregar_a_inventario':
                         $this->inventarioModel->agregarFlorAInventario($_POST['id_flor']);
                         $this->mensaje_exito = 'Flor agregada al inventario exitosamente. Puedes actualizar el stock y precio desde la gestión de inventario.';
-                        header('Location: ?ctrl=cinventario&success=agregada_inventario');
+                        header('Location: ?ctrl=Cinventario&success=agregada_inventario');
                         exit;
                         break;
                         
                     case 'nuevo_proveedor':
                         $this->inventarioModel->crearProveedor($_POST);
                         $this->mensaje_exito = 'Proveedor agregado exitosamente';
-                        header('Location: ?ctrl=cinventario&success=proveedor_agregado');
+                        header('Location: ?ctrl=Cinventario&success=proveedor_agregado');
                         exit;
                         break;
                 }
@@ -272,7 +272,17 @@ class cinventario {
         $totalUsuarios = 0; // Variable requerida por el dashboard
         
         // Cargar el dashboard de admin con la vista del inventario
-        include 'views/admin/dashboard.php';
+        include 'views/admin/VadashboardPrincipal.php';
+    }
+
+    /**
+     * Método simple para compatibilidad (antes en InventarioController.php)
+     */
+    public function obtenerInventario() {
+        if (!$this->inventarioModel) {
+            return [];
+        }
+        return $this->inventarioModel->getInventario();
     }
 }
 ?>

@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../../controllers/InventarioController.php';
-$controller = new InventarioController();
+require_once __DIR__ . '/../../controllers/Cinventario.php';
+$controller = new Cinventario();
 
 $inventario = $controller->obtenerInventario();
 ?>

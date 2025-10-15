@@ -2,7 +2,7 @@
 // controllers/PedidoController.php
 require_once __DIR__ . '/../models/conexion.php';
 
-class PedidoController {
+class Cpedido {
     private $db;
 
     public function __construct() {

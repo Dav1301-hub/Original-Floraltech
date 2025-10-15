@@ -16,7 +16,7 @@ class cconfig {
     $config = $this->model->getCurrentConfig();
         
     // Cargar la vista correspondiente
-    require_once 'views/admin/vconfig.php';
+    require_once 'views/admin/VaconfigAvanzada.php';
     }
 
     /**

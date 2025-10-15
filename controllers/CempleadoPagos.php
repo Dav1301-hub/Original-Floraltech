@@ -1,5 +1,5 @@
 <?php
-class EmpleadoPagosController {
+class CempleadoPagos {
     private $model;
 
     public function __construct($model) {

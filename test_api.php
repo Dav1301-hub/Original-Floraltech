@@ -24,7 +24,7 @@ echo "<p>📋 Parámetros: page=1, limit=10</p>";
 echo "<hr>";
 
 try {
-    include 'controllers/InventarioApiController.php';
+    include 'controllers/CinventarioApi.php';
     echo "<p style='color: green;'>✅ Controlador ejecutado - revisa arriba para ver el JSON</p>";
 } catch (Exception $e) {
     echo "<p style='color: red;'>❌ Error: " . $e->getMessage() . "</p>";

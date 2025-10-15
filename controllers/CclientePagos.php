@@ -1,5 +1,5 @@
 <?php
-class ClientePagosController {
+class CclientePagos {
     private $model;
     private $idCliente;
 

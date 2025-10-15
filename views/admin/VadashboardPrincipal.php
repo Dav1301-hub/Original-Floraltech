@@ -43,9 +43,7 @@
             <div class="main-content flex-grow-1 d-flex flex-column align-items-center justify-content-center" id="mainContent" style="margin: 24px 24px 24px 0; min-height: calc(100vh - 120px);">
                 <div class="w-100" style="max-width: 1100px;">
                     <?php
-            $page = $_GET['page'] ?? 'general';
                     $pg = $_GET['pg'] ?? null;
-
 
                     // Priorizar $page si está definida (desde controlador), sino usar $_GET['page']
                     if (!isset($page)) {
@@ -53,41 +51,33 @@
                     }
 
                     $pages = [
-                        'general' => 'dashboard_general.php',
-                        'empleados' => 'dgemp.php',
+                        'general' => 'VadashboardGeneral.php',
+                        'empleados' => 'VagestionarEmpleados.php',
                         'inventarios' => null, // Redirigir al controlador
-                        'inventario' => 'inventario.php', // Desde el controlador cinventario
-                        'pedidos' => 'gestion_pedidos.php',
-                        'pagos' => 'dashboard_pago.php',
-                        'configuracion' => 'configuracion.php',
-                        'auditoria' => 'auditoria_pago.php',
-                        'reportes' => 'reportes.php'
+                        'inventario' => 'Vainventario.php', // Desde el controlador cinventario
+                        'pedidos' => 'VagestionPedidos.php',
+                        'pagos' => 'VadashboardPagos.php',
+                        'configuracion' => 'Vaconfiguracion.php',
+                        'auditoria' => 'VaauditoriaPagos.php',
+                        'reportes' => 'Vareportes.php'
                     ];
 
                     $pgs = [
                         'ggp' => 'catin.php'
                     ];
 
-                    if ($pg && isset($pgs[$pg])) {
-                        $file = $pgs[$pg];
-                    } else {
-                        $file = isset($pages[$page]) ? $pages[$page] : $pages['general'];
-                    }
-                    $filePath = __DIR__ . '/' . $file;
-                    if ($file && file_exists($filePath)) {
-                        include $filePath;
-                    } else {
-                        echo '<div class="alert alert-warning">Página no encontrada.</div>';
-
-                    
                     if ($page === 'inventarios') {
                         // Redirigir al controlador de inventario
                         header('Location: index.php?ctrl=cinventario');
                         exit;
-                    } elseif ($page === 'general') {
-                        include __DIR__ . '/dashboard_general.php';
-                    } elseif ($page === 'empleados') {
-                        include __DIR__ . '/dgemp.php';
+                    } elseif ($pg && isset($pgs[$pg])) {
+                        $file = $pgs[$pg];
+                        $filePath = __DIR__ . '/' . $file;
+                        if ($file && file_exists($filePath)) {
+                            include $filePath;
+                        } else {
+                            echo '<div class="alert alert-warning">Página no encontrada.</div>';
+                        }
                     } else {
                         $file = isset($pages[$page]) ? $pages[$page] : $pages['general'];
                         $filePath = __DIR__ . '/' . $file;
@@ -97,7 +87,6 @@
                         } else {
                             echo '<div class="alert alert-warning">Página no encontrada.</div>';
                         }
-
                     }
                     ?>
                 </div>

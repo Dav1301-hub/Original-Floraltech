@@ -890,22 +890,22 @@
     <nav class="mt-4">
         <ul class="nav nav-pills justify-content-center gap-2">
             <li class="nav-item">
-                <a href="/floraltech/controllers/ReportesPagoController.php?tipo=proyecciones" class="nav-link">
+                <a href="/floraltech/controllers/CreportesPago.php?tipo=proyecciones" class="nav-link">
                     <i class="bi bi-graph-up"></i> Proyecciones
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/floraltech/controllers/ReportesPagoController.php?tipo=auditoria" class="nav-link">
+                <a href="/floraltech/controllers/CreportesPago.php?tipo=auditoria" class="nav-link">
                     <i class="bi bi-search"></i> Auditoría
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/floraltech/controllers/ReportesPagoController.php?tipo=detalles" class="nav-link">
+                <a href="/floraltech/controllers/CreportesPago.php?tipo=detalles" class="nav-link">
                     <i class="bi bi-clipboard-data"></i> Detalles
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/floraltech/controllers/ReportesPagoController.php?tipo=dashboard" class="nav-link">
+                <a href="/floraltech/controllers/CreportesPago.php?tipo=dashboard" class="nav-link">
                     <i class="bi bi-house"></i> Dashboard
                 </a>
             </li>

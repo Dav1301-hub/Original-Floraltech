@@ -1,10 +1,10 @@
 <?php
 require_once __DIR__ . '/../config/db.php';
-require_once __DIR__ . '/../models/PagoModel.php';
+require_once __DIR__ . '/../models/Mpago.php';
 
 // Conexión a la base de datos
 $db = (new Database())->connect();
-$model = new PagoModel($db);
+$model = new Mpago($db);
 
 // Obtener todos los datos reales para el dashboard
 $datos = [
@@ -22,4 +22,4 @@ $datos = [
 $tipo = $_GET['tipo'] ?? 'ganancias';
 
 // Incluir la vista con los datos
-include __DIR__ . '/../views/admin/reportes_pago.php';
+include __DIR__ . '/../views/admin/VareportesPagos.php';

@@ -1403,7 +1403,7 @@ function actualizarListado() {
     }
     
     // Realizar petición AJAX
-    const url = 'controllers/InventarioApiController.php?' + params.toString();
+    const url = 'controllers/CinventarioApi.php?' + params.toString();
     console.log('Solicitando:', url);
     
     fetch(url)

@@ -566,7 +566,7 @@ unset($_SESSION['tipo_mensaje']);
                                 <a href="index.php?ctrl=empleadoPagos&action=index" class="btn btn-outline">
 
                                 <?php endif; ?>
-                                <a href="index.php?ctrl=EmpleadoPagosController&action=index" class="btn btn-outline">
+                                <a href="index.php?ctrl=CempleadoPagos&action=index" class="btn btn-outline">
 
                                     <i class="fas fa-chart-bar"></i>
                                     Reportes

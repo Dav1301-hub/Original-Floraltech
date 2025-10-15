@@ -1,8 +1,8 @@
 <?php
-// models/PedidoModel.php
+// models/Mpedido.php
 require_once __DIR__ . '/conexion.php';
 
-class PedidoModel {
+class Mpedido {
     private $db;
 
     public function __construct() {

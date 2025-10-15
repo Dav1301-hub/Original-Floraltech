@@ -4,7 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-class InventarioApiController {
+class CinventarioApi {
     private $db;
     
     public function __construct() {
@@ -310,7 +310,7 @@ class InventarioApiController {
 
 // Manejar la solicitud si se llama directamente
 if (isset($_GET['action'])) {
-    $controller = new InventarioApiController();
+    $controller = new CinventarioApi();
     $action = $_GET['action'];
     
     if (method_exists($controller, $action)) {

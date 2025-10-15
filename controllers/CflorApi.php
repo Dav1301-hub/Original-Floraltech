@@ -1,10 +1,10 @@
 <?php
-require_once 'models/FlorModel.php';
+require_once 'models/Mflor.php';
 header('Content-Type: application/json');
 
-class FlorApiController {
+class CflorApi {
     public function getFlores() {
-        $model = new FlorModel();
+        $model = new Mflor();
         $flores = $model->getAllFlores();
         echo json_encode($flores);
         exit();
@@ -13,6 +13,6 @@ class FlorApiController {
 
 // Endpoint simple para AJAX
 if (isset($_GET['action']) && $_GET['action'] === 'getFlores') {
-    $api = new FlorApiController();
+    $api = new CflorApi();
     $api->getFlores();
 }

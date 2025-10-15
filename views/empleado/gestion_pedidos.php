@@ -1,7 +1,7 @@
 <?php
 // views/empleado/gestion_pedidos.php
-require_once __DIR__ . '/../../controllers/PedidoController.php';
-$controller = new PedidoController();
+require_once __DIR__ . '/../../controllers/Cpedido.php';
+$controller = new Cpedido();
 
 // Filtros
 $estadoPedido = $_GET['estado_pedido'] ?? '';

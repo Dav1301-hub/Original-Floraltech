@@ -37,7 +37,7 @@ if (!isset($_SESSION['user']) || $_SESSION['user']['tpusu_idtpusu'] != 1) {
                 <input type="number" step="0.01" class="form-control" id="precio" name="precio" min="0" value="<?= $flor['precio'] ?>" required>
             </div>
             <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-            <a href="index.php?ctrl=FlorController&action=index" class="btn btn-secondary">Cancelar</a>
+            <a href="index.php?ctrl=Cflor&action=index" class="btn btn-secondary">Cancelar</a>
         </form>
     </div>
 </body>
