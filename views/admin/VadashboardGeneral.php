@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             dateClick: function(info) {
                 var fecha = info.dateStr;
-                fetch('/Floraltech/controllers/ccalendar_api.php?fecha=' + fecha)
+                fetch('/Original-Floraltech/controllers/ccalendar_api.php?fecha=' + fecha)
                     .then(response => response.json())
                     .then(data => {
                         var html = '';
@@ -217,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 btn.onclick = function() {
                                     var fecha = btn.getAttribute('data-fecha');
                                     document.getElementById('modalPedidosDiaBody').innerHTML = '<div class="text-center"><div class="spinner-border text-success" role="status"></div><p>Cargando formulario...</p></div>';
-                                    fetch('/FloralTech/controllers/ajax_nuevo_pedido.php?fecha=' + fecha)
+                                    fetch('/Original-Floraltech/controllers/ajax_nuevo_pedido.php?fecha=' + fecha)
                                         .then(resp => resp.text())
                                         .then(formHtml => {
                                             document.getElementById('modalPedidosDiaBody').innerHTML = formHtml;

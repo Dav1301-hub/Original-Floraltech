@@ -47,7 +47,7 @@ function editarPermiso(id) {
     document.getElementById('edit_permisoFechaFin').value = '';
     document.getElementById('edit_permisoEstado').selectedIndex = 0;
 
-    fetch('assets/ajax/ajax_permiso.php', {
+    fetch('/Original-Floraltech/assets/ajax/ajax_permiso.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'action=get&id=' + id
@@ -109,7 +109,7 @@ function editarVacacion(id) {
     selectEmpleado.selectedIndex = 0;
     selectEstado.selectedIndex = 0;
 
-    fetch('assets/ajax/ajax_vacacion.php', {
+    fetch('/Original-Floraltech/assets/ajax/ajax_vacacion.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'action=get&id=' + id
@@ -148,7 +148,7 @@ function editarVacacion(id) {
 // Eliminar vacación
 function eliminarVacacion(id) {
     if (!confirm('¿Seguro que deseas eliminar esta vacación?')) return;
-    fetch('assets/ajax/ajax_vacacion.php', {
+    fetch('/Original-Floraltech/assets/ajax/ajax_vacacion.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'action=delete&id=' + id
@@ -189,7 +189,7 @@ function cargarEmpleado(id) {
     document.getElementById('edit_estado').value = '';
     document.getElementById('edit_password').value = '';
 
-    fetch('assets/ajax/ajax_empleado.php', {
+    fetch('/Original-Floraltech/assets/ajax/ajax_empleado.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'action=get&id=' + id
@@ -239,7 +239,7 @@ function actualizarEmpleado() {
         params += `&password=${encodeURIComponent(password)}`;
     }
     
-    fetch('assets/ajax/ajax_empleado.php', {
+    fetch('/Original-Floraltech/assets/ajax/ajax_empleado.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: params
@@ -257,7 +257,7 @@ function actualizarEmpleado() {
 
 function eliminarEmpleado(id) {
     if (!confirm('¿Seguro que deseas eliminar este empleado?')) return;
-    fetch('assets/ajax/ajax_empleado.php', {
+    fetch('/Original-Floraltech/assets/ajax/ajax_empleado.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'action=delete&id=' + id
@@ -274,7 +274,7 @@ function eliminarEmpleado(id) {
 }
 
 function verEmpleado(id) {
-    fetch('assets/ajax/ajax_empleado.php', {
+    fetch('/Original-Floraltech/assets/ajax/ajax_empleado.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'action=view&id=' + id
@@ -310,7 +310,7 @@ if (document.getElementById('formNuevoPermiso')) {
             }
             // Mostrar datos en consola para depuración
             console.log('Datos a enviar:', datos);
-        fetch('assets/ajax/ajax_permiso.php', {
+        fetch('/Original-Floraltech/assets/ajax/ajax_permiso.php', {
             method: 'POST',
             body: fd
         })
@@ -360,7 +360,7 @@ if (document.getElementById('formNuevaVacacion')) {
             return;
         }
         
-        fetch('assets/ajax/ajax_vacacion.php', {
+        fetch('/Original-Floraltech/assets/ajax/ajax_vacacion.php', {
             method: 'POST',
             body: fd
         })
@@ -468,7 +468,7 @@ if (document.getElementById('formNuevoTurno')) {
             alert('Todos los campos obligatorios deben estar completos.');
             return;
         }
-        fetch('assets/ajax/ajax_turno.php', {
+        fetch('/Original-Floraltech/assets/ajax/ajax_turno.php', {
             method: 'POST',
             body: fd
         })
@@ -527,7 +527,7 @@ window.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             var id = btn.closest('tr').querySelector('td').textContent;
             if (!confirm('¿Seguro que deseas eliminar este permiso?')) return;
-            fetch('assets/ajax/ajax_permiso.php', {
+            fetch('/Original-Floraltech/assets/ajax/ajax_permiso.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: 'action=delete&id=' + id
@@ -549,7 +549,7 @@ window.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             var id = btn.closest('tr').querySelector('td').textContent;
             if (!confirm('¿Seguro que deseas eliminar este turno?')) return;
-            fetch('assets/ajax/ajax_turno.php', {
+            fetch('/Original-Floraltech/assets/ajax/ajax_turno.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: 'action=delete&id=' + id
@@ -571,7 +571,7 @@ window.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             var id = btn.closest('tr').querySelector('td').textContent;
             if (!confirm('¿Seguro que deseas eliminar esta vacación?')) return;
-            fetch('assets/ajax/ajax_vacacion.php', {
+            fetch('/Original-Floraltech/assets/ajax/ajax_vacacion.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: 'action=delete&id=' + id
@@ -592,7 +592,7 @@ window.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const fd = new FormData(this);
         fd.append('action', 'update');
-        fetch('assets/ajax/ajax_permiso.php', {
+        fetch('/Original-Floraltech/assets/ajax/ajax_permiso.php', {
             method: 'POST',
             body: fd
         })
@@ -617,7 +617,7 @@ window.addEventListener('DOMContentLoaded', function() {
                 alert('No se pudo obtener el ID del turno.');
                 return;
             }
-            fetch('assets/ajax/ajax_turno.php', {
+            fetch('/Original-Floraltech/assets/ajax/ajax_turno.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: 'action=get&id=' + id
@@ -657,7 +657,7 @@ window.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const fd = new FormData(this);
         fd.append('action', 'update');
-        fetch('assets/ajax/ajax_turno.php', {
+        fetch('/Original-Floraltech/assets/ajax/ajax_turno.php', {
             method: 'POST',
             body: fd
         })
@@ -693,7 +693,7 @@ window.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const fd = new FormData(this);
         fd.append('action', 'update');
-        fetch('assets/ajax/ajax_vacacion.php', {
+        fetch('/Original-Floraltech/assets/ajax/ajax_vacacion.php', {
             method: 'POST',
             body: fd
         })

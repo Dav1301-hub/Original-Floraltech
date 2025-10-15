@@ -1,7 +1,7 @@
 <?php
 // ajax_permiso.php
 require_once __DIR__ . '/../../models/conexion.php';
-$conn = new conexion();
+$conn = new Conexion();
 $db = $conn->get_conexion();
 
 $action = $_POST['action'] ?? '';
