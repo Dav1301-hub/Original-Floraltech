@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
         select.addEventListener('change', function() {
             var idusu = this.getAttribute('data-idusu');
             var tipo = this.value;
-            fetch('assets/ajax/ajax_tipo_usuario.php', {
+            fetch('/Original-Floraltech/assets/ajax/ajax_tipo_usuario.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: 'idusu=' + encodeURIComponent(idusu) + '&tipo=' + encodeURIComponent(tipo)
@@ -89,6 +89,55 @@ function editarPermiso(id) {
         }
     });
 }
+
+// Editar turno
+function editarTurno(id) {
+    // Limpiar campos antes de cargar
+    var idField = document.getElementById('edit_turno_id');
+    var fechaInicioField = document.getElementById('edit_turnoFechaInicio');
+    var fechaFinField = document.getElementById('edit_turnoFechaFin');
+    var horarioField = document.getElementById('edit_turnoHorario');
+    var selectEmpleado = document.getElementById('edit_turnoEmpleado');
+    
+    if (!idField || !fechaInicioField || !fechaFinField || !horarioField || !selectEmpleado) {
+        alert('No se encontró el formulario de edición de turnos en esta vista.');
+        return;
+    }
+    
+    idField.value = '';
+    fechaInicioField.value = '';
+    fechaFinField.value = '';
+    horarioField.value = '';
+    selectEmpleado.selectedIndex = 0;
+
+    fetch('/Original-Floraltech/assets/ajax/ajax_turno.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=get&id=' + id
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            idField.value = data.idturno || '';
+            // Seleccionar empleado
+            for (var i = 0; i < selectEmpleado.options.length; i++) {
+                if (parseInt(selectEmpleado.options[i].value) === parseInt(data.idempleado)) {
+                    selectEmpleado.selectedIndex = i;
+                    break;
+                }
+            }
+            fechaInicioField.value = data.fecha_inicio || '';
+            fechaFinField.value = data.fecha_fin || '';
+            horarioField.value = data.horario || '';
+            
+            var modal = new bootstrap.Modal(document.getElementById('editarTurnoModal'));
+            modal.show();
+        } else {
+            alert('No se pudo cargar el turno.');
+        }
+    });
+}
+
 // Editar vacación
 function editarVacacion(id) {
     // Limpiar campos antes de cargar
@@ -143,7 +192,43 @@ function editarVacacion(id) {
     });
 }
 
+// Eliminar turno
+function eliminarTurno(id) {
+    if (!confirm('¿Seguro que deseas eliminar este turno?')) return;
+    fetch('/Original-Floraltech/assets/ajax/ajax_turno.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=delete&id=' + id
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('Turno eliminado');
+            location.reload();
+        } else {
+            alert('Error al eliminar turno');
+        }
+    });
+}
 
+// Eliminar permiso
+function eliminarPermiso(id) {
+    if (!confirm('¿Seguro que deseas eliminar este permiso?')) return;
+    fetch('/Original-Floraltech/assets/ajax/ajax_permiso.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'action=delete&id=' + id
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('Permiso eliminado');
+            location.reload();
+        } else {
+            alert('Error al eliminar permiso');
+        }
+    });
+}
 
 // Eliminar vacación
 function eliminarVacacion(id) {

@@ -22,11 +22,12 @@ if ($action === 'update') {
     $fecha_inicio = $_POST['fecha_inicio'] ?? date('Y-m-d');
     $fecha_fin = $_POST['fecha_fin'] ?? date('Y-m-d');
     $motivo = $_POST['motivo'] ?? '';
+    $tipo = $_POST['tipo'] ?? 'Personales';
     $estado = $_POST['estado'] ?? 'Programadas';
     
     try {
-        $stmt = $db->prepare('UPDATE vacaciones SET id_empleado=?, fecha_inicio=?, fecha_fin=?, motivo=?, estado=? WHERE id=?');
-        $ok = $stmt->execute([$id_empleado, $fecha_inicio, $fecha_fin, $motivo, $estado, $id]);
+        $stmt = $db->prepare('UPDATE vacaciones SET id_empleado=?, fecha_inicio=?, fecha_fin=?, motivo=?, tipo=?, estado=? WHERE id=?');
+        $ok = $stmt->execute([$id_empleado, $fecha_inicio, $fecha_fin, $motivo, $tipo, $estado, $id]);
         $response['success'] = $ok;
         
         if (!$ok) {
@@ -61,6 +62,7 @@ if ($action === 'create') {
     $fecha_inicio = $_POST['fecha_inicio'] ?? date('Y-m-d');
     $fecha_fin = $_POST['fecha_fin'] ?? date('Y-m-d');
     $motivo = $_POST['motivo'] ?? '';
+    $tipo = $_POST['tipo'] ?? 'Personales';
     $estado = $_POST['estado'] ?? 'Programadas';
     
     // Validación básica
@@ -77,8 +79,8 @@ if ($action === 'create') {
     }
     
     try {
-        $stmt = $db->prepare('INSERT INTO vacaciones (id_empleado, fecha_inicio, fecha_fin, motivo, estado) VALUES (?, ?, ?, ?, ?)');
-        $ok = $stmt->execute([$id_empleado, $fecha_inicio, $fecha_fin, $motivo, $estado]);
+        $stmt = $db->prepare('INSERT INTO vacaciones (id_empleado, fecha_inicio, fecha_fin, motivo, tipo, estado) VALUES (?, ?, ?, ?, ?, ?)');
+        $ok = $stmt->execute([$id_empleado, $fecha_inicio, $fecha_fin, $motivo, $tipo, $estado]);
         $response['success'] = $ok;
         
         if (!$ok) {
