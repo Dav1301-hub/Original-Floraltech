@@ -64,7 +64,7 @@ try {
 // Consulta vacaciones
 $vacaciones = [];
 try {
-    $stmt = $db->prepare("SELECT v.id, u.nombre_completo as empleado, v.fecha_inicio, v.fecha_fin, v.estado, v.motivo FROM vacaciones v LEFT JOIN usu u ON v.id_empleado = u.idusu");
+    $stmt = $db->prepare("SELECT v.id, u.nombre_completo as empleado, v.fecha_inicio, v.fecha_fin, v.estado, v.motivo, v.tipo FROM vacaciones v LEFT JOIN usu u ON v.id_empleado = u.idusu");
     $stmt->execute();
     $vacaciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {}
@@ -97,6 +97,19 @@ foreach ($turnos as $turno) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/Original-Floraltech/assets/dgemp.css">
+    <style>
+        .debug-info {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: #f8f9fa;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 9999;
+        }
+    </style>
 </head>
 <body>
     <div class="container-fluid">
@@ -272,7 +285,26 @@ foreach ($turnos as $turno) {
                                     <td><?= htmlspecialchars($permiso['tipo']) ?></td>
                                     <td><?= date('d/m/Y', strtotime($permiso['fecha_inicio'])) ?></td>
                                     <td><?= date('d/m/Y', strtotime($permiso['fecha_fin'])) ?></td>
-                                    <td><span class="badge bg-warning text-dark"><?= htmlspecialchars($permiso['estado']) ?></span></td>
+                                    <td>
+                                        <?php 
+                                            $estado = $permiso['estado'];
+                                            $badge_class = '';
+                                            switch ($estado) {
+                                                case 'Pendiente':
+                                                    $badge_class = 'bg-warning text-dark';
+                                                    break;
+                                                case 'Aprobado':
+                                                    $badge_class = 'bg-success text-white';
+                                                    break;
+                                                case 'Rechazado':
+                                                    $badge_class = 'bg-danger text-white';
+                                                    break;
+                                                default:
+                                                    $badge_class = 'bg-secondary text-white';
+                                            }
+                                        ?>
+                                        <span class="badge <?= $badge_class ?>"><?= htmlspecialchars($estado) ?></span>
+                                    </td>
                                     <td class="actions-column">
                                         <a href="#" class="btn btn-sm btn-outline-primary" onclick="editarPermiso(<?= $permiso['idpermiso'] ?>)"><i class="fas fa-edit"></i></a>
                                         <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarPermiso(<?= $permiso['idpermiso'] ?>)"><i class="fas fa-trash"></i></a>
@@ -315,10 +347,10 @@ foreach ($turnos as $turno) {
                                     <td><?= date('d/m/Y', strtotime($turno['fecha_fin'])) ?></td>
                                     <td><?= htmlspecialchars($turno['horario']) ?></td>
                                     <td class="actions-column">
-                                        <a href="#" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editarTurnoModal">
+                                        <a href="#" class="btn btn-sm btn-outline-primary" onclick="editarTurno(<?= $turno['idturno'] ?>)">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="#" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                                        <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarTurno(<?= $turno['idturno'] ?>)"><i class="fas fa-trash"></i></a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -353,15 +385,55 @@ foreach ($turnos as $turno) {
                                 </tr>
                             </thead>
                             <tbody>
-                            <?php foreach ($vacaciones as $vacacion): ?>
+                            <?php foreach ($vacaciones as $vacacion): 
+                                // Calcular días de vacaciones
+                                $fecha_inicio = new DateTime($vacacion['fecha_inicio']);
+                                $fecha_fin = new DateTime($vacacion['fecha_fin']);
+                                $diferencia = $fecha_inicio->diff($fecha_fin);
+                                $dias_vacaciones = $diferencia->days + 1; // +1 para incluir el día de inicio
+                                
+                                // Usar el tipo de la base de datos si existe, sino calcularlo
+                                $tipo_vacacion = !empty($vacacion['tipo']) ? $vacacion['tipo'] : (
+                                    $dias_vacaciones <= 3 ? "Cortas" : (
+                                        $dias_vacaciones <= 7 ? "Semanales" : (
+                                            $dias_vacaciones <= 15 ? "Quincenales" : "Extendidas"
+                                        )
+                                    )
+                                );
+                            ?>
                                 <tr>
                                     <td><?= htmlspecialchars($vacacion['id']) ?></td>
                                     <td><?= htmlspecialchars($vacacion['empleado']) ?></td>
                                     <td><?= date('d/m/Y', strtotime($vacacion['fecha_inicio'])) ?></td>
                                     <td><?= date('d/m/Y', strtotime($vacacion['fecha_fin'])) ?></td>
-                                    <td>-</td>
-                                    <td>-</td>
-                                    <td><span class="badge bg-info"><?= htmlspecialchars($vacacion['estado']) ?></span></td>
+                                    <td><span class="badge bg-secondary"><?= $dias_vacaciones ?> día<?= $dias_vacaciones != 1 ? 's' : '' ?></span></td>
+                                    <td><span class="badge bg-primary"><?= $tipo_vacacion ?></span></td>
+                                    <td>
+                                        <?php 
+                                            $estado_vacacion = $vacacion['estado'];
+                                            $badge_class_vacacion = '';
+                                            switch ($estado_vacacion) {
+                                                case 'Programadas':
+                                                    $badge_class_vacacion = 'bg-warning text-dark';
+                                                    break;
+                                                case 'Aprobadas':
+                                                    $badge_class_vacacion = 'bg-success text-white';
+                                                    break;
+                                                case 'Denegadas':
+                                                    $badge_class_vacacion = 'bg-danger text-white';
+                                                    break;
+                                                case 'Finalizadas':
+                                                    $badge_class_vacacion = 'bg-secondary text-white';
+                                                    break;
+                                                case 'En curso':
+                                                    $badge_class_vacacion = 'bg-primary text-white';
+                                                    break;
+                                                default:
+                                                    $badge_class_vacacion = 'bg-info text-white';
+                                            }
+                                        ?>
+                                        <span class="badge <?= $badge_class_vacacion ?>"><?= htmlspecialchars($estado_vacacion) ?></span>
+                                    </td>
                                     <td><?= htmlspecialchars($vacacion['motivo']) ?></td>
                                     <td class="actions-column">
                                         <a href="#" class="btn btn-sm btn-outline-primary" onclick="editarVacacion(<?= $vacacion['id'] ?>)"><i class="fas fa-edit"></i></a>
@@ -677,6 +749,20 @@ foreach ($turnos as $turno) {
                                 <input type="text" class="form-control" id="vacacionMotivo" name="motivo" required>
                             </div>
                             <div class="mb-3">
+                                <label for="vacacionTipo" class="form-label">Tipo de Vacaciones</label>
+                                <select class="form-select" id="vacacionTipo" name="tipo">
+                                    <option value="Cortas">Cortas (1-3 días)</option>
+                                    <option value="Semanales">Semanales (4-7 días)</option>
+                                    <option value="Quincenales">Quincenales (8-15 días)</option>
+                                    <option value="Extendidas">Extendidas (16+ días)</option>
+                                    <option value="Anuales">Anuales</option>
+                                    <option value="Por enfermedad">Por enfermedad</option>
+                                    <option value="Por maternidad">Por maternidad</option>
+                                    <option value="Por paternidad">Por paternidad</option>
+                                    <option value="Personales">Personales</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
                                 <label for="vacacionEstado" class="form-label">Estado</label>
                                 <select class="form-select" id="vacacionEstado" name="estado">
                                     <option value="Programadas">Programadas</option>
@@ -725,6 +811,20 @@ foreach ($turnos as $turno) {
                             <div class="mb-3">
                                 <label for="edit_vacacionMotivo" class="form-label">Motivo</label>
                                 <input type="text" class="form-control" id="edit_vacacionMotivo" name="motivo" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_vacacionTipo" class="form-label">Tipo de Vacaciones</label>
+                                <select class="form-select" id="edit_vacacionTipo" name="tipo">
+                                    <option value="Cortas">Cortas (1-3 días)</option>
+                                    <option value="Semanales">Semanales (4-7 días)</option>
+                                    <option value="Quincenales">Quincenales (8-15 días)</option>
+                                    <option value="Extendidas">Extendidas (16+ días)</option>
+                                    <option value="Anuales">Anuales</option>
+                                    <option value="Por enfermedad">Por enfermedad</option>
+                                    <option value="Por maternidad">Por maternidad</option>
+                                    <option value="Por paternidad">Por paternidad</option>
+                                    <option value="Personales">Personales</option>
+                                </select>
                             </div>
                             <div class="mb-3">
                                 <label for="edit_vacacionEstado" class="form-label">Estado</label>
@@ -848,10 +948,43 @@ foreach ($turnos as $turno) {
             </div>
         </div>
     </div>
+    
+    <div class="debug-info" id="debugInfo">
+        <small>🔧 Debug: Funciones JS... <span id="debugStatus">Cargando...</span></small>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/Original-Floraltech/assets/dgemp.js"></script>
-    <script src="/Original-Floraltech/assets/test_vacaciones.js"></script>
+    <script src="/Original-Floraltech/assets/dgemp.js?v=<?= time() ?>"></script>
+    <script src="/Original-Floraltech/assets/test_vacaciones.js?v=<?= time() ?>"></script>
+    
+    <script>
+        // Script de debug - verificar que las funciones estén cargadas
+        console.log('=== DEBUG GESTIÓN EMPLEADOS ===');
+        console.log('cargarEmpleado:', typeof cargarEmpleado);
+        console.log('eliminarEmpleado:', typeof eliminarEmpleado);
+        console.log('verEmpleado:', typeof verEmpleado);
+        console.log('editarPermiso:', typeof editarPermiso);
+        console.log('eliminarPermiso:', typeof eliminarPermiso);
+        console.log('editarVacacion:', typeof editarVacacion);
+        console.log('eliminarVacacion:', typeof eliminarVacacion);
+        
+        // Actualizar estado visual
+        const debugStatus = document.getElementById('debugStatus');
+        if (typeof cargarEmpleado !== 'function') {
+            console.error('❌ ERROR: cargarEmpleado no está definida');
+            debugStatus.innerHTML = '❌ ERROR';
+            debugStatus.style.color = 'red';
+            alert('ERROR: Las funciones JavaScript no se cargaron correctamente. Revisa la consola (F12).');
+        } else {
+            console.log('✅ Funciones JavaScript cargadas correctamente');
+            debugStatus.innerHTML = '✅ OK';
+            debugStatus.style.color = 'green';
+            // Ocultar debug después de 3 segundos si todo está bien
+            setTimeout(() => {
+                document.getElementById('debugInfo').style.display = 'none';
+            }, 3000);
+        }
+    </script>
     <!-- Script de lógica de turnos, debe ir al final -->
 </body>
 </html>
