@@ -111,12 +111,6 @@
         <button class="btn btn-info shadow-sm" onclick="abrirproveedor()">
             <i class="fas fa-truck me-2"></i>Proveedores
         </button>
-        <button class="btn btn-secondary shadow-sm" onclick="abrirParametros()">
-            <i class="fas fa-cog me-2"></i>Parámetros Inventario
-        </button>
-        <button class="btn btn-warning shadow-sm" onclick="gestionarFlores()">
-            <i class="fas fa-seedling me-2"></i>Gestión de Flores
-        </button>
     </div>
 
     <!-- Controles de listado -->
@@ -158,16 +152,16 @@
         </div>
         
         <div class="table-responsive" id="productListContainer">
-            <table class="table table-hover align-middle">
+            <table class="table table-hover align-middle" id="tabla-inventario">
                 <thead class="table-light">
                     <tr>
                         <th>Producto</th>
-                        <th>Naturaleza</th>
-                        <th>Color</th>
+                        <th class="d-none d-md-table-cell">Naturaleza</th>
+                        <th class="d-none d-lg-table-cell">Color</th>
                         <th>Stock</th>
-                        <th>Estado</th>
-                        <th>Precio Unitario</th>
-                        <th>Valor Total</th>
+                        <th class="d-none d-sm-table-cell">Estado</th>
+                        <th class="d-none d-md-table-cell">Precio Unitario</th>
+                        <th class="d-none d-lg-table-cell">Valor Total</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -175,15 +169,37 @@
                     <?php if (!empty($inventario)): ?>
                         <?php foreach ($inventario as $item): ?>
                             <tr>
-                                <td class="fw-bold"><?= htmlspecialchars($item['producto']) ?></td>
-                                <td><?= htmlspecialchars($item['naturaleza']) ?></td>
-                                <td><?= htmlspecialchars($item['color']) ?></td>
+                                <td class="fw-bold">
+                                    <div><?= htmlspecialchars($item['producto']) ?></div>
+                                    <small class="text-muted d-md-none">
+                                        <?= htmlspecialchars($item['naturaleza']) ?> 
+                                        <span class="d-lg-none">- <?= htmlspecialchars($item['color']) ?></span>
+                                    </small>
+                                </td>
+                                <td class="d-none d-md-table-cell"><?= htmlspecialchars($item['naturaleza']) ?></td>
+                                <td class="d-none d-lg-table-cell"><?= htmlspecialchars($item['color']) ?></td>
                                 <td>
                                     <span class="badge <?= $item['stock'] == 0 ? 'bg-danger' : ($item['stock'] < 20 ? 'bg-warning' : 'bg-success') ?>">
                                         <?= $item['stock'] ?>
                                     </span>
+                                    <div class="d-sm-none small text-muted mt-1">
+                                        <?php
+                                        $estado_class = '';
+                                        switch($item['estado_stock']) {
+                                            case 'Sin Stock':
+                                                $estado_class = 'text-danger';
+                                                break;
+                                            case 'Bajo':
+                                                $estado_class = 'text-warning';
+                                                break;
+                                            default:
+                                                $estado_class = 'text-success';
+                                        }
+                                        ?>
+                                        <span class="<?= $estado_class ?>"><?= $item['estado_stock'] ?></span>
+                                    </div>
                                 </td>
-                                <td>
+                                <td class="d-none d-sm-table-cell">
                                     <?php
                                     $estado_class = '';
                                     switch($item['estado_stock']) {
@@ -199,18 +215,27 @@
                                     ?>
                                     <span class="<?= $estado_class ?> fw-bold"><?= $item['estado_stock'] ?></span>
                                 </td>
-                                <td>$<?= number_format($item['precio'], 0, ',', '.') ?></td>
-                                <td>$<?= number_format($item['stock'] * $item['precio'], 0, ',', '.') ?></td>
+                                <td class="d-none d-md-table-cell">$<?= number_format($item['precio'], 0, ',', '.') ?></td>
+                                <td class="d-none d-lg-table-cell">$<?= number_format($item['stock'] * $item['precio'], 0, ',', '.') ?></td>
                             <td>
-                                <div class="btn-group" role="group">
-                                    <button type="button" class="btn btn-warning btn-sm" title="Editar">
+                                <div class="btn-group btn-group-sm d-flex d-md-inline-flex" role="group">
+                                    <button type="button" class="btn btn-warning btn-sm" 
+                                            onclick="editarFlor(<?= $item['idinv'] ?>)" 
+                                            title="Editar">
                                         <i class="fas fa-edit"></i>
+                                        <span class="d-md-none ms-1">Editar</span>
                                     </button>
-                                    <button type="button" class="btn btn-info btn-sm" title="Agregar Stock">
+                                    <button type="button" class="btn btn-info btn-sm" 
+                                            onclick="agregarAInventario(<?= $item['idinv'] ?>)" 
+                                            title="Agregar Stock">
                                         <i class="fas fa-plus"></i>
+                                        <span class="d-md-none ms-1">Stock</span>
                                     </button>
-                                    <button type="button" class="btn btn-danger btn-sm" title="Eliminar">
+                                    <button type="button" class="btn btn-danger btn-sm" 
+                                            onclick="eliminarFlor(<?= $item['idinv'] ?>)" 
+                                            title="Eliminar">
                                         <i class="fas fa-trash"></i>
+                                        <span class="d-md-none ms-1">Eliminar</span>
                                     </button>
                                 </div>
                             </td>
@@ -743,6 +768,139 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Producto -->
+<div class="modal fade" id="modal-editar-producto" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Producto del Inventario</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="?ctrl=cinventario" id="form-editar-producto">
+                    <input type="hidden" name="accion" value="editar_producto">
+                    <input type="hidden" name="producto_id" id="editar_producto_id">
+                    
+                    <div class="row g-3">
+                        <!-- Nombre del Producto -->
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-tag me-1"></i>Nombre del Producto *</label>
+                            <input type="text" class="form-control" name="nombre_producto" id="editar_nombre_producto" required>
+                        </div>
+                        
+                        <!-- Tipo de Producto -->
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-layer-group me-1"></i>Tipo de Producto *</label>
+                            <select class="form-select" name="tipo_producto" id="editar_tipo_producto" required>
+                                <option value="">Selecciona el tipo...</option>
+                                <option value="flor">🌸 Flor Natural/Artificial</option>
+                                <option value="chocolate">🍫 Chocolate</option>
+                                <option value="tarjeta">💌 Tarjeta</option>
+                                <option value="peluche">🧸 Peluche</option>
+                                <option value="globo">🎈 Globo</option>
+                                <option value="accesorio">✨ Accesorio</option>
+                                <option value="otro">📦 Otro</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Stock Actual -->
+                        <div class="col-md-4">
+                            <label class="form-label"><i class="fas fa-boxes me-1"></i>Stock Actual</label>
+                            <input type="number" class="form-control" name="stock" id="editar_stock" min="0" required>
+                        </div>
+                        
+                        <!-- Precio Unitario -->
+                        <div class="col-md-4">
+                            <label class="form-label"><i class="fas fa-dollar-sign me-1"></i>Precio Unitario</label>
+                            <input type="number" class="form-control" name="precio" id="editar_precio" min="0" step="0.01" required>
+                        </div>
+                        
+                        <!-- Color -->
+                        <div class="col-md-4">
+                            <label class="form-label"><i class="fas fa-palette me-1"></i>Color</label>
+                            <input type="text" class="form-control" name="color" id="editar_color" placeholder="Ej: Rojo, Azul">
+                        </div>
+                        
+                        <!-- Naturaleza -->
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-seedling me-1"></i>Naturaleza</label>
+                            <select class="form-select" name="naturaleza" id="editar_naturaleza">
+                                <option value="">Seleccionar...</option>
+                                <option value="Natural">Natural</option>
+                                <option value="Artificial">Artificial</option>
+                                <option value="Mixto">Mixto</option>
+                                <option value="No aplica">No aplica</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Estado -->
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-info-circle me-1"></i>Estado</label>
+                            <select class="form-select" name="estado" id="editar_estado">
+                                <option value="Disponible">Disponible</option>
+                                <option value="Agotado">Agotado</option>
+                                <option value="Descontinuado">Descontinuado</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="submit" form="form-editar-producto" class="btn btn-warning">
+                    <i class="fas fa-save me-1"></i>Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Agregar Stock -->
+<div class="modal fade" id="modal-agregar-stock" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Agregar Stock al Inventario</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="?ctrl=cinventario" id="form-agregar-stock">
+                    <input type="hidden" name="accion" value="agregar_stock">
+                    <input type="hidden" name="producto_id" id="stock_producto_id">
+                    
+                    <div class="text-center mb-4">
+                        <h6>Producto: <span id="stock_nombre_producto" class="fw-bold text-info"></span></h6>
+                        <p class="text-muted">Stock actual: <span id="stock_actual" class="badge bg-secondary"></span></p>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-plus me-1"></i>Cantidad a Agregar *</label>
+                            <input type="number" class="form-control" name="cantidad" id="cantidad_agregar" min="1" required>
+                            <small class="text-muted">Ingresa la cantidad de unidades que deseas agregar al inventario</small>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-comment me-1"></i>Motivo (Opcional)</label>
+                            <textarea class="form-control" name="motivo" rows="2" placeholder="Ej: Reposición, Compra nueva, Devolución..."></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="submit" form="form-agregar-stock" class="btn btn-info">
+                    <i class="fas fa-plus me-1"></i>Agregar Stock
+                </button>
             </div>
         </div>
     </div>
@@ -1661,6 +1819,23 @@ function exportarInventario() {
     form.submit();
     document.body.removeChild(form);
 }
+</script>
+
+<script src="/Original-Floraltech/assets/inventario.js"></script>
+
+<script>
+// Script de debug para verificar funciones de inventario
+console.log('=== DEBUG INVENTARIO ===');
+console.log('editarFlor:', typeof editarFlor);
+console.log('eliminarFlor:', typeof eliminarFlor);
+console.log('agregarAInventario:', typeof agregarAInventario);
+console.log('abrirproducto:', typeof abrirproducto);
+console.log('abrirproveedor:', typeof abrirproveedor);
+
+// Verificar si hay errores
+window.addEventListener('error', function(e) {
+    console.error('Error JavaScript en inventario:', e.message, 'en línea:', e.lineno);
+});
 </script>
 
 </main>

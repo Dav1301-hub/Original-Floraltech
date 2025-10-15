@@ -661,5 +661,137 @@ class Minventario {
             throw new Exception('Error de base de datos: ' . $e->getMessage());
         }
     }
+    
+    /**
+     * Obtener un producto por su ID
+     */
+    public function obtenerProductoPorId($id) {
+        try {
+            $sql = "SELECT idinv, producto, naturaleza, color, stock, precio, estado 
+                    FROM inv 
+                    WHERE idinv = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('Error al obtener producto: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Editar un producto del inventario
+     */
+    public function editarProducto($data) {
+        try {
+            $sql = "UPDATE inv SET 
+                    producto = :nombre_producto,
+                    naturaleza = :naturaleza,
+                    color = :color,
+                    stock = :stock,
+                    precio = :precio
+                    WHERE idinv = :producto_id";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':nombre_producto', $data['nombre_producto']);
+            $stmt->bindParam(':naturaleza', $data['naturaleza']);
+            $stmt->bindParam(':color', $data['color']);
+            $stmt->bindParam(':stock', $data['stock'], PDO::PARAM_INT);
+            $stmt->bindParam(':precio', $data['precio']);
+            $stmt->bindParam(':producto_id', $data['producto_id'], PDO::PARAM_INT);
+            
+            if ($stmt->execute()) {
+                return ['success' => true, 'message' => 'Producto actualizado correctamente'];
+            } else {
+                return ['success' => false, 'message' => 'Error al actualizar el producto'];
+            }
+        } catch (PDOException $e) {
+            error_log('Error al editar producto: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error de base de datos: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Agregar stock a un producto
+     */
+    public function agregarStock($id, $cantidad, $motivo = '') {
+        try {
+            $this->db->beginTransaction();
+            
+            // Obtener stock actual
+            $sql_stock = "SELECT stock FROM inv WHERE idinv = :id";
+            $stmt_stock = $this->db->prepare($sql_stock);
+            $stmt_stock->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt_stock->execute();
+            $resultado = $stmt_stock->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$resultado) {
+                $this->db->rollBack();
+                return ['success' => false, 'message' => 'Producto no encontrado'];
+            }
+            
+            $nuevo_stock = $resultado['stock'] + $cantidad;
+            
+            // Actualizar stock
+            $sql_update = "UPDATE inv SET stock = :nuevo_stock WHERE idinv = :id";
+            $stmt_update = $this->db->prepare($sql_update);
+            $stmt_update->bindParam(':nuevo_stock', $nuevo_stock, PDO::PARAM_INT);
+            $stmt_update->bindParam(':id', $id, PDO::PARAM_INT);
+            
+            if ($stmt_update->execute()) {
+                // Registrar el movimiento en historial si existe la tabla
+                try {
+                    $sql_historial = "INSERT INTO inv_historial (producto_id, tipo_movimiento, cantidad, stock_anterior, stock_nuevo, motivo, fecha) 
+                                      VALUES (:producto_id, 'ENTRADA', :cantidad, :stock_anterior, :stock_nuevo, :motivo, NOW())";
+                    $stmt_historial = $this->db->prepare($sql_historial);
+                    $stmt_historial->bindParam(':producto_id', $id, PDO::PARAM_INT);
+                    $stmt_historial->bindParam(':cantidad', $cantidad, PDO::PARAM_INT);
+                    $stmt_historial->bindParam(':stock_anterior', $resultado['stock'], PDO::PARAM_INT);
+                    $stmt_historial->bindParam(':stock_nuevo', $nuevo_stock, PDO::PARAM_INT);
+                    $stmt_historial->bindParam(':motivo', $motivo);
+                    $stmt_historial->execute();
+                } catch (PDOException $e) {
+                    // Si no existe la tabla de historial, continuar sin error
+                    error_log('Tabla inv_historial no existe o error: ' . $e->getMessage());
+                }
+                
+                $this->db->commit();
+                return ['success' => true, 'message' => 'Stock agregado correctamente'];
+            } else {
+                $this->db->rollBack();
+                return ['success' => false, 'message' => 'Error al actualizar el stock'];
+            }
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            error_log('Error al agregar stock: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error de base de datos: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Eliminar un producto del inventario
+     */
+    public function eliminarProducto($id) {
+        try {
+            $sql = "DELETE FROM inv WHERE idinv = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            
+            if ($stmt->execute()) {
+                if ($stmt->rowCount() > 0) {
+                    return ['success' => true, 'message' => 'Producto eliminado correctamente'];
+                } else {
+                    return ['success' => false, 'message' => 'Producto no encontrado'];
+                }
+            } else {
+                return ['success' => false, 'message' => 'Error al eliminar el producto'];
+            }
+        } catch (PDOException $e) {
+            error_log('Error al eliminar producto: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error de base de datos: ' . $e->getMessage()];
+        }
+    }
 }
 ?>
