@@ -105,10 +105,10 @@
 
     <!-- Botones de acción de inventario -->
     <div class="d-flex justify-content-center flex-wrap gap-2 mb-4">
-        <button class="btn btn-success shadow-sm" onclick="abrirproducto()" id="btn-nuevo-producto">
+        <button class="btn btn-success shadow-sm" onclick="console.log('Botón clickeado'); abrirproducto(); return false;" id="btn-nuevo-producto">
             <i class="fas fa-plus me-2"></i>Nuevo Producto
         </button>
-        <button class="btn btn-info shadow-sm" onclick="abrirproveedor()">
+        <button class="btn btn-info shadow-sm" onclick="console.log('Botón proveedor clickeado'); abrirproveedor(); return false;">
             <i class="fas fa-truck me-2"></i>Proveedores
         </button>
     </div>
@@ -219,21 +219,47 @@
                                 <td class="d-none d-lg-table-cell">$<?= number_format($item['stock'] * $item['precio'], 0, ',', '.') ?></td>
                             <td>
                                 <div class="btn-group btn-group-sm d-flex d-md-inline-flex" role="group">
-                                    <button type="button" class="btn btn-warning btn-sm" 
-                                            onclick="editarFlor(<?= $item['idinv'] ?>)" 
-                                            title="Editar">
+                                    <?php 
+                                    $btnEditarId = 'btn_editar_' . $item['idinv'];
+                                    $btnStockId = 'btn_stock_' . $item['idinv'];
+                                    $btnEliminarId = 'btn_eliminar_' . $item['idinv'];
+                                    
+                                    // Verificar qué campo de nombre usar
+                                    $nombreProducto = '';
+                                    if (isset($item['producto'])) {
+                                        $nombreProducto = $item['producto'];
+                                    } elseif (isset($item['nombre'])) {
+                                        $nombreProducto = $item['nombre'];
+                                    } else {
+                                        $nombreProducto = 'Producto sin nombre';
+                                    }
+                                    
+                                    $productoNombre = htmlspecialchars($nombreProducto, ENT_QUOTES, 'UTF-8');
+                                    ?>
+                                    <button type="button" 
+                                            id="<?= $btnEditarId ?>"
+                                            class="btn btn-warning btn-sm btn-modal-editar" 
+                                            data-producto-id="<?= $item['idinv'] ?>"
+                                            data-producto-nombre="<?= $productoNombre ?>"
+                                            title="Editar producto">
                                         <i class="fas fa-edit"></i>
                                         <span class="d-md-none ms-1">Editar</span>
                                     </button>
-                                    <button type="button" class="btn btn-info btn-sm" 
-                                            onclick="agregarAInventario(<?= $item['idinv'] ?>)" 
-                                            title="Agregar Stock">
+                                    <button type="button" 
+                                            id="<?= $btnStockId ?>"
+                                            class="btn btn-info btn-sm btn-modal-stock" 
+                                            data-producto-id="<?= $item['idinv'] ?>"
+                                            data-producto-nombre="<?= $productoNombre ?>"
+                                            title="Agregar stock">
                                         <i class="fas fa-plus"></i>
                                         <span class="d-md-none ms-1">Stock</span>
                                     </button>
-                                    <button type="button" class="btn btn-danger btn-sm" 
-                                            onclick="eliminarFlor(<?= $item['idinv'] ?>)" 
-                                            title="Eliminar">
+                                    <button type="button" 
+                                            id="<?= $btnEliminarId ?>"
+                                            class="btn btn-danger btn-sm btn-modal-eliminar" 
+                                            data-producto-id="<?= $item['idinv'] ?>"
+                                            data-producto-nombre="<?= $productoNombre ?>"
+                                            title="Eliminar producto">
                                         <i class="fas fa-trash"></i>
                                         <span class="d-md-none ms-1">Eliminar</span>
                                     </button>
@@ -340,7 +366,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form method="POST" action="?ctrl=cinventario" id="form-nuevo-producto">
+                <form method="POST" action="?ctrl=Cinventario" id="form-nuevo-producto">
                     <input type="hidden" name="accion" value="nuevo_producto">
                     
                     <div class="row g-3">
@@ -542,11 +568,19 @@
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 <?php if (!$flor['idinv']): ?>
-                                                <button class="btn btn-outline-success" onclick="agregarAInventario(<?= $flor['idtflor'] ?>, '<?= htmlspecialchars($flor['nombre']) ?>')" title="Agregar a inventario">
+                                                <button class="btn btn-outline-success" 
+                                                        data-flor-id="<?= $flor['idtflor'] ?>"
+                                                        data-flor-nombre="<?= htmlspecialchars($flor['nombre']) ?>"
+                                                        onclick="agregarAInventario(this.dataset.florId, this.dataset.florNombre)" 
+                                                        title="Agregar a inventario">
                                                     <i class="fas fa-plus"></i>
                                                 </button>
                                                 <?php endif; ?>
-                                                <button class="btn btn-outline-danger" onclick="eliminarFlor(<?= $flor['idtflor'] ?>, '<?= htmlspecialchars($flor['nombre']) ?>')" title="Eliminar">
+                                                <button class="btn btn-outline-danger" 
+                                                        data-flor-id="<?= $flor['idtflor'] ?>"
+                                                        data-flor-nombre="<?= htmlspecialchars($flor['nombre']) ?>"
+                                                        onclick="eliminarFlor(this.dataset.florId, this.dataset.florNombre)" 
+                                                        title="Eliminar">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </div>
@@ -709,7 +743,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form method="POST" action="?ctrl=cinventario" id="form-nuevo-proveedor">
+                <form method="POST" action="?ctrl=Cinventario" id="form-nuevo-proveedor">
                     <input type="hidden" name="accion" value="nuevo_proveedor">
                     
                     <div class="row g-3">
@@ -908,7 +942,7 @@
 
 <script>
 // Función para abrir modal de nuevo producto
-function abrirproducto() {
+window.abrirproducto = function() {
     console.log('🔧 Función abrirproducto() llamada');
     
     try {
@@ -985,27 +1019,403 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Función para abrir modal de proveedores
-function abrirproveedor() {
+window.abrirproveedor = function() {
+    console.log('🔧 Función abrirproveedor() llamada');
+    
     try {
         const modalElement = document.getElementById('modal-proveedores');
+        console.log('🔍 Modal element:', modalElement);
+        
         if (!modalElement) {
+            console.error('❌ Modal no encontrado');
             alert('Error: Modal de proveedores no encontrado');
             return;
+        }
+        
+        console.log('📋 Bootstrap object:', typeof bootstrap);
+        console.log('🎭 Bootstrap.Modal:', typeof bootstrap?.Modal);
+        
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            console.log('✅ Creando modal...');
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            console.log('🎉 Modal mostrado exitosamente');
+        } else {
+            console.error('❌ Bootstrap no está disponible');
+            alert('Error: Bootstrap no está cargado correctamente');
+        }
+    } catch (error) {
+        console.error('💥 Error al abrir modal:', error);
+        alert('Error al abrir el modal de proveedores: ' + error.message);
+    }
+}
+
+// Función de verificación de estado
+window.verificarEstado = function() {
+    console.log('🔍 Estado del sistema:');
+    console.log('✅ Bootstrap disponible:', typeof bootstrap);
+    console.log('✅ jQuery disponible:', typeof $);
+    console.log('✅ Modal nuevo producto:', !!document.getElementById('modal-nuevo-producto'));
+    console.log('✅ Modal proveedores:', !!document.getElementById('modal-proveedores'));
+    console.log('✅ Modal editar producto:', !!document.getElementById('modal-editar-producto'));
+    console.log('✅ Modal agregar stock:', !!document.getElementById('modal-agregar-stock'));
+    console.log('✅ Modal eliminar producto:', !!document.getElementById('modal-eliminar-producto'));
+    console.log('✅ Funciones principales:', {
+        abrirproducto: typeof window.abrirproducto,
+        abrirproveedor: typeof window.abrirproveedor
+    });
+    console.log('✅ Funciones de modales:', {
+        abrirModalEditar: typeof window.abrirModalEditar,
+        abrirModalAgregarStock: typeof window.abrirModalAgregarStock,
+        abrirModalEliminar: typeof window.abrirModalEliminar
+    });
+    console.log('✅ Funciones de acciones:', {
+        editarFlor: typeof window.editarFlor,
+        agregarAInventario: typeof window.agregarAInventario,
+        eliminarFlor: typeof window.eliminarFlor
+    });
+}
+
+// Asegurar que las funciones estén disponibles cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📋 DOM Cargado - Iniciando sistema...');
+    
+    // Envolver todo en try-catch para capturar errores
+    try {
+        // Limpiar cualquier error previo
+        console.clear();
+        
+        console.log('🎉 Sistema iniciado correctamente');
+        
+        // Configurar funciones básicas primero
+        setTimeout(function() {
+            try {
+                verificarEstado();
+                setupModalButtons();
+            } catch (e) {
+                console.warn('Error en configuración inicial:', e);
+            }
+        }, 500);
+        
+        // Verificar Bootstrap
+        if (typeof bootstrap !== 'undefined') {
+            console.log('✅ Bootstrap está disponible');
+        } else {
+            console.log('⏳ Esperando Bootstrap...');
+            setTimeout(function() {
+                try {
+                    verificarEstado();
+                    setupModalButtons();
+                } catch (e) {
+                    console.warn('Error en verificación tardía:', e);
+                }
+            }, 1500);
+        }
+        
+    } catch (error) {
+        console.error('💥 Error al iniciar sistema:', error);
+        
+        // Intentar recuperación básica
+        setTimeout(function() {
+            try {
+                console.log('🔄 Intentando recuperación básica...');
+                if (typeof limpiarErrores === 'function') {
+                    limpiarErrores();
+                }
+            } catch (e) {
+                console.warn('Error en recuperación:', e);
+            }
+        }, 2000);
+    }
+});
+
+// Función para configurar los botones de modal - VERSION SIMPLIFICADA
+function setupModalButtons() {
+    console.log('🔧 Configurando botones de modal...');
+    
+    // Usar setTimeout para asegurar que el DOM esté completamente listo
+    setTimeout(function() {
+        try {
+            // Encontrar todos los botones de modal y agregar listeners directamente
+            const botonesEditar = document.querySelectorAll('.btn-modal-editar');
+            const botonesStock = document.querySelectorAll('.btn-modal-stock');
+            const botonesEliminar = document.querySelectorAll('.btn-modal-eliminar');
+            
+            console.log('📋 Botones encontrados:', {
+                editar: botonesEditar.length,
+                stock: botonesStock.length,
+                eliminar: botonesEliminar.length
+            });
+            
+            // Configurar botones de editar
+            botonesEditar.forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const id = this.dataset.productoId;
+                    const nombre = this.dataset.productoNombre;
+                    console.log('🔧 Editar clickeado:', id, nombre);
+                    if (typeof abrirModalEditar === 'function') {
+                        abrirModalEditar(id, nombre);
+                    } else {
+                        console.error('❌ Función abrirModalEditar no existe');
+                        alert('Error: Función de editar no disponible');
+                    }
+                });
+            });
+            
+            // Configurar botones de stock
+            botonesStock.forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const id = this.dataset.productoId;
+                    const nombre = this.dataset.productoNombre;
+                    console.log('📦 Stock clickeado:', id, nombre);
+                    if (typeof abrirModalAgregarStock === 'function') {
+                        abrirModalAgregarStock(id, nombre);
+                    } else {
+                        console.error('❌ Función abrirModalAgregarStock no existe');
+                        alert('Error: Función de stock no disponible');
+                    }
+                });
+            });
+            
+            // Configurar botones de eliminar
+            botonesEliminar.forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const id = this.dataset.productoId;
+                    const nombre = this.dataset.productoNombre;
+                    console.log('🗑️ Eliminar clickeado:', id, nombre);
+                    if (typeof abrirModalEliminar === 'function') {
+                        abrirModalEliminar(id, nombre);
+                    } else {
+                        console.error('❌ Función abrirModalEliminar no existe');
+                        // Usar confirmación simple como fallback
+                        if (confirm('¿Estás seguro de que deseas eliminar "' + nombre + '"?')) {
+                            console.log('Usuario confirmó eliminación de:', id);
+                            // Aquí podrías agregar lógica de eliminación
+                        }
+                    }
+                });
+            });
+            
+            console.log('✅ Botones configurados correctamente');
+            
+        } catch (error) {
+            console.error('💥 Error al configurar botones:', error);
+        }
+    }, 100);
+}
+
+// Función de prueba para verificar que todo funciona
+window.testearBotones = function() {
+    console.log('🧪 Testeando sistema de botones...');
+    
+    console.log('📋 Estado de funciones:');
+    console.log('- abrirModalEditar:', typeof window.abrirModalEditar);
+    console.log('- abrirModalAgregarStock:', typeof window.abrirModalAgregarStock);
+    console.log('- abrirModalEliminar:', typeof window.abrirModalEliminar);
+    
+    console.log('📋 Estado de modales:');
+    console.log('- modal-editar-producto:', !!document.getElementById('modal-editar-producto'));
+    console.log('- modal-agregar-stock:', !!document.getElementById('modal-agregar-stock'));
+    console.log('- modal-eliminar-producto:', !!document.getElementById('modal-eliminar-producto'));
+    
+    console.log('📋 Botones encontrados:');
+    console.log('- btn-modal-editar:', document.querySelectorAll('.btn-modal-editar').length);
+    console.log('- btn-modal-stock:', document.querySelectorAll('.btn-modal-stock').length);
+    console.log('- btn-modal-eliminar:', document.querySelectorAll('.btn-modal-eliminar').length);
+    
+    // Testear manualmente el primer botón de editar
+    const primerBotonEditar = document.querySelector('.btn-modal-editar');
+    if (primerBotonEditar) {
+        console.log('🔧 Primer botón editar encontrado:', primerBotonEditar.dataset);
+    }
+}
+
+// Función de emergencia para limpiar errores
+window.limpiarErrores = function() {
+    console.log('🧹 Limpiando errores JavaScript...');
+    
+    // Limpiar console de errores
+    console.clear();
+    
+    // Restablecer funciones básicas
+    try {
+        // Verificar estado básico
+        console.log('✅ Verificando funciones básicas...');
+        verificarEstado();
+        
+        // Reconfigurar botones
+        console.log('🔧 Reconfigurando botones...');
+        setupModalButtons();
+        
+        console.log('✅ Sistema limpio y funcionando');
+        return true;
+    } catch (error) {
+        console.error('❌ Error al limpiar:', error);
+        return false;
+    }
+}
+
+// Función para reconfigurar botones después de actualizaciones AJAX
+window.reconfigurarrBotones = function() {
+    console.log('🔄 Reconfigurando botones después de actualización...');
+    setupModalButtons();
+}
+
+// Hook para cuando se actualice el contenido vía AJAX
+window.onInventarioActualizado = function() {
+    console.log('📋 Inventario actualizado - reconfigurando botones...');
+    setTimeout(function() {
+        setupModalButtons();
+    }, 200);
+}
+
+// Funciones específicas para abrir modales de acciones
+window.abrirModalEditar = function(idProducto, nombreProducto) {
+    console.log('🔧 Abriendo modal editar para:', idProducto, nombreProducto);
+    try {
+        const modalElement = document.getElementById('modal-editar-producto');
+        if (!modalElement) {
+            console.error('❌ Modal editar no encontrado');
+            alert('Error: Modal de editar no encontrado');
+            return;
+        }
+        
+        // Llenar los campos del modal con los datos del producto (IDs corregidos)
+        const inputId = modalElement.querySelector('#editar_producto_id');
+        const inputNombre = modalElement.querySelector('#editar_nombre_producto');
+        
+        console.log('🔍 Elementos encontrados:', {
+            inputId: !!inputId,
+            inputNombre: !!inputNombre
+        });
+        
+        if (inputId) {
+            inputId.value = idProducto;
+            console.log('✅ ID asignado:', idProducto);
+        } else {
+            console.warn('⚠️ Input ID no encontrado');
+        }
+        
+        if (inputNombre) {
+            inputNombre.value = nombreProducto;
+            console.log('✅ Nombre asignado:', nombreProducto);
+        } else {
+            console.warn('⚠️ Input Nombre no encontrado');
         }
         
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
             const modal = new bootstrap.Modal(modalElement);
             modal.show();
+            console.log('✅ Modal mostrado');
         } else {
-            alert('Error: Bootstrap no está cargado correctamente');
+            console.error('❌ Bootstrap no disponible');
+            alert('Error: Bootstrap no está disponible');
         }
     } catch (error) {
-        console.error('Error al abrir modal:', error);
-        alert('Error al abrir el modal de proveedores');
+        console.error('💥 Error al abrir modal editar:', error);
+        alert('Error al abrir modal: ' + error.message);
     }
 }
 
-/ Función para cambiar elementos por página (con fallback robusto)
+window.abrirModalAgregarStock = function(idProducto, nombreProducto) {
+    console.log('🔧 Abriendo modal agregar stock para:', idProducto, nombreProducto);
+    try {
+        const modalElement = document.getElementById('modal-agregar-stock');
+        if (!modalElement) {
+            console.error('❌ Modal agregar stock no encontrado');
+            alert('Error: Modal de agregar stock no encontrado');
+            return;
+        }
+        
+        // Llenar los campos del modal con los datos del producto (IDs corregidos)
+        const inputId = modalElement.querySelector('#stock_producto_id');
+        const spanNombre = modalElement.querySelector('#stock_nombre_producto');
+        const inputCantidad = modalElement.querySelector('#cantidad_agregar');
+        
+        console.log('🔍 Elementos encontrados:', {
+            inputId: !!inputId,
+            spanNombre: !!spanNombre,
+            inputCantidad: !!inputCantidad
+        });
+        
+        if (inputId) {
+            inputId.value = idProducto;
+            console.log('✅ ID asignado:', idProducto);
+        } else {
+            console.warn('⚠️ Input ID no encontrado');
+        }
+        
+        if (spanNombre) {
+            spanNombre.textContent = nombreProducto;
+            console.log('✅ Nombre asignado:', nombreProducto);
+        } else {
+            console.warn('⚠️ Span Nombre no encontrado');
+        }
+        
+        // Limpiar campo de cantidad
+        if (inputCantidad) {
+            inputCantidad.value = '';
+            inputCantidad.focus();
+        }
+        
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            console.log('✅ Modal de stock mostrado');
+        } else {
+            console.error('❌ Bootstrap no disponible');
+            alert('Error: Bootstrap no está disponible');
+        }
+    } catch (error) {
+        console.error('💥 Error al abrir modal agregar stock:', error);
+        alert('Error al abrir modal: ' + error.message);
+    }
+}
+
+window.abrirModalEliminar = function(idProducto, nombreProducto) {
+    console.log('🔧 Función eliminar llamada para:', idProducto, nombreProducto);
+    try {
+        // No hay modal específico de eliminar, usar confirmación simple
+        const confirmMsg = '¿Estás seguro de que deseas eliminar el producto "' + nombreProducto + '"?\n\nEsta acción no se puede deshacer.';
+        
+        if (confirm(confirmMsg)) {
+            console.log('✅ Usuario confirmó eliminación de:', idProducto);
+            
+            // Crear y enviar formulario para eliminar
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '?ctrl=cinventario';
+            form.style.display = 'none';
+            
+            const accionInput = document.createElement('input');
+            accionInput.type = 'hidden';
+            accionInput.name = 'accion';
+            accionInput.value = 'eliminar_producto';
+            form.appendChild(accionInput);
+            
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'producto_id';
+            idInput.value = idProducto;
+            form.appendChild(idInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+            
+            console.log('📋 Formulario de eliminación enviado');
+        } else {
+            console.log('❌ Usuario canceló eliminación');
+        }
+    } catch (error) {
+        console.error('💥 Error al eliminar producto:', error);
+        alert('Error al eliminar producto: ' + error.message);
+    }
+}
+
+// Función para cambiar elementos por página (con fallback robusto)
 function cambiarElementosPorPagina(nuevoValor) {
     console.log('Cambiando elementos por página a:', nuevoValor);
     
@@ -1212,7 +1622,7 @@ function gestionarFlores() {
 }
 
 // Editar flor inline
-function editarFlor(florData) {
+window.editarFlor = function(florData) {
     // Cambiar a la pestaña de nueva flor usando trigger
     const nuevaTab = document.getElementById('nueva-tab');
     if (nuevaTab) {
@@ -1308,7 +1718,7 @@ function cancelarEdicion() {
 }
 
 // Agregar flor al inventario
-function agregarAInventario(idFlor, nombreFlor) {
+window.agregarAInventario = function(idFlor, nombreFlor) {
     if (!idFlor || !nombreFlor) {
         alert('Error: Datos de flor inválidos');
         return;
@@ -1335,7 +1745,7 @@ function agregarAInventario(idFlor, nombreFlor) {
 }
 
 // Eliminar flor
-function eliminarFlor(idFlor, nombreFlor) {
+window.eliminarFlor = function(idFlor, nombreFlor) {
     if (!idFlor || !nombreFlor) {
         alert('Error: Datos de flor inválidos');
         return;
@@ -1831,6 +2241,79 @@ console.log('eliminarFlor:', typeof eliminarFlor);
 console.log('agregarAInventario:', typeof agregarAInventario);
 console.log('abrirproducto:', typeof abrirproducto);
 console.log('abrirproveedor:', typeof abrirproveedor);
+
+// === FUNCIONES PRINCIPALES PARA BOTONES SUPERIORES ===
+window.abrirproducto = function() {
+    try {
+        const modal = new bootstrap.Modal(document.getElementById('modal-nuevo-producto'));
+        modal.show();
+        console.log('✅ Modal nuevo producto abierto');
+    } catch (e) {
+        alert('Error al abrir modal de nuevo producto');
+        console.error('Error abrirproducto:', e);
+    }
+};
+
+window.abrirproveedor = function() {
+    try {
+        const modal = new bootstrap.Modal(document.getElementById('modal-proveedores'));
+        modal.show();
+        console.log('✅ Modal proveedores abierto');
+    } catch (e) {
+        alert('Error al abrir modal de proveedores');
+        console.error('Error abrirproveedor:', e);
+    }
+};
+
+// === FUNCIONES PARA MODALES DE ACCIONES ===
+window.abrirModalEditar = function(id, nombre) {
+    try {
+        const modal = document.getElementById('modal-editar-producto');
+        const inputId = modal.querySelector('#editar_producto_id');
+        const inputNombre = modal.querySelector('#editar_nombre_producto');
+        if (inputId) inputId.value = id;
+        if (inputNombre) inputNombre.value = nombre;
+        new bootstrap.Modal(modal).show();
+    } catch (e) { alert('Error al abrir modal de editar'); }
+};
+
+window.abrirModalAgregarStock = function(id, nombre) {
+    try {
+        const modal = document.getElementById('modal-agregar-stock');
+        const inputId = modal.querySelector('#stock_producto_id');
+        const spanNombre = modal.querySelector('#stock_nombre_producto');
+        if (inputId) inputId.value = id;
+        if (spanNombre) spanNombre.textContent = nombre;
+        new bootstrap.Modal(modal).show();
+    } catch (e) { alert('Error al abrir modal de stock'); }
+};
+
+window.abrirModalEliminar = function(id, nombre) {
+    if (confirm('¿Eliminar "' + nombre + '"?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '?ctrl=cinventario';
+        form.innerHTML = '<input type="hidden" name="accion" value="eliminar_producto"><input type="hidden" name="producto_id" value="' + id + '">';
+        document.body.appendChild(form);
+        form.submit();
+    }
+};
+
+// Configurar botones cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        document.querySelectorAll('.btn-modal-editar').forEach(btn => {
+            btn.onclick = function() { abrirModalEditar(this.dataset.productoId, this.dataset.productoNombre); };
+        });
+        document.querySelectorAll('.btn-modal-stock').forEach(btn => {
+            btn.onclick = function() { abrirModalAgregarStock(this.dataset.productoId, this.dataset.productoNombre); };
+        });
+        document.querySelectorAll('.btn-modal-eliminar').forEach(btn => {
+            btn.onclick = function() { abrirModalEliminar(this.dataset.productoId, this.dataset.productoNombre); };
+        });
+        console.log('✅ Todos los botones configurados');
+    }, 500);
+});
 
 // Verificar si hay errores
 window.addEventListener('error', function(e) {
