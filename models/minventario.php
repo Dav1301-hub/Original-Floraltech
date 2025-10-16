@@ -269,13 +269,15 @@ class Minventario {
     public function agregarProducto($data) {
         try {
             // Validar datos básicos requeridos
-            if (empty($data['nombre_producto']) || empty($data['stock']) || empty($data['precio']) || empty($data['categoria'])) {
-                throw new Exception('Nombre del producto, stock, precio y categoría son obligatorios');
+            if (empty($data['nombre_producto']) || empty($data['stock']) || empty($data['precio'])) {
+                throw new Exception('Nombre del producto, stock y precio son obligatorios');
             }
+            
+            $this->db->beginTransaction();
             
             $tflor_id = null;
             
-            // Si es una flor y se seleccionó una flor existente
+            // Si se seleccionó una flor existente
             if (!empty($data['tflor_idtflor'])) {
                 $tflor_id = $data['tflor_idtflor'];
                 
@@ -286,68 +288,85 @@ class Minventario {
                 $stmt_verificar->execute();
                 
                 if ($stmt_verificar->fetch()) {
+                    $this->db->rollBack();
                     throw new Exception('Esta flor ya existe en el inventario. Use la opción de actualizar stock.');
                 }
-            } 
-            // Si es una flor nueva o un producto que necesita entrada en tflor
-            elseif (!empty($data['tipo_producto']) && $data['tipo_producto'] === 'flor') {
+            } else {
                 // Crear nueva entrada en tflor
-                $tflor_id = $this->crearNuevaFlor([
-                    'nombre' => $data['nombre_producto'],
-                    'naturaleza' => $data['categoria'],
-                    'color' => $data['color'] ?? 'Multicolor',
-                    'descripcion' => $data['descripcion'] ?? ''
-                ]);
+                $sql_tflor = "INSERT INTO tflor (nombre, naturaleza, color, descripcion, precio, precio_venta, estado, fecha_creacion, activo) 
+                             VALUES (:nombre, :naturaleza, :color, :descripcion, :precio, :precio_venta, :estado, NOW(), 1)";
+                $stmt_tflor = $this->db->prepare($sql_tflor);
+                $stmt_tflor->bindValue(':nombre', $data['nombre_producto']);
+                $stmt_tflor->bindValue(':naturaleza', $data['categoria'] ?? 'No especificado');
+                $stmt_tflor->bindValue(':color', $data['color'] ?? 'Multicolor');
+                $stmt_tflor->bindValue(':descripcion', $data['descripcion'] ?? '');
+                $stmt_tflor->bindValue(':precio', $data['precio']);
+                $stmt_tflor->bindValue(':precio_venta', $data['precio']);
+                $stmt_tflor->bindValue(':estado', 'activo');
+                
+                if (!$stmt_tflor->execute()) {
+                    $this->db->rollBack();
+                    throw new Exception('Error al crear el producto en el catálogo');
+                }
+                
+                $tflor_id = $this->db->lastInsertId();
             }
             
             // Determinar el tipo de alimentación basado en el tipo de producto
             $alimentacion = $this->determinarAlimentacion($data['tipo_producto'] ?? 'otro');
             
             // Insertar producto en inventario
-            $sql_insertar = "INSERT INTO inv (tflor_idtflor, stock, precio, alimentacion, fecha_actualizacion) 
-                           VALUES (:tflor_id, :stock, :precio, :alimentacion, NOW())";
-            $stmt_insertar = $this->db->prepare($sql_insertar);
-            $stmt_insertar->bindParam(':tflor_id', $tflor_id, PDO::PARAM_INT);
-            $stmt_insertar->bindParam(':stock', $data['stock'], PDO::PARAM_INT);
-            $stmt_insertar->bindParam(':precio', $data['precio'], PDO::PARAM_STR);
-            $stmt_insertar->bindParam(':alimentacion', $alimentacion);
+            $sql_inventario = "INSERT INTO inv (tflor_idtflor, stock, precio, alimentacion, fecha_actualizacion, empleado_id, motivo, cantidad_disponible) 
+                              VALUES (:tflor_id, :stock, :precio, :alimentacion, NOW(), :empleado_id, :motivo, :stock)";
+            $stmt_inventario = $this->db->prepare($sql_inventario);
+            $stmt_inventario->bindParam(':tflor_id', $tflor_id, PDO::PARAM_INT);
+            $stmt_inventario->bindParam(':stock', $data['stock'], PDO::PARAM_INT);
+            $stmt_inventario->bindParam(':precio', $data['precio']);
+            $stmt_inventario->bindParam(':alimentacion', $alimentacion);
+            $stmt_inventario->bindValue(':empleado_id', $_SESSION['user']['idusu'] ?? null, PDO::PARAM_INT);
+            $stmt_inventario->bindValue(':motivo', 'Producto nuevo agregado al inventario');
             
-            if ($stmt_insertar->execute()) {
-                // Registrar en historial
-                $this->registrarMovimientoInventario(
-                    $this->db->lastInsertId(),
-                    0,
-                    $data['stock'],
-                    'Producto agregado: ' . $data['nombre_producto']
-                );
-                
+            if ($stmt_inventario->execute()) {
+                $this->db->commit();
                 return true;
             } else {
-                throw new Exception('Error al insertar el producto en inventario');
+                $this->db->rollBack();
+                throw new Exception('Error al agregar el producto al inventario');
             }
             
         } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             throw $e;
         } catch (PDOException $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             throw new Exception('Error de base de datos: ' . $e->getMessage());
         }
     }
     
     /**
-     * Determinar el tipo de alimentación según el tipo de producto
+     * Determinar tipo de alimentación basado en el tipo de producto
      */
-    private function determinarAlimentacion($tipo_producto) {
-        $tipos = [
-            'flor' => 'Producto natural',
-            'chocolate' => 'Producto comestible',
-            'tarjeta' => 'Producto decorativo',
-            'peluche' => 'Producto regalo',
-            'globo' => 'Producto decorativo',
-            'accesorio' => 'Producto accesorio',
-            'otro' => 'Producto general'
-        ];
-        
-        return $tipos[$tipo_producto] ?? 'Producto general';
+    private function determinarAlimentacion($tipo) {
+        switch (strtolower($tipo)) {
+            case 'flor':
+                return 'Agua y nutrientes';
+            case 'chocolate':
+                return 'Ambiente fresco y seco';
+            case 'peluche':
+                return 'No requiere';
+            case 'globo':
+                return 'No requiere';
+            case 'tarjeta':
+                return 'No requiere';
+            case 'accesorio':
+                return 'No requiere';
+            default:
+                return 'Según especificaciones';
+        }
     }
     
     /**
@@ -376,7 +395,7 @@ class Minventario {
             $stmt_historial->bindParam(':stock_anterior', $stock_anterior, PDO::PARAM_INT);
             $stmt_historial->bindParam(':stock_nuevo', $stock_nuevo, PDO::PARAM_INT);
             $stmt_historial->bindParam(':motivo', $motivo);
-            $stmt_historial->bindParam(':idusu', $_SESSION['user']['idusu'] ?? null, PDO::PARAM_INT);
+            $stmt_historial->bindValue(':idusu', $_SESSION['user']['idusu'] ?? null, PDO::PARAM_INT);
             
             $stmt_historial->execute();
             
