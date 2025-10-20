@@ -7,26 +7,20 @@ use Mpdf\Mpdf;
 $mreportes = new Mreportes();
 
 // ---------------------- //
-//  📄 PDF DE USUARIOS
-// ---------------------- //
-// ---------------------- //
-// 👥 PDF DE USUARIOS
+//  📄 PDF DE USUARIOS
 // ---------------------- //
 if (isset($_POST['accion']) && $_POST['accion'] === 'usuarios_pdf') {
 
-    // IDs seleccionados desde el formulario
     $ids = isset($_POST['ids']) ? explode(',', $_POST['ids']) : [];
-    $ids = array_filter($ids); // elimina vacíos
+    $ids = array_filter($ids);
+    $tipo = isset($_POST['tipo']) ? $_POST['tipo'] : null;
 
-    // Obtener todos los usuarios (puedes pasar $tipo si tu modelo lo soporta)
     $usuarios = $mreportes->getAllusu($tipo);
 
-    // Filtrar solo los seleccionados
     $usuariosSeleccionados = array_filter($usuarios, function($u) use ($ids) {
         return in_array((string)$u['idusu'], $ids, true);
     });
 
-    // Generar HTML del PDF
     $html = '
     <style>
         body { font-family: Arial, Helvetica, sans-serif; color: #2C3E50; font-size: 12px; }
@@ -88,9 +82,98 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'usuarios_pdf') {
 }
 
 
+// ---------------------- //
+//  🌸 PDF DE INVENTARIO (Flores)
+// ---------------------- //
+if (isset($_POST['accion']) && $_POST['accion'] === 'flores_pdf') {
+    $ids = isset($_POST['ids']) ? explode(',', $_POST['ids']) : [];
+    $ids = array_filter($ids);
+
+    $flores = $mreportes->getAllInventario();
+
+    $floresSeleccionadas = array_filter($flores, function($f) use ($ids) {
+        return in_array((string)$f['idtflor'], $ids, true);
+    });
+
+    $totalStock = 0;
+    $totalValor = 0;
+
+    $html = '
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; color: #2C3E50; font-size: 12px; }
+        h1 { text-align: center; color: #145A32; border-bottom: 2px solid #145A32; padding-bottom: 10px; margin-bottom: 30px; }
+        p { text-align: right; color: #555; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
+        thead { background-color: #229954; color: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        tr:nth-child(even) { background-color: #f8f9f9; }
+        tr:hover { background-color: #E9F7EF; }
+    </style>
+
+    <h1>🌸 Reporte de Inventario de Flores</h1>
+    <p>Generado el ' . date("d/m/Y H:i") . '</p>
+    <table>
+        <thead>
+            <tr>
+                <th>ID Flor</th>
+                <th>Producto</th>
+                <th>Naturaleza</th>
+                <th>Color</th>
+                <th>Stock</th>
+                <th>Precio Unitario</th>
+                <th>Valor Total</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>';
+
+    if (!empty($floresSeleccionadas)) {
+        foreach ($floresSeleccionadas as $f) {
+            $totalStock += (int)$f['stock'];
+            $totalValor += (float)$f['valor_total'];
+
+            $html .= '
+            <tr>
+                <td>' . htmlspecialchars($f['idtflor']) . '</td>
+                <td>' . htmlspecialchars($f['producto']) . '</td>
+                <td>' . htmlspecialchars($f['naturaleza']) . '</td>
+                <td>' . htmlspecialchars($f['color']) . '</td>
+                <td>' . htmlspecialchars($f['stock']) . '</td>
+                <td>$' . number_format($f['precio_unitario'], 2) . '</td>
+                <td>$' . number_format($f['valor_total'], 2) . '</td>
+                <td>' . htmlspecialchars($f['estado']) . '</td>
+            </tr>';
+        }
+
+        // Fila de totales
+        $html .= '
+        <tr style="font-weight:bold; background-color:#D5F5E3;">
+            <td colspan="4" style="text-align:right;">Totales:</td>
+            <td>' . $totalStock . '</td>
+            <td></td>
+            <td>$' . number_format($totalValor, 2) . '</td>
+            <td></td>
+        </tr>';
+    } else {
+        $html .= '<tr><td colspan="8">No se encontraron flores seleccionadas</td></tr>';
+    }
+
+    $html .= '</tbody></table>';
+
+    ob_clean();
+    $mpdf = new \Mpdf\Mpdf();
+    $mpdf->WriteHTML($html);
+    $mpdf->Output('Inventario_Flores.pdf', \Mpdf\Output\Destination::DOWNLOAD);
+    exit;
+
+    echo '<pre>';
+print_r($f);
+echo '</pre>';
+
+}
 
 // ---------------------- //
-//  📦 PDF DE PEDIDOS
+//  📦 PDF DE PEDIDOS
 // ---------------------- //
 
 $ids = isset($_POST['ids']) ? explode(',', $_POST['ids']) : [];
@@ -144,4 +227,7 @@ $mpdf = new Mpdf();
 $mpdf->WriteHTML($html);
 $mpdf->Output('Pedidos_Seleccionados.pdf', \Mpdf\Output\Destination::DOWNLOAD);
 exit;
+
+
+
 ?>

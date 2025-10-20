@@ -84,3 +84,44 @@ document.getElementById('formPdfUsuarios')?.addEventListener('submit', function(
 
     console.log('Usuarios seleccionados:', seleccionados);
 });
+
+
+
+// ===============================
+// 🌸 FILTRO Y PDF DE FLORES / INVENTARIO
+// ===============================
+document.getElementById('btnFiltrarModalFlores')?.addEventListener('click', function() {
+    const estado = document.getElementById('modal_estado_flores')?.value?.toLowerCase();
+    const filas = document.querySelectorAll('#tablaFloresModal tbody tr');
+    if (filas.length === 0) return;
+
+    filas.forEach(fila => {
+        const estadoFlor = fila.querySelector('td:nth-child(8)')?.textContent.trim().toLowerCase();;
+        fila.style.display = (!estado || estadoFlor === estado) ? '' : 'none';
+    });
+});
+
+// Selección general de checkboxes en flores
+document.getElementById('selectAllFlores')?.addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('#tablaFloresModal .select-row');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+});
+
+// Envío del PDF de flores
+document.getElementById('formPdfFlores')?.addEventListener('submit', function(e) {
+    const filas = document.querySelectorAll('#tablaFloresModal tbody tr');
+    const seleccionados = Array.from(filas)
+        .filter(fila => fila.style.display !== 'none') // solo visibles (filtrados)
+        .map(fila => fila.querySelector('.select-row'))
+        .filter(cb => cb && cb.checked)
+        .map(cb => cb.value);
+
+    if (seleccionados.length === 0) {
+        e.preventDefault();
+        alert('⚠️ Debes seleccionar al menos una flor para generar el PDF.');
+        return;
+    }
+
+    document.getElementById('pdf_ids_flores').value = seleccionados.join(',');
+    console.log('Flores seleccionadas:', seleccionados);
+});

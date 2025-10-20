@@ -24,6 +24,14 @@ class Mreportes{
     private $fecha_registro;
     private $activo;
     private $vacaciones;
+    private $idtflor;
+    private $nombre;
+    private $descripcion;
+    private $precio;
+    private $fecha_creacion;
+    private $color;
+    private $precio_venta;
+
 
     
     function getIdped() {
@@ -89,6 +97,27 @@ class Mreportes{
     function getVacaciones() {
         return $this->vacaciones;
     }
+    function getIdtflor() {
+        return $this->idtflor;
+    }
+    function getNombre() {
+        return $this->nombre;
+    }
+    function getDescripcion() {
+        return $this->descripcion;
+    }
+    function getPrecio() {
+        return $this->precio;
+    }
+    function getFecha_creacion() {
+        return $this->fecha_creacion;
+    }
+    function getColor() {
+        return $this->color;
+    }
+    function getPrecio_venta() {
+        return $this->precio_venta;
+    }
 
     function setIdped($idped) {
         $this->idped = $idped;
@@ -153,7 +182,27 @@ class Mreportes{
     function setVacaciones($vacaciones) {
         $this->vacaciones = $vacaciones;
     }
-
+    function setIdtflor($idtflor) {
+        $this->idtflor = $idtflor;
+    }
+    function setNombre($nombre) {
+        $this->nombre = $nombre;
+    }
+    function setDescripcion($descripcion) {
+        $this->descripcion = $descripcion;
+    }
+    function setPrecio($precio) {
+        $this->precio = $precio;
+    }
+    function setFecha_creacion($fecha_creacion) {
+        $this->fecha_creacion = $fecha_creacion;
+    }
+    function setColor($color) {
+        $this->color = $color;
+    }
+    function setPrecio_venta($precio_venta) {
+        $this->precio_venta = $precio_venta;
+    }
 
     public function getAll() {
     try {
@@ -191,6 +240,31 @@ public function getAllusu() {
     }
 }
 
+public function getAllInventario() {
+    try {
+        $sql = "SELECT 
+            f.idtflor,
+            f.nombre AS producto,
+            f.naturaleza,
+            f.color,
+            COALESCE(i.stock, 0) AS stock,
+            f.estado,
+            f.precio AS precio_unitario,
+            COALESCE(i.stock, 0) * f.precio AS valor_total
+        FROM tflor f
+        LEFT JOIN inv i ON f.idtflor = i.tflor_idtflor
+        ";
+        
+        $modelo = new conexion();
+        $conexion = $modelo->get_conexion();
+        $res = $conexion->prepare($sql);
+        $res->execute();
+
+        return $res->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        echo "Error: " . $e->getMessage();
+    }
+}
 
 
 }

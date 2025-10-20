@@ -31,7 +31,7 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
         </div>
         <!-- Inventario -->
         <div class="col-12 col-md-6">
-            <div class="card border-info h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="" style="cursor:pointer;">
+            <div class="card border-info h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#tablaModalFlores" style="cursor:pointer;">
                 <div class="card-body text-center">
                     <i class="bi bi-box-seam h1 text-info"></i>
                     <h6 class="fw-bold mt-2">Inventario</h6>
@@ -46,8 +46,8 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
                 <div class="card-body text-center">
                     <i class="bi bi-person-badge h1 text-warning"></i>
                     <h6 class="fw-bold mt-2">Cuentas</h6>
-                    <div class="small">Por Cobrar: <span class="fw-bold">$<?= number_format($datos['cuentas']['por_cobrar'] ?? 0, 2) ?></span></div>
-                    <div class="small">Por Pagar: <span class="fw-bold">$<?= number_format($datos['cuentas']['por_pagar'] ?? 0, 2) ?></span></div>
+                    <div class="small">Total Usuarios: <span class="fw-bold"><?= $totalUsuarios ?? 0 ?></span></div>
+                    <div class="small">Activos: <span class="fw-bold"><?= $datos['usuarios']['activos'] ?? 0 ?></span></div>
                 </div>
             </div>
         </div>
@@ -216,17 +216,17 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
                 <div class="container my-4">
                     <div class="row g-3">
                         <form class="row mb-3 g-2 flex-wrap" onsubmit="return false;">
-                            <div class="col-12 col-md-3">
+                            <div class="col-12 col-md-6">
                                 <select class="form-select" name="estado" id="modal_estado_usuarios">
                                     <option value="">Todos</option>
                                     <option value="Administrador">Administrador</option>
                                     <option value="Vendedor">Vendedor</option>
                                     <option value="Inventario">Inventario</option>
                                     <option value="Repartidor">Repartidor</option>
-                                    <option value="Cliene">Cliente</option>
+                                    <option value="Cliente">Cliente</option>
                                 </select>
                             </div>
-                            <div class="col-12 col-md-3">
+                            <div class="col-12 col-md-6">
                                 <button type="button" class="btn w-100 text-white" id="btnFiltrarModalUsuarios" style="background: linear-gradient(90deg, #6a5af9 0%, #7c3aed 100%);">Filtrar</button>
                             </div>
                         </form>
@@ -261,6 +261,7 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
                         </thead>
                         <tbody>
                             <?php if (!empty($dtAllUsu)): ?>
+                                
                                 <?php foreach ($dtAllUsu as $u): ?>
                                     <tr>
                                         <td>
@@ -286,6 +287,95 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="background: linear-gradient(90deg, #6a5af9 0%, #7c3aed 100%);">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="tablaModalFlores" tabindex="-1" aria-labelledby="tablaModalFloresLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header text-white" style="background: linear-gradient(90deg, #6a5af9 0%, #7c3aed 100%);">
+                <h5 class="modal-title" id="tablaModalFloresLabel">Inventario de Flores</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="container my-4">
+                    <div class="row g-3">
+                        <!-- Filtro de flores -->
+                        <form class="row mb-3 g-2 flex-wrap" onsubmit="return false;">
+                            <div class="col-12 col-md-4">
+                                <select class="form-select" id="modal_estado_flores" name="estado_flor">
+                                    <option value="">Todas</option>
+                                    <option value="disponible">Disponible</option>
+                                    <option value="agotado">Agotado</option>
+                                    <option value="no disponible">No disponible</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <button type="button" class="btn w-100 text-white" id="btnFiltrarModalFlores"
+                                    style="background: linear-gradient(90deg, #6a5af9 0%, #7c3aed 100%);">
+                                    Filtrar
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Botón para generar PDF -->
+                        <div class="col-12 col-md-6">
+                            <form id="formPdfFlores" action="controllers/repopdf.php" method="POST">
+                                <input type="hidden" name="accion" value="flores_pdf">
+                                <input type="hidden" name="ids" id="pdf_ids_flores">
+                                <button type="submit" class="btn btn-primary w-100"
+                                    style="background: linear-gradient(90deg, #6a5af9 0%, #7c3aed 100%);">
+                                    <i class="bi bi-file-earmark-pdf"></i> Generar PDF
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de flores -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="tablaFloresModal">
+                        <thead class="table-light">
+                            <tr>
+                                <th><input type="checkbox" id="selectAllFlores" title="Seleccionar todo"></th>
+                                <th>ID</th>
+                                <th>Producto</th>
+                                <th>Naturaleza</th>
+                                <th>Color</th>
+                                <th>Stock</th>
+                                <th>Estado</th>
+                                <th>Precio Unitario</th>
+                                <th>Valor Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($dtAllInv)): ?>
+                                <?php foreach ($dtAllInv as $f): ?>
+                                    <tr>
+                                        <td><input type="checkbox" class="select-row" value="<?=htmlspecialchars($f['idtflor'])?>"></td>
+                                        <td><?= htmlspecialchars($f['idtflor']) ?></td>
+                                        <td><?= htmlspecialchars($f['producto']) ?></td>
+                                        <td><?= htmlspecialchars($f['naturaleza']) ?></td>
+                                        <td><?= htmlspecialchars($f['color']) ?></td>
+                                        <td><?= htmlspecialchars($f['stock']) ?></td>
+                                        <td><?= htmlspecialchars($f['estado']) ?></td>
+                                        <td>$<?= number_format($f['precio_unitario'], 2) ?></td>
+                                        <td>$<?= number_format($f['valor_total'], 2) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="8" class="text-center text-warning">No hay registros en el inventario.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"style="background: linear-gradient(90deg, #6a5af9 0%, #7c3aed 100%);">Cerrar</button>
             </div>
         </div>
     </div>
