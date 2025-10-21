@@ -1,115 +1,117 @@
 <!-- Gestión de Inventario - Vista -->
 <main class="container-fluid py-4">
-    <h2 class="mb-4 fw-bold">Gestión de Inventario</h2>
-    
-    <!-- DEBUG: Confirmar que la vista correcta se está cargando -->
-    <div class="alert alert-info">
-        <strong>DEBUG:</strong> Vista de inventario cargada correctamente. 
-        Elementos disponibles: <?= isset($inventario) ? count($inventario) : 0 ?> 
-        de <?= $total_elementos ?? 0 ?> total.
+    <!-- Backdrop para modales manuales -->
+<div id="modal-backdrop" class="modal-backdrop fade" style="display:none;z-index:1040;"></div>
+    <h2 class="mb-4 fw-bold">Gestión de Inventario</h2> 
+    <!-- Cards de resumen funcionales -->
+        <div class="row mb-4 g-3">
+            <div class="col-md-3">
+                <div class="card text-center border-0 shadow-sm">
+                    <div class="card-body">
+                        <i class="fas fa-layer-group fa-2x text-primary mb-2"></i>
+                        <div class="fw-bold text-muted">Total Productos</div>
+                        <div class="fs-3 fw-bold text-dark"><?= $total_productos ?? 0 ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-0 shadow-sm">
+                    <div class="card-body">
+                        <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                        <div class="fw-bold text-muted">Stock Bajo</div>
+                        <div class="fs-3 fw-bold text-dark"><?= $stock_bajo ?? 0 ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-0 shadow-sm">
+                    <div class="card-body">
+                        <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
+                        <div class="fw-bold text-muted">Sin Stock</div>
+                        <div class="fs-3 fw-bold text-dark"><?= $sin_stock ?? 0 ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-0 shadow-sm">
+                    <div class="card-body">
+                        <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
+                        <div class="fw-bold text-muted">Valor Total</div>
+                        <div class="fs-3 fw-bold text-dark">$<?= number_format($valor_total ?? 0, 2) ?></div>
+                    </div>
+                </div>
+            </div>
     </div>
-    
-    <!-- Mensajes de éxito y error -->
-    <?php if (!empty($mensaje_exito)): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i><?= htmlspecialchars($mensaje_exito) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
-    
-    <?php if (!empty($mensaje_error)): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i><?= htmlspecialchars($mensaje_error) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
-    
-    <?php if (isset($error_message)): ?>
-        <div class="alert alert-danger">
-            <i class="fas fa-exclamation-triangle me-2"></i><?= htmlspecialchars($error_message) ?>
-        </div>
-    <?php endif; ?>
-    
-    <!-- Tarjetas métricas -->
-    <div class="row mb-4 g-3">
-        <div class="col-12 col-md-3">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <i class="fas fa-boxes h2 text-primary"></i>
-                    <h6 class="fw-bold mt-2">Total Productos</h6>
-                    <div class="h4"><?= $total_productos ?? 0 ?></div>
+
+    <!-- Filtros funcionales -->
+    <div class="card mb-4">
+        <div class="card-body pb-2">
+            <div class="fw-bold fs-5 mb-2"><i class="fas fa-filter me-2"></i>Filtros de Inventario</div>
+            <form method="GET" action="?ctrl=Cinventario" class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Categoría/Naturaleza</label>
+                    <select name="categoria" class="form-select">
+                        <option value="">Todas las categorías</option>
+                        <option value="Natural" <?= ($_GET['categoria'] ?? '') == 'Natural' ? 'selected' : '' ?>>Natural</option>
+                        <option value="Artificial" <?= ($_GET['categoria'] ?? '') == 'Artificial' ? 'selected' : '' ?>>Artificial</option>
+                        <option value="Comestible" <?= ($_GET['categoria'] ?? '') == 'Comestible' ? 'selected' : '' ?>>Comestible</option>
+                        <option value="Decorativo" <?= ($_GET['categoria'] ?? '') == 'Decorativo' ? 'selected' : '' ?>>Decorativo</option>
+                        <option value="Regalo" <?= ($_GET['categoria'] ?? '') == 'Regalo' ? 'selected' : '' ?>>Regalo</option>
+                        <option value="Accesorio" <?= ($_GET['categoria'] ?? '') == 'Accesorio' ? 'selected' : '' ?>>Accesorio</option>
+                    </select>
                 </div>
-            </div>
-        </div>
-        <div class="col-12 col-md-3">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <i class="fas fa-exclamation-triangle h2 text-warning"></i>
-                    <h6 class="fw-bold mt-2">Stock Bajo</h6>
-                    <div class="h4"><?= $stock_bajo ?? 0 ?></div>
+                <div class="col-md-3">
+                    <label class="form-label">Estado de Stock</label>
+                    <select name="estado_stock" class="form-select">
+                        <option value="">Todos los estados</option>
+                        <option value="bajo" <?= ($_GET['estado_stock'] ?? '') == 'bajo' ? 'selected' : '' ?>>Stock Bajo</option>
+                        <option value="sin_stock" <?= ($_GET['estado_stock'] ?? '') == 'sin_stock' ? 'selected' : '' ?>>Sin Stock</option>
+                        <option value="normal" <?= ($_GET['estado_stock'] ?? '') == 'normal' ? 'selected' : '' ?>>Stock Normal</option>
+                    </select>
                 </div>
-            </div>
-        </div>
-        <div class="col-12 col-md-3">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <i class="fas fa-times-circle h2 text-danger"></i>
-                    <h6 class="fw-bold mt-2">Sin Stock</h6>
-                    <div class="h4"><?= $sin_stock ?? 0 ?></div>
+                <div class="col-md-3">
+                    <label class="form-label">Buscar</label>
+                    <input type="text" name="buscar" class="form-control" placeholder="Nombre de la flor..." value="<?= htmlspecialchars($_GET['buscar'] ?? '') ?>">
                 </div>
-            </div>
-        </div>
-        <div class="col-12 col-md-3">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <i class="fas fa-dollar-sign h2 text-success"></i>
-                    <h6 class="fw-bold mt-2">Valor Total</h6>
-                    <div class="h4">$<?= number_format($valor_total ?? 0, 0, ',', '.') ?></div>
+                <div class="col-md-3 d-flex gap-2 align-items-end">
+                    <button type="submit" class="btn btn-success px-4">Filtrar</button>
+                    <a href="?ctrl=Cinventario" class="btn btn-link text-secondary">Limpiar Filtros</a>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 
-    <!-- Filtros de Inventario -->
-    <fieldset class="border rounded p-3 mb-4 bg-light">
-        <legend class="float-none w-auto px-2 mb-2 fw-bold"><i class="fas fa-filter"></i> Filtros de Inventario</legend>
-        <form class="row g-2 flex-wrap align-items-end" method="get" action="?ctrl=cinventario">
-            <input type="hidden" name="ctrl" value="cinventario">
-            <div class="col-12 col-md-3">
-                <label for="categoria" class="form-label mb-1">Naturaleza</label>
-                <select id="categoria" name="categoria" class="form-select">
-                    <option value="">Todas las naturalezas</option>
-                    <option value="Natural" <?= (isset($_GET['categoria']) && $_GET['categoria'] == 'Natural') ? 'selected' : '' ?>>Natural</option>
-                    <option value="Artificial" <?= (isset($_GET['categoria']) && $_GET['categoria'] == 'Artificial') ? 'selected' : '' ?>>Artificial</option>
-                </select>
-            </div>
-            <div class="col-12 col-md-3">
-                <label for="estado_stock" class="form-label mb-1">Estado de Stock</label>
-                <select id="estado_stock" name="estado_stock" class="form-select">
-                    <option value="">Todos los estados</option>
-                    <option value="bajo" <?= (isset($_GET['estado_stock']) && $_GET['estado_stock'] == 'bajo') ? 'selected' : '' ?>>Bajo</option>
-                    <option value="sin_stock" <?= (isset($_GET['estado_stock']) && $_GET['estado_stock'] == 'sin_stock') ? 'selected' : '' ?>>Sin Stock</option>
-                    <option value="normal" <?= (isset($_GET['estado_stock']) && $_GET['estado_stock'] == 'normal') ? 'selected' : '' ?>>Normal</option>
-                </select>
-            </div>
-            <div class="col-12 col-md-3">
-                <label for="buscar" class="form-label mb-1">Buscar</label>
-                <input type="text" id="buscar" name="buscar" class="form-control" placeholder="Nombre de la flor..." value="<?= htmlspecialchars($_GET['buscar'] ?? '') ?>">
-            </div>
-            <div class="col-12 col-md-3">
-                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
-                <a href="?ctrl=cinventario" class="d-block mt-2 text-secondary">Limpiar Filtros</a>
-            </div>
-        </form>
-    </fieldset>
+    
+    <!-- Mensajes de éxito y error -->
 
     <!-- Botones de acción de inventario -->
     <div class="d-flex justify-content-center flex-wrap gap-2 mb-4">
-        <button class="btn btn-success shadow-sm" onclick="console.log('Botón clickeado'); abrirproducto(); return false;" id="btn-nuevo-producto">
+        <button class="btn btn-success shadow-sm" onclick="abrirproducto(); return false;" id="btn-nuevo-producto">
             <i class="fas fa-plus me-2"></i>Nuevo Producto
         </button>
-        <button class="btn btn-info shadow-sm" onclick="console.log('Botón proveedor clickeado'); abrirproveedor(); return false;">
+        <button class="btn btn-info shadow-sm" onclick="abrirproveedor(); return false;" id="btn-proveedores">
             <i class="fas fa-truck me-2"></i>Proveedores
+        </button>
+        <button class="btn btn-warning shadow-sm" 
+                onclick="console.log('Botón configuración clickeado'); 
+                         try { 
+                             const modalEl = document.getElementById('modal-configuracion');
+                             console.log('Modal element:', modalEl);
+                             console.log('Bootstrap available:', typeof bootstrap);
+                             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                                 const modal = new bootstrap.Modal(modalEl); 
+                                 modal.show(); 
+                                 console.log('Modal mostrado');
+                             } else {
+                                 alert('Error: Bootstrap no disponible o modal no encontrado');
+                             }
+                         } catch(e) { 
+                             console.error('Error:', e); 
+                             alert('Error al abrir modal: ' + e.message); 
+                         } 
+                         return false;" 
+                id="btn-configuracion">
+            <i class="fas fa-cog me-2"></i>Configuración
         </button>
     </div>
 
@@ -127,13 +129,22 @@
         </div>
         
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-sm" onclick="recargarListado()" title="Actualizar listado">
+            <button class="btn btn-outline-secondary btn-sm" 
+                    onclick="console.log('Actualizando listado...'); 
+                             try { 
+                                 window.location.reload(); 
+                                 console.log('Página recargada'); 
+                             } catch(e) { 
+                                 console.error('Error al actualizar:', e); 
+                                 alert('Error al actualizar: ' + e.message); 
+                             }" 
+                    title="Actualizar listado">
                 <i class="fas fa-sync-alt"></i> Actualizar
             </button>
             <button class="btn btn-outline-danger btn-sm" onclick="detenerCarga()" title="Detener carga" style="display: none;" id="stopLoadingBtn">
                 <i class="fas fa-stop"></i> Detener
             </button>
-            <button class="btn btn-outline-info btn-sm" onclick="exportarInventario()" title="Exportar a Excel">
+            <button class="btn btn-outline-info btn-sm" id="btn-exportar" title="Exportar a Excel">
                 <i class="fas fa-file-excel"></i> Exportar
             </button>
         </div>
@@ -170,10 +181,10 @@
                         <?php foreach ($inventario as $item): ?>
                             <tr>
                                 <td class="fw-bold">
-                                    <div><?= htmlspecialchars($item['producto']) ?></div>
+                                    <?php echo '<div>' . htmlspecialchars($item['producto']) . '</div>'; ?>
                                     <small class="text-muted d-md-none">
-                                        <?= htmlspecialchars($item['naturaleza']) ?> 
-                                        <span class="d-lg-none">- <?= htmlspecialchars($item['color']) ?></span>
+                                        <?php echo htmlspecialchars($item['naturaleza']); ?> 
+                                        <span class="d-lg-none">- <?php echo htmlspecialchars($item['color']); ?></span>
                                     </small>
                                 </td>
                                 <td class="d-none d-md-table-cell"><?= htmlspecialchars($item['naturaleza']) ?></td>
@@ -182,92 +193,55 @@
                                     <span class="badge <?= $item['stock'] == 0 ? 'bg-danger' : ($item['stock'] < 20 ? 'bg-warning' : 'bg-success') ?>">
                                         <?= $item['stock'] ?>
                                     </span>
-                                    <div class="d-sm-none small text-muted mt-1">
-                                        <?php
-                                        $estado_class = '';
-                                        switch($item['estado_stock']) {
-                                            case 'Sin Stock':
-                                                $estado_class = 'text-danger';
-                                                break;
-                                            case 'Bajo':
-                                                $estado_class = 'text-warning';
-                                                break;
-                                            default:
-                                                $estado_class = 'text-success';
-                                        }
-                                        ?>
-                                        <span class="<?= $estado_class ?>"><?= $item['estado_stock'] ?></span>
-                                    </div>
                                 </td>
                                 <td class="d-none d-sm-table-cell">
-                                    <?php
-                                    $estado_class = '';
-                                    switch($item['estado_stock']) {
-                                        case 'Sin Stock':
-                                            $estado_class = 'text-danger';
-                                            break;
-                                        case 'Bajo':
-                                            $estado_class = 'text-warning';
-                                            break;
-                                        default:
-                                            $estado_class = 'text-success';
-                                    }
-                                    ?>
-                                    <span class="<?= $estado_class ?> fw-bold"><?= $item['estado_stock'] ?></span>
+                                    <span class="fw-bold <?= $item['stock'] == 0 ? 'text-danger' : ($item['stock'] < 20 ? 'text-warning' : 'text-success') ?>">
+                                        <?= $item['estado_stock'] ?>
+                                    </span>
                                 </td>
-                                <td class="d-none d-md-table-cell">$<?= number_format($item['precio'], 0, ',', '.') ?></td>
-                                <td class="d-none d-lg-table-cell">$<?= number_format($item['stock'] * $item['precio'], 0, ',', '.') ?></td>
-                            <td>
-                                <div class="btn-group btn-group-sm d-flex d-md-inline-flex" role="group">
-                                    <?php 
-                                    $btnEditarId = 'btn_editar_' . $item['idinv'];
-                                    $btnStockId = 'btn_stock_' . $item['idinv'];
-                                    $btnEliminarId = 'btn_eliminar_' . $item['idinv'];
-                                    
-                                    // Verificar qué campo de nombre usar
-                                    $nombreProducto = '';
-                                    if (isset($item['producto'])) {
-                                        $nombreProducto = $item['producto'];
-                                    } elseif (isset($item['nombre'])) {
-                                        $nombreProducto = $item['nombre'];
-                                    } else {
-                                        $nombreProducto = 'Producto sin nombre';
-                                    }
-                                    
-                                    $productoNombre = htmlspecialchars($nombreProducto, ENT_QUOTES, 'UTF-8');
-                                    ?>
-                                    <button type="button" 
-                                            id="<?= $btnEditarId ?>"
-                                            class="btn btn-warning btn-sm btn-modal-editar" 
-                                            data-producto-id="<?= $item['idinv'] ?>"
-                                            data-producto-nombre="<?= $productoNombre ?>"
-                                            title="Editar producto">
-                                        <i class="fas fa-edit"></i>
-                                        <span class="d-md-none ms-1">Editar</span>
-                                    </button>
-                                    <button type="button" 
-                                            id="<?= $btnStockId ?>"
-                                            class="btn btn-info btn-sm btn-modal-stock" 
-                                            data-producto-id="<?= $item['idinv'] ?>"
-                                            data-producto-nombre="<?= $productoNombre ?>"
-                                            title="Agregar stock">
-                                        <i class="fas fa-plus"></i>
-                                        <span class="d-md-none ms-1">Stock</span>
-                                    </button>
-                                    <button type="button" 
-                                            id="<?= $btnEliminarId ?>"
-                                            class="btn btn-danger btn-sm btn-modal-eliminar" 
-                                            data-producto-id="<?= $item['idinv'] ?>"
-                                            data-producto-nombre="<?= $productoNombre ?>"
-                                            title="Eliminar producto">
-                                        <i class="fas fa-trash"></i>
-                                        <span class="d-md-none ms-1">Eliminar</span>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
+                                <td class="d-none d-md-table-cell">$<?= number_format($item['precio_unitario'] ?? 0, 2) ?></td>
+                                <td class="d-none d-lg-table-cell">$<?= number_format(($item['stock'] ?? 0) * ($item['precio_unitario'] ?? 0), 2) ?></td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-warning btn-sm btn-modal-editar" data-producto-id="<?= $item['idinv'] ?>" data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>" title="Editar" data-bs-toggle="modal" data-bs-target="#modal-editar-producto">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-info btn-sm btn-modal-stock" data-producto-id="<?= $item['idinv'] ?>" data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>" title="Agregar stock" data-bs-toggle="modal" data-bs-target="#modal-agregar-stock">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm btn-modal-eliminar" data-producto-id="<?= $item['idinv'] ?>" data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>" title="Eliminar producto" data-bs-toggle="modal" data-bs-target="#modal-eliminar-producto">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+<!-- Modal Eliminar Producto (ubicado al final del archivo) -->
+<div class="modal fade" id="modal-eliminar-producto" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash me-2"></i>Eliminar Producto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="?ctrl=cinventario" id="form-eliminar-producto">
+                    <input type="hidden" name="accion" value="eliminar_producto">
+                    <input type="hidden" name="producto_id" id="eliminar_producto_id">
+                    <p>¿Estás seguro que deseas eliminar el producto <span id="eliminar_nombre_producto" class="fw-bold text-danger"></span> del inventario?</p>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="submit" form="form-eliminar-producto" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i>Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+                                    </div>
+                                </td>
+            <?php endforeach; ?>
+        <?php else: ?>
                     <tr>
                         <td colspan="8" class="text-center text-warning py-4">
                             <i class="fas fa-search" style="font-size:2rem;"></i>
@@ -278,6 +252,59 @@
                 <?php endif; ?>
             </tbody>
         </table>
+    <!-- Tabla de Proveedores -->
+    <div class="card mt-5">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-truck me-2"></i>Proveedores Registrados</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Teléfono</th>
+                            <th>Email</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($proveedores)): ?>
+                            <?php foreach ($proveedores as $prov): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($prov['nombre']) ?></td>
+                                    <td><?= htmlspecialchars($prov['categoria']) ?></td>
+                                    <td><?= htmlspecialchars($prov['telefono']) ?></td>
+                                    <td><?= htmlspecialchars($prov['email']) ?></td>
+                                    <td>
+                                        <?php if ($prov['estado'] === 'activo'): ?>
+                                            <span class="badge bg-success">Activo</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">Inactivo</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <!-- Acciones: editar, eliminar, ver más -->
+                                        <button class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-sm btn-danger" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="fas fa-truck" style="font-size:2rem;"></i>
+                                    <h6 class="mt-2">No hay proveedores registrados</h6>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     </div>
     
     <!-- Paginación AJAX -->
@@ -354,8 +381,11 @@
         </div>
         <?php endif; ?>
     </div>
+<!-- Cargar Bootstrap JS para modales -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </main>
 
+<script src="/Original-Floraltech/assets/inventario.js"></script>
 <!-- Modales -->
 <!-- Modal Nuevo Producto Mejorado -->
 <div class="modal fade" id="modal-nuevo-producto" tabindex="-1">
@@ -370,6 +400,24 @@
                     <input type="hidden" name="accion" value="nuevo_producto">
                     
                     <div class="row g-3">
+                        <!-- Proveedor -->
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-truck me-1"></i>Proveedor</label>
+                            <div class="input-group">
+                                <select class="form-select" name="proveedor_id" id="editar_proveedor_id">
+                                    <option value="">Selecciona proveedor...</option>
+                                    <?php if (!empty($proveedores)): ?>
+                                        <?php foreach ($proveedores as $prov): ?>
+                                            <option value="<?= htmlspecialchars($prov['idproveedor']) ?>"><?= htmlspecialchars($prov['nombre']) ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                                <button type="button" class="btn btn-outline-info" onclick="abrirproveedor(); return false;">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">Puedes seleccionar un proveedor existente o agregar uno nuevo.</small>
+                        </div>
                         <!-- Tipo de Producto -->
                         <div class="col-md-6">
                             <label class="form-label"><i class="fas fa-layer-group me-1"></i>Tipo de Producto *</label>
@@ -474,265 +522,6 @@
     </div>
 </div>
 
-<!-- Modal Gestión de Flores Avanzado -->
-<div class="modal fade" id="modal-gestion-flores" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title"><i class="fas fa-seedling me-2"></i>Gestión Completa de Flores</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Pestañas de navegación -->
-                <ul class="nav nav-tabs mb-3" id="floresTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="lista-tab" data-bs-toggle="tab" data-bs-target="#lista-flores" type="button" role="tab">
-                            <i class="fas fa-list me-1"></i>Lista de Flores
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="nueva-tab" data-bs-toggle="tab" data-bs-target="#nueva-flor" type="button" role="tab">
-                            <i class="fas fa-plus me-1"></i>Nueva Flor
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="estadisticas-tab" data-bs-toggle="tab" data-bs-target="#estadisticas-flores" type="button" role="tab">
-                            <i class="fas fa-chart-pie me-1"></i>Estadísticas
-                        </button>
-                    </li>
-                </ul>
-
-                <!-- Contenido de las pestañas -->
-                <div class="tab-content" id="floresTabContent">
-                    <!-- Lista de todas las flores -->
-                    <div class="tab-pane fade show active" id="lista-flores" role="tabpanel">
-                        <div class="mb-3">
-                            <input type="text" class="form-control" id="buscar-flor" placeholder="🔍 Buscar flores por nombre, naturaleza o color...">
-                        </div>
-                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                            <table class="table table-hover table-sm">
-                                <thead class="table-light sticky-top">
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Nombre</th>
-                                        <th>Naturaleza</th>
-                                        <th>Color</th>
-                                        <th>En Inventario</th>
-                                        <th>Stock</th>
-                                        <th>Precio</th>
-                                        <th>Estado</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabla-flores">
-                                    <?php if (isset($todas_las_flores) && is_array($todas_las_flores)): ?>
-                                        <?php foreach ($todas_las_flores as $flor): ?>
-                                        <tr data-flor-id="<?= $flor['idtflor'] ?>">
-                                            <td><span class="badge bg-secondary"><?= $flor['idtflor'] ?></span></td>
-                                            <td><strong><?= htmlspecialchars($flor['nombre']) ?></strong></td>
-                                        <td>
-                                            <span class="badge bg-<?= $flor['naturaleza'] === 'Natural' ? 'success' : 'info' ?>">
-                                                <?= htmlspecialchars($flor['naturaleza']) ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="badge" style="background-color: <?= $flor['color'] === 'Multicolor' ? '#ff6b6b' : ($flor['color'] === 'Blanco' ? '#f8f9fa; color: #000' : '#' . substr(md5($flor['color']), 0, 6)) ?>">
-                                                <?= htmlspecialchars($flor['color']) ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <?php if ($flor['idinv']): ?>
-                                                <i class="fas fa-check text-success"></i> Sí
-                                            <?php else: ?>
-                                                <i class="fas fa-times text-danger"></i> No
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?= $flor['stock'] ? $flor['stock'] : '<span class="text-muted">N/A</span>' ?>
-                                        </td>
-                                        <td>
-                                            <?= $flor['precio'] ? '$' . number_format($flor['precio'], 2) : '<span class="text-muted">N/A</span>' ?>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-<?= 
-                                                $flor['estado_inventario'] === 'Disponible' ? 'success' : 
-                                                ($flor['estado_inventario'] === 'Stock Bajo' ? 'warning' : 
-                                                ($flor['estado_inventario'] === 'Sin Stock' ? 'danger' : 'secondary')) 
-                                            ?>">
-                                                <?= $flor['estado_inventario'] ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="btn-group btn-group-sm" role="group">
-                                                <button class="btn btn-outline-primary" onclick="editarFlor(<?= htmlspecialchars(json_encode($flor)) ?>)" title="Editar">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <?php if (!$flor['idinv']): ?>
-                                                <button class="btn btn-outline-success" 
-                                                        data-flor-id="<?= $flor['idtflor'] ?>"
-                                                        data-flor-nombre="<?= htmlspecialchars($flor['nombre']) ?>"
-                                                        onclick="agregarAInventario(this.dataset.florId, this.dataset.florNombre)" 
-                                                        title="Agregar a inventario">
-                                                    <i class="fas fa-plus"></i>
-                                                </button>
-                                                <?php endif; ?>
-                                                <button class="btn btn-outline-danger" 
-                                                        data-flor-id="<?= $flor['idtflor'] ?>"
-                                                        data-flor-nombre="<?= htmlspecialchars($flor['nombre']) ?>"
-                                                        onclick="eliminarFlor(this.dataset.florId, this.dataset.florNombre)" 
-                                                        title="Eliminar">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <tr>
-                                            <td colspan="7" class="text-center">
-                                                <div class="alert alert-info mb-0">
-                                                    <i class="fas fa-info-circle"></i>
-                                                    No hay flores registradas en el sistema.
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Nueva flor -->
-                    <div class="tab-pane fade" id="nueva-flor" role="tabpanel">
-                        <form method="POST" action="?ctrl=cinventario" id="form-nueva-flor">
-                            <input type="hidden" name="accion" value="nueva_flor">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label"><i class="fas fa-tag me-1"></i>Nombre de la Flor *</label>
-                                    <input type="text" class="form-control" name="nombre" required placeholder="Ej: Rosa Roja Premium">
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label"><i class="fas fa-leaf me-1"></i>Naturaleza *</label>
-                                    <select class="form-select" name="naturaleza" required>
-                                        <option value="">Seleccionar...</option>
-                                        <option value="Natural">Natural</option>
-                                        <option value="Artificial">Artificial</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label"><i class="fas fa-palette me-1"></i>Color *</label>
-                                    <select class="form-select" name="color" required>
-                                        <option value="">Seleccionar...</option>
-                                        <option value="Rojo">Rojo</option>
-                                        <option value="Blanco">Blanco</option>
-                                        <option value="Rosa">Rosa</option>
-                                        <option value="Amarillo">Amarillo</option>
-                                        <option value="Morado">Morado</option>
-                                        <option value="Azul">Azul</option>
-                                        <option value="Multicolor">Multicolor</option>
-                                    </select>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label"><i class="fas fa-file-alt me-1"></i>Descripción</label>
-                                    <textarea class="form-control" name="descripcion" rows="3" placeholder="Descripción detallada de la flor..."></textarea>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label"><i class="fas fa-boxes me-1"></i>Stock Inicial (Opcional)</label>
-                                    <input type="number" class="form-control" name="stock_inicial" min="0" placeholder="Cantidad inicial">
-                                    <small class="text-muted">Si especificas stock, se agregará automáticamente al inventario</small>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label"><i class="fas fa-dollar-sign me-1"></i>Precio Inicial (Opcional)</label>
-                                    <input type="number" step="0.01" class="form-control" name="precio_inicial" min="0" placeholder="0.00">
-                                    <small class="text-muted">Precio de venta por unidad</small>
-                                </div>
-                            </div>
-                            <div class="mt-4 d-flex justify-content-end gap-2">
-                                <button type="button" class="btn btn-secondary" onclick="limpiarFormularioFlor()">
-                                    <i class="fas fa-eraser me-1"></i>Limpiar
-                                </button>
-                                <button type="submit" class="btn btn-warning">
-                                    <i class="fas fa-seedling me-1"></i>Crear Flor
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Estadísticas -->
-                    <div class="tab-pane fade" id="estadisticas-flores" role="tabpanel">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <div class="card text-center">
-                                    <div class="card-body">
-                                        <i class="fas fa-seedling fa-2x text-success mb-2"></i>
-                                        <h6>Total Flores</h6>
-                                        <h4 class="text-success"><?= isset($todas_las_flores) && is_array($todas_las_flores) ? count($todas_las_flores) : 0 ?></h4>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card text-center">
-                                    <div class="card-body">
-                                        <i class="fas fa-leaf fa-2x text-primary mb-2"></i>
-                                        <h6>Naturales</h6>
-                                        <h4 class="text-primary"><?= count(array_filter($todas_las_flores, fn($f) => $f['naturaleza'] === 'Natural')) ?></h4>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card text-center">
-                                    <div class="card-body">
-                                        <i class="fas fa-cog fa-2x text-info mb-2"></i>
-                                        <h6>Artificiales</h6>
-                                        <h4 class="text-info"><?= count(array_filter($todas_las_flores, fn($f) => $f['naturaleza'] === 'Artificial')) ?></h4>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card text-center">
-                                    <div class="card-body">
-                                        <i class="fas fa-boxes fa-2x text-warning mb-2"></i>
-                                        <h6>En Inventario</h6>
-                                        <h4 class="text-warning"><?= count(array_filter($todas_las_flores, fn($f) => $f['idinv'] !== null)) ?></h4>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Gráfico de distribución por color -->
-                        <div class="mt-4">
-                            <h6><i class="fas fa-chart-pie me-2"></i>Distribución por Colores</h6>
-                            <div class="row">
-                                <?php 
-                                $colores = array_count_values(array_column($todas_las_flores, 'color'));
-                                foreach ($colores as $color => $cantidad): 
-                                ?>
-                                <div class="col-md-4 mb-2">
-                                    <div class="d-flex align-items-center">
-                                        <span class="badge me-2" style="background-color: <?= $color === 'Multicolor' ? '#ff6b6b' : ($color === 'Blanco' ? '#f8f9fa; color: #000' : '#' . substr(md5($color), 0, 6)) ?>">
-                                            <?= htmlspecialchars($color) ?>
-                                        </span>
-                                        <div class="flex-grow-1">
-                                            <div class="progress" style="height: 8px;">
-                                                <div class="progress-bar" style="width: <?= ($cantidad / count($todas_las_flores)) * 100 ?>%; background-color: <?= $color === 'Multicolor' ? '#ff6b6b' : ($color === 'Blanco' ? '#6c757d' : '#' . substr(md5($color), 0, 6)) ?>"></div>
-                                            </div>
-                                        </div>
-                                        <span class="ms-2 small"><?= $cantidad ?></span>
-                                    </div>
-                                </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>Cerrar
-                </button>
-            </div>
-        </div>
-    </div>
 </div>
 
 <div class="modal fade" id="modal-proveedores" tabindex="-1">
@@ -790,6 +579,35 @@
                             <label class="form-label"><i class="fas fa-map-marker-alt me-1"></i>Dirección</label>
                             <textarea class="form-control" name="direccion_proveedor" rows="2" 
                                       placeholder="Dirección completa del proveedor..."></textarea>
+                        </div>
+                        <!-- NUEVO: Productos que provee -->
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-boxes me-1"></i>Productos que provee</label>
+                            <select class="form-select" name="productos_proveedor[]" multiple>
+                                <?php if (!empty($productos_inventario)): ?>
+                                    <?php foreach ($productos_inventario as $prod): ?>
+                                        <option value="<?= htmlspecialchars($prod['idinv']) ?>">
+                                            <?= htmlspecialchars($prod['producto']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <option value="">No hay productos registrados</option>
+                                <?php endif; ?>
+                            </select>
+                            <small class="text-muted">Mantén presionada Ctrl (Windows) o Cmd (Mac) para seleccionar varios.</small>
+                        </div>
+                        <!-- NUEVO: Notas o comentarios -->
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-sticky-note me-1"></i>Notas / Comentarios</label>
+                            <textarea class="form-control" name="notas_proveedor" rows="2" placeholder="Observaciones, condiciones especiales, etc."></textarea>
+                        </div>
+                        <!-- NUEVO: Estado del proveedor -->
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-toggle-on me-1"></i>Estado</label>
+                            <select class="form-select" name="estado_proveedor">
+                                <option value="activo" selected>Activo</option>
+                                <option value="inactivo">Inactivo</option>
+                            </select>
                         </div>
                     </div>
                     
@@ -940,22 +758,261 @@
     </div>
 </div>
 
+<!-- Modal de Configuración de Parámetros -->
+<div class="modal fade" id="modal-configuracion" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-cog me-2"></i>Configuración de Parámetros de Inventario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="?ctrl=Cinventario" id="form-configuracion">
+                    <input type="hidden" name="accion" value="actualizar_parametros">
+                    
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <h6 class="text-muted"><i class="fas fa-exclamation-triangle me-2"></i>Niveles de Alerta de Stock</h6>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-arrow-down me-1"></i>Stock Mínimo *</label>
+                            <input type="number" class="form-control" name="stock_minimo" min="0" value="10" required 
+                                   placeholder="Cantidad mínima antes de alertar">
+                            <small class="text-muted">Nivel crítico de stock</small>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-arrow-up me-1"></i>Stock Máximo</label>
+                            <input type="number" class="form-control" name="stock_maximo" min="0" value="1000" 
+                                   placeholder="Cantidad máxima recomendada">
+                            <small class="text-muted">Opcional: para alertas de sobrestock</small>
+                        </div>
+                        
+                        <div class="col-12">
+                            <hr>
+                            <h6 class="text-muted"><i class="fas fa-dollar-sign me-2"></i>Configuración de Precios</h6>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-percentage me-1"></i>Margen de Ganancia (%)</label>
+                            <input type="number" class="form-control" name="margen_ganancia" min="0" max="100" step="0.1" value="30" 
+                                   placeholder="Porcentaje de ganancia">
+                            <small class="text-muted">Para cálculo automático de precios de venta</small>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-coins me-1"></i>Moneda</label>
+                            <select class="form-select" name="moneda">
+                                <option value="COP" selected>COP - Peso Colombiano</option>
+                                <option value="USD">USD - Dólar Americano</option>
+                                <option value="EUR">EUR - Euro</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-12">
+                            <hr>
+                            <h6 class="text-muted"><i class="fas fa-bell me-2"></i>Configuración de Alertas</h6>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="alertas_stock_bajo" id="alertas_stock_bajo" checked>
+                                <label class="form-check-label" for="alertas_stock_bajo">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>Alertas de Stock Bajo
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="alertas_vencimiento" id="alertas_vencimiento" checked>
+                                <label class="form-check-label" for="alertas_vencimiento">
+                                    <i class="fas fa-calendar-times me-1"></i>Alertas de Vencimiento
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="alertas_email" id="alertas_email" checked>
+                                <label class="form-check-label" for="alertas_email">
+                                    <i class="fas fa-envelope me-1"></i>Enviar alertas por email
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Nota:</strong> Estos parámetros afectarán el cálculo de alertas y reportes en todo el sistema.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-save me-1"></i>Guardar Configuración
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // Función para abrir modal de nuevo producto
 window.abrirproducto = function() {
-    console.log('🔧 Función abrirproducto() llamada');
-    
-    try {
-        const modalElement = document.getElementById('modal-nuevo-producto');
-        console.log('🔍 Modal element:', modalElement);
-        
-        if (!modalElement) {
-            console.error('❌ Modal no encontrado');
-            alert('Error: Modal no encontrado');
-            return;
-        }
-        
-        console.log('📋 Bootstrap object:', typeof bootstrap);
+    const modalElement = document.getElementById('modal-nuevo-producto');
+    if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else if (modalElement) {
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+    } else {
+        alert('No se encontró el modal de nuevo producto');
+    }
+}
+                                </td>
+                                <td class="d-none d-md-table-cell"><?php echo htmlspecialchars($item['naturaleza']); ?></td>
+                                <td class="d-none d-lg-table-cell"><?php echo htmlspecialchars($item['color']); ?></td>
+                                <td>
+                                    <span class="badge <?php echo ($item['stock'] == 0 ? 'bg-danger' : ($item['stock'] < 20 ? 'bg-warning' : 'bg-success')); ?>">
+                                        <?php echo $item['stock']; ?>
+                                    </span>
+                                    <div class="d-sm-none small text-muted mt-1">
+                                        <?php
+                                        $estado_class = '';
+                                        switch($item['estado_stock']) {
+                                            case 'Sin Stock':
+                                                $estado_class = 'text-danger';
+                                                break;
+                                            case 'Bajo':
+                                                $estado_class = 'text-warning';
+                                                break;
+                                            default:
+                                                $estado_class = 'text-success';
+                                        }
+                                        ?>
+                                        <span class="<?php echo $estado_class; ?> fw-bold"><?php echo $item['estado_stock']; ?></span>
+                                    </div>
+                                </td>
+                                <td class="d-none d-sm-table-cell">
+                                    <span class="<?php echo ($item['stock'] == 0 ? 'text-danger fw-bold' : ($item['stock'] < 20 ? 'text-warning fw-bold' : 'text-success fw-bold')); ?>">
+                                        <?php echo ($item['stock'] == 0 ? 'Sin Stock' : ($item['stock'] < 20 ? 'Bajo' : 'Normal')); ?>
+                                    </span>
+                                </td>
+                                <td class="d-none d-md-table-cell">$<?php echo is_numeric($item['precio']) ? number_format($item['precio'], 0, ',', '.') : $item['precio']; ?></td>
+                                <td class="d-none d-lg-table-cell">$<?php echo (is_numeric($item['stock']) && is_numeric($item['precio'])) ? number_format($item['stock'] * $item['precio'], 0, ',', '.') : 0; ?></td>
+                                <!-- NUEVA COLUMNA: Proveedores -->
+                                <td>
+                                    <?php
+                                    $proveedores_producto = array();
+                                    if (!empty($proveedores)) {
+                                        foreach ($proveedores as $prov) {
+                                            if (!empty($prov['productos']) && in_array($item['idinv'], $prov['productos'])) {
+                                                $proveedores_producto[] = $prov['nombre'];
+                                            }
+                                        }
+                                    }
+                                    if (!empty($proveedores_producto)) {
+                                        echo htmlspecialchars(implode(', ', $proveedores_producto));
+                                    } else {
+                                        echo '<span class="text-muted">Sin proveedor</span>';
+                                    }
+                                    ?>
+                                    <button class="btn btn-sm btn-outline-primary ms-2" title="Seleccionar proveedor" data-id="<?php echo $item['idinv']; ?>"><i class="fas fa-user-plus"></i></button>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm d-flex d-md-inline-flex" role="group">
+                                        <button class="btn btn-warning btn-sm btn-modal-editar" data-id="<?php echo $item['idinv']; ?>" title="Editar"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-info btn-sm btn-modal-stock" data-id="<?php echo $item['idinv']; ?>" title="Agregar Stock"><i class="fas fa-plus"></i></button>
+                                        <button class="btn btn-danger btn-sm btn-modal-eliminar" data-id="<?php echo $item['idinv']; ?>" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'accion';
+                actionInput.value = 'exportar_inventario';
+                
+                form.appendChild(actionInput);
+                document.body.appendChild(form);
+                
+                console.log('Cambiando texto del boton...');
+                // Cambiar texto del botón
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exportando...';
+                this.disabled = true;
+                
+                console.log('Enviando formulario...');
+                form.submit();
+                
+                console.log('Configurando timeout...');
+                // Restaurar botón después de un tiempo
+                setTimeout(() => {
+                    if (document.body.contains(form)) {
+                        document.body.removeChild(form);
+                    }
+                    this.innerHTML = originalText;
+                    this.disabled = false;
+                    console.log('Boton restaurado');
+                        <tr>
+                            <td><?= htmlspecialchars($item['producto']) ?></td>
+                            <td><?= htmlspecialchars($item['naturaleza']) ?></td>
+                            <td><?= htmlspecialchars($item['color']) ?></td>
+                            <td>
+                                <span class="badge bg-<?= ($item['stock'] == 0) ? 'danger' : (($item['stock'] < 20) ? 'warning' : 'success') ?>">
+                                    <?= $item['stock'] ?>
+                                </span>
+                            </td>
+                            <td>
+                                <?php if ($item['stock'] == 0): ?>
+                                    <span class="text-danger fw-bold">Sin Stock</span>
+                                <?php elseif ($item['stock'] < 20): ?>
+                                    <span class="text-warning fw-bold">Bajo</span>
+                                <?php else: ?>
+                                    <span class="text-success fw-bold">Normal</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>$<?= is_numeric($item['precio']) ? number_format($item['precio'], 0, ',', '.') : $item['precio'] ?></td>
+                            <td>$<?= is_numeric($item['stock']) && is_numeric($item['precio']) ? number_format($item['stock'] * $item['precio'], 0, ',', '.') : 0 ?></td>
+                            <td>
+                                <?php
+                                // Mostrar proveedores asociados a este producto
+                                $proveedores_producto = [];
+                                if (!empty($proveedores)) {
+                                    foreach ($proveedores as $prov) {
+                                        // Buscar si el proveedor tiene este producto asociado
+                                        $sql = "SELECT COUNT(*) FROM proveedor_producto WHERE proveedor_id = ? AND producto_id = ?";
+                                        $stmt = $GLOBALS['db']->prepare($sql);
+                                        $stmt->execute([$prov['id'], $item['idinv']]);
+                                        if ($stmt->fetchColumn() > 0) {
+                                            $proveedores_producto[] = $prov['nombre'];
+                                        }
+                                    }
+                                }
+                                ?>
+                                <?php if (!empty($proveedores_producto)): ?>
+                                    <?= implode(', ', $proveedores_producto) ?>
+                                <?php else: ?>
+                                    <span class="text-muted">Sin proveedor</span>
+                                <?php endif; ?>
+                                <!-- Opción para seleccionar/editar proveedor -->
+                                <button class="btn btn-sm btn-outline-primary ms-2" title="Seleccionar proveedor" data-id="<?= $item['idinv'] ?>"><i class="fas fa-user-plus"></i></button>
+                            </td>
+                            <td>
+                                <!-- Acciones -->
+                                <button class="btn btn-warning btn-sm btn-modal-editar" data-id="<?= $item['idinv'] ?>" title="Editar"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-info btn-sm btn-modal-stock" data-id="<?= $item['idinv'] ?>" title="Agregar Stock"><i class="fas fa-plus"></i></button>
+                                <button class="btn btn-danger btn-sm btn-modal-eliminar" data-id="<?= $item['idinv'] ?>" title="Eliminar"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
         console.log('🎭 Bootstrap.Modal:', typeof bootstrap?.Modal);
         
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
@@ -965,76 +1022,27 @@ window.abrirproducto = function() {
             console.log('🎉 Modal mostrado exitosamente');
         } else {
             console.error('❌ Bootstrap no está disponible');
-            // Fallback: usar jQuery si está disponible
-            if (typeof $ !== 'undefined') {
-                console.log('🔄 Usando jQuery como fallback');
-                $(modalElement).modal('show');
-            } else {
-                console.log('🔄 Usando método alternativo manual');
-                abrirModalAlternativo();
-            }
+            alert('Error: Bootstrap no está cargado correctamente');
         }
     } catch (error) {
         console.error('💥 Error al abrir modal:', error);
-        alert('Error al abrir el modal: ' + error.message);
+        alert('Error al abrir el modal de configuración: ' + error.message);
     }
 }
-
-// Función alternativa para abrir modal (fallback)
-function abrirModalAlternativo() {
-    console.log('🔄 Usando método alternativo para abrir modal');
-    const modalElement = document.getElementById('modal-nuevo-producto');
-    if (modalElement) {
-        modalElement.style.display = 'block';
-        modalElement.classList.add('show');
-        modalElement.style.backgroundColor = 'rgba(0,0,0,0.5)';
-        
-        // Agregar evento para cerrar modal
-        const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"], .btn-secondary');
-        closeButtons.forEach(btn => {
-            btn.onclick = function() {
-                modalElement.style.display = 'none';
-                modalElement.classList.remove('show');
-            };
-        });
-    }
-}
-
-// Verificar al cargar la página
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 Página cargada');
-    console.log('🔍 Bootstrap disponible:', typeof bootstrap !== 'undefined');
-    console.log('🔍 jQuery disponible:', typeof $ !== 'undefined');
-    
-    // Agregar listener alternativo al botón
-    const btnNuevoProducto = document.getElementById('btn-nuevo-producto');
-    if (btnNuevoProducto) {
-        console.log('✅ Botón encontrado, agregando listener adicional');
-        btnNuevoProducto.addEventListener('click', function(e) {
-            console.log('🖱️ Click detectado en botón');
-            e.preventDefault();
-            abrirproducto();
-        });
-    }
-});
 
 // Función para abrir modal de proveedores
 window.abrirproveedor = function() {
-    console.log('🔧 Función abrirproveedor() llamada');
-    
-    try {
-        const modalElement = document.getElementById('modal-proveedores');
-        console.log('🔍 Modal element:', modalElement);
-        
-        if (!modalElement) {
-            console.error('❌ Modal no encontrado');
-            alert('Error: Modal de proveedores no encontrado');
-            return;
-        }
-        
-        console.log('📋 Bootstrap object:', typeof bootstrap);
-        console.log('🎭 Bootstrap.Modal:', typeof bootstrap?.Modal);
-        
+    const modalElement = document.getElementById('modal-proveedores');
+    if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else if (modalElement) {
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+    } else {
+        alert('No se encontró el modal de proveedores');
+    }
+}
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
             console.log('✅ Creando modal...');
             const modal = new bootstrap.Modal(modalElement);
@@ -1050,6 +1058,19 @@ window.abrirproveedor = function() {
     }
 }
 
+// Función de prueba para configuración
+window.testConfiguracion = function() {
+    console.log('🧪 Probando función de configuración...');
+    console.log('🔍 Modal existe:', !!document.getElementById('modal-configuracion'));
+    console.log('🔍 Bootstrap disponible:', typeof bootstrap);
+    if (typeof window.abrirConfiguracion === 'function') {
+        console.log('✅ Función abrirConfiguracion disponible');
+        window.abrirConfiguracion();
+    } else {
+        console.error('❌ Función abrirConfiguracion no disponible');
+    }
+}
+
 // Función de verificación de estado
 window.verificarEstado = function() {
     console.log('🔍 Estado del sistema:');
@@ -1057,12 +1078,14 @@ window.verificarEstado = function() {
     console.log('✅ jQuery disponible:', typeof $);
     console.log('✅ Modal nuevo producto:', !!document.getElementById('modal-nuevo-producto'));
     console.log('✅ Modal proveedores:', !!document.getElementById('modal-proveedores'));
+    console.log('✅ Modal configuración:', !!document.getElementById('modal-configuracion'));
     console.log('✅ Modal editar producto:', !!document.getElementById('modal-editar-producto'));
     console.log('✅ Modal agregar stock:', !!document.getElementById('modal-agregar-stock'));
     console.log('✅ Modal eliminar producto:', !!document.getElementById('modal-eliminar-producto'));
     console.log('✅ Funciones principales:', {
         abrirproducto: typeof window.abrirproducto,
-        abrirproveedor: typeof window.abrirproveedor
+        abrirproveedor: typeof window.abrirproveedor,
+        abrirConfiguracion: typeof window.abrirConfiguracion
     });
     console.log('✅ Funciones de modales:', {
         abrirModalEditar: typeof window.abrirModalEditar,
@@ -1601,26 +1624,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Función para gestionar flores
-function gestionarFlores() {
-    try {
-        const modalElement = document.getElementById('modal-gestion-flores');
-        if (!modalElement) {
-            alert('Error: Modal de gestión de flores no encontrado');
-            return;
-        }
-        
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-        } else {
-            alert('Error: Bootstrap no está cargado correctamente');
-        }
-    } catch (error) {
-        console.error('Error al abrir modal:', error);
-        alert('Error al abrir el modal de gestión de flores');
-    }
-}
-
 // Editar flor inline
 window.editarFlor = function(florData) {
     // Cambiar a la pestaña de nueva flor usando trigger
@@ -2213,59 +2216,49 @@ function cambiarTipoProducto() {
     }
 }
 
-// Función bonus para exportar inventario
+// Función para exportar inventario a Excel
 function exportarInventario() {
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = 'controllers/ExportarInventarioController.php';
-    form.style.display = 'none';
-    
-    const actionInput = document.createElement('input');
-    actionInput.name = 'action';
-    actionInput.value = 'exportar_excel';
-    
-    form.appendChild(actionInput);
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
+    try {
+        console.log('📊 Iniciando exportación de inventario...');
+        
+        // Crear formulario temporal
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '?ctrl=Cinventario';
+        form.style.display = 'none';
+        
+        const actionInput = document.createElement('input');
+        actionInput.name = 'accion';
+        actionInput.value = 'exportar_inventario';
+        
+        form.appendChild(actionInput);
+        document.body.appendChild(form);
+        
+        // Mostrar mensaje de carga
+        const originalText = event.target.innerHTML;
+        event.target.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exportando...';
+        event.target.disabled = true;
+        
+        form.submit();
+        
+        // Restaurar botón después de un tiempo
+        setTimeout(() => {
+            document.body.removeChild(form);
+            event.target.innerHTML = originalText;
+            event.target.disabled = false;
+        }, 3000);
+        
+        console.log('✅ Exportación iniciada correctamente');
+    } catch (error) {
+        console.error('💥 Error al exportar:', error);
+        alert('Error al exportar el inventario: ' + error.message);
+    }
 }
 </script>
 
 <script src="/Original-Floraltech/assets/inventario.js"></script>
 
 <script>
-// Script de debug para verificar funciones de inventario
-console.log('=== DEBUG INVENTARIO ===');
-console.log('editarFlor:', typeof editarFlor);
-console.log('eliminarFlor:', typeof eliminarFlor);
-console.log('agregarAInventario:', typeof agregarAInventario);
-console.log('abrirproducto:', typeof abrirproducto);
-console.log('abrirproveedor:', typeof abrirproveedor);
-
-// === FUNCIONES PRINCIPALES PARA BOTONES SUPERIORES ===
-window.abrirproducto = function() {
-    try {
-        const modal = new bootstrap.Modal(document.getElementById('modal-nuevo-producto'));
-        modal.show();
-        console.log('✅ Modal nuevo producto abierto');
-    } catch (e) {
-        alert('Error al abrir modal de nuevo producto');
-        console.error('Error abrirproducto:', e);
-    }
-};
-
-window.abrirproveedor = function() {
-    try {
-        const modal = new bootstrap.Modal(document.getElementById('modal-proveedores'));
-        modal.show();
-        console.log('✅ Modal proveedores abierto');
-    } catch (e) {
-        alert('Error al abrir modal de proveedores');
-        console.error('Error abrirproveedor:', e);
-    }
-};
-
-// === FUNCIONES PARA MODALES DE ACCIONES ===
 window.abrirModalEditar = function(id, nombre) {
     try {
         const modal = document.getElementById('modal-editar-producto');
@@ -2320,6 +2313,58 @@ window.addEventListener('error', function(e) {
     console.error('Error JavaScript en inventario:', e.message, 'en línea:', e.lineno);
 });
 </script>
+
+<!-- Script mejorado para el botón exportar -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Arreglo para el botón de exportar
+    setTimeout(function() {
+        const btnExportar = document.getElementById('btn-exportar');
+        
+        if (btnExportar) {
+            // Limpiar listeners anteriores
+            const newBtn = btnExportar.cloneNode(true);
+            btnExportar.parentNode.replaceChild(newBtn, btnExportar);
+            
+            newBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Feedback visual
+                const originalText = newBtn.innerHTML;
+                newBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exportando...';
+                newBtn.disabled = true;
+                
+                // Crear y enviar formulario
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '?ctrl=Cinventario';
+                form.style.display = 'none';
+                
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'accion';
+                input.value = 'exportar_inventario';
+                
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+                
+                // Restaurar botón
+                setTimeout(() => {
+                    newBtn.innerHTML = originalText;
+                    newBtn.disabled = false;
+                    if (document.body.contains(form)) {
+                        document.body.removeChild(form);
+                    }
+                }, 3000);
+            });
+            
+            console.log('✅ Botón exportar configurado correctamente');
+        }
+    }, 1000);
+});
+</script>
+
 
 </main>
 <!-- Fin de la vista de inventario -->
