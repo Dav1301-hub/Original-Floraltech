@@ -2,6 +2,43 @@
 require_once __DIR__ . '/conexion.php';
 
 class Minventario {
+    /**
+     * Obtener todos los proveedores con productos asociados
+     */
+    public function getProveedoresConProductos() {
+        try {
+            $sql = "SELECT p.id, p.nombre, p.categoria, p.telefono, p.email, p.direccion, p.notas, p.estado,
+                           GROUP_CONCAT(pp.producto_id) AS productos
+                    FROM proveedores p
+                    LEFT JOIN proveedor_producto pp ON p.id = pp.proveedor_id
+                    GROUP BY p.id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $proveedores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Convertir productos a array
+            foreach ($proveedores as &$prov) {
+                $prov['productos'] = $prov['productos'] ? explode(',', $prov['productos']) : [];
+            }
+            return $proveedores;
+        } catch (PDOException $e) {
+            error_log('Error al obtener proveedores con productos: ' . $e->getMessage());
+            return [];
+        }
+    }
+    /**
+     * Obtener todos los proveedores
+     */
+    public function getProveedores() {
+        try {
+            $sql = "SELECT id, nombre, categoria, telefono, email, direccion, notas, estado FROM proveedores ORDER BY nombre ASC";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('Error al obtener proveedores: ' . $e->getMessage());
+            return [];
+        }
+    }
     private $db;
     
     public function __construct() {
@@ -585,8 +622,8 @@ class Minventario {
             if (empty($data['nombre_proveedor']) || empty($data['categoria_proveedor'])) {
                 throw new Exception('Nombre y categoría son obligatorios');
             }
-            
-            // Crear tabla de proveedores si no existe
+
+            // Crear tabla de proveedores si no existe (ahora con notas y estado)
             $sql_crear_tabla = "CREATE TABLE IF NOT EXISTS proveedores (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 nombre VARCHAR(255) NOT NULL,
@@ -594,25 +631,51 @@ class Minventario {
                 telefono VARCHAR(20),
                 email VARCHAR(255),
                 direccion TEXT,
+                notas TEXT,
+                estado VARCHAR(20) DEFAULT 'activo',
                 fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )";
             $this->db->exec($sql_crear_tabla);
-            
-            // Insertar nuevo proveedor
-            $sql_proveedor = "INSERT INTO proveedores (nombre, categoria, telefono, email, direccion) VALUES (:nombre, :categoria, :telefono, :email, :direccion)";
+
+            // Crear tabla relacional proveedor-producto si no existe
+            $sql_crear_rel = "CREATE TABLE IF NOT EXISTS proveedor_producto (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                proveedor_id INT NOT NULL,
+                producto_id INT NOT NULL,
+                FOREIGN KEY (proveedor_id) REFERENCES proveedores(id) ON DELETE CASCADE,
+                FOREIGN KEY (producto_id) REFERENCES inv(idinv) ON DELETE CASCADE
+            )";
+            $this->db->exec($sql_crear_rel);
+
+            // Insertar nuevo proveedor (con notas y estado)
+            $sql_proveedor = "INSERT INTO proveedores (nombre, categoria, telefono, email, direccion, notas, estado) VALUES (:nombre, :categoria, :telefono, :email, :direccion, :notas, :estado)";
             $stmt_proveedor = $this->db->prepare($sql_proveedor);
             $stmt_proveedor->bindParam(':nombre', $data['nombre_proveedor']);
             $stmt_proveedor->bindParam(':categoria', $data['categoria_proveedor']);
             $stmt_proveedor->bindParam(':telefono', $data['telefono_proveedor']);
             $stmt_proveedor->bindParam(':email', $data['email_proveedor']);
             $stmt_proveedor->bindParam(':direccion', $data['direccion_proveedor']);
-            
+            $stmt_proveedor->bindParam(':notas', $data['notas_proveedor']);
+            $estado = isset($data['estado_proveedor']) ? $data['estado_proveedor'] : 'activo';
+            $stmt_proveedor->bindParam(':estado', $estado);
+
             if ($stmt_proveedor->execute()) {
+                $proveedor_id = $this->db->lastInsertId();
+                // Guardar productos asociados si existen
+                if (!empty($data['productos_proveedor']) && is_array($data['productos_proveedor'])) {
+                    $sql_rel = "INSERT INTO proveedor_producto (proveedor_id, producto_id) VALUES (:proveedor_id, :producto_id)";
+                    $stmt_rel = $this->db->prepare($sql_rel);
+                    foreach ($data['productos_proveedor'] as $prod_id) {
+                        $stmt_rel->bindParam(':proveedor_id', $proveedor_id);
+                        $stmt_rel->bindParam(':producto_id', $prod_id);
+                        $stmt_rel->execute();
+                    }
+                }
                 return true;
             } else {
                 throw new Exception('Error al agregar el proveedor');
             }
-            
+
         } catch (Exception $e) {
             throw $e;
         } catch (PDOException $e) {

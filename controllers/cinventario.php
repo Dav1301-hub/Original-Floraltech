@@ -172,6 +172,11 @@ class Cinventario {
                         }
                         exit;
                         break;
+                        
+                    case 'exportar_inventario':
+                        $this->exportarInventarioExcel();
+                        exit;
+                        break;
                 }
             }
         } catch (Exception $e) {
@@ -301,36 +306,108 @@ class Cinventario {
      * Cargar la vista del inventario
      */
     private function cargarVista() {
-        // Hacer las variables accesibles en la vista
-        $mensaje_exito = $this->mensaje_exito;
-        $mensaje_error = $this->mensaje_error;
-        $error_message = $this->error_message;
-        
-        // Variables de estadísticas - siempre definidas
-        $total_productos = $this->total_productos;
-        $stock_bajo = $this->stock_bajo;
-        $sin_stock = $this->sin_stock;
-        $valor_total = $this->valor_total;
-        
-        // Variables de inventario - siempre definidas
-        $inventario = $this->inventario;
-        $total_elementos = $this->total_elementos;
-        $total_paginas = $this->total_paginas;
-        $todas_las_flores = $this->todas_las_flores;
-        $flores_para_select = $this->flores_para_select;
-        
-        // Variables de paginación - siempre definidas
-        $elementos_por_pagina = $this->elementos_por_pagina;
-        $pagina_actual = $this->pagina_actual;
-        $offset = $this->offset;
-        
-        // Variables para el layout
-        $usu = $_SESSION['user'];
-        $page = 'inventario'; // Usar un nombre diferente que no active la redirección
-        $totalUsuarios = 0; // Variable requerida por el dashboard
-        
-        // Cargar el dashboard de admin con la vista del inventario
-        include 'views/admin/VadashboardPrincipal.php';
+    // Hacer las variables accesibles en la vista
+    $mensaje_exito = $this->mensaje_exito;
+    $mensaje_error = $this->mensaje_error;
+    $error_message = $this->error_message;
+
+    // Variables de estadísticas - siempre definidas
+    $total_productos = $this->total_productos;
+    $stock_bajo = $this->stock_bajo;
+    $sin_stock = $this->sin_stock;
+    $valor_total = $this->valor_total;
+
+    // Variables de inventario - siempre definidas
+    $inventario = $this->inventario;
+    $total_elementos = $this->total_elementos;
+    $total_paginas = $this->total_paginas;
+    $todas_las_flores = $this->todas_las_flores;
+    $flores_para_select = $this->flores_para_select;
+
+    // NUEVO: Productos para el select de proveedores (todos los productos)
+    $productos_inventario = $this->inventarioModel ? $this->inventarioModel->getInventarioPaginado(9999, 0, []) : [];
+
+    // NUEVO: Proveedores para la tabla de proveedores (con productos asociados)
+    $proveedores = $this->inventarioModel ? $this->inventarioModel->getProveedoresConProductos() : [];
+
+    // Variables de paginación - siempre definidas
+    $elementos_por_pagina = $this->elementos_por_pagina;
+    $pagina_actual = $this->pagina_actual;
+    $offset = $this->offset;
+
+    // Variables para el layout
+    $usu = $_SESSION['user'];
+    $page = 'inventario'; // Forzar siempre la vista de inventario
+    $_GET['page'] = 'inventario'; // Forzar también el parámetro GET por si la vista lo usa
+    $totalUsuarios = 0; // Variable requerida por el dashboard
+
+    // Cargar el dashboard de admin con la vista del inventario
+    include 'views/admin/VadashboardPrincipal.php';
+    }
+
+    /**
+     * Método para exportar inventario a Excel
+     */
+    public function exportarInventarioExcel() {
+        try {
+            if (!$this->inventarioModel) {
+                throw new Exception('Modelo de inventario no disponible');
+            }
+
+            // Obtener todos los datos del inventario
+            $inventario = $this->inventarioModel->getInventarioPaginado(9999, 0, []);
+            
+            // Configurar headers para descarga de Excel
+            $filename = 'inventario_' . date('Y-m-d_H-i-s') . '.csv';
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Cache-Control: no-cache, must-revalidate');
+            header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+            
+            // Crear el contenido CSV
+            $output = fopen('php://output', 'w');
+            
+            // BOM para UTF-8
+            fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+            
+            // Encabezados
+            fputcsv($output, [
+                'ID',
+                'Producto',
+                'Categoría',
+                'Stock',
+                'Precio',
+                'Color',
+                'Naturaleza',
+                'Estado',
+                'Fecha Creación',
+                'Valor Total'
+            ], ';');
+            
+            // Datos
+            foreach ($inventario as $item) {
+                $valor_total = $item['stock'] * $item['precio'];
+                fputcsv($output, [
+                    $item['idinv'] ?? '',
+                    $item['producto'] ?? '',
+                    $item['categoria'] ?? '',
+                    $item['stock'] ?? '0',
+                    number_format($item['precio'] ?? 0, 2),
+                    $item['color'] ?? '',
+                    $item['naturaleza'] ?? '',
+                    $item['estado'] ?? '',
+                    $item['fecha_creacion'] ?? '',
+                    number_format($valor_total, 2)
+                ], ';');
+            }
+            
+            fclose($output);
+            
+        } catch (Exception $e) {
+            // En caso de error, redirigir con mensaje
+            header('Location: ?ctrl=Cinventario&error=export_failed');
+            exit;
+        }
     }
 
     /**

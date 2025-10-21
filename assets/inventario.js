@@ -60,9 +60,9 @@ document.addEventListener("DOMContentLoaded", function () {
         if (typeof window.cambiarElementosPorPagina === 'undefined') {
             console.log('Definiendo función cambiarElementosPorPagina de fallback...');
             window.cambiarElementosPorPagina = function(limit) {
-                console.log('Función fallback cambiarElementosPorPagina llamada con límite:', limit);
+                console.log('Función cambiarElementosPorPagina llamada con límite:', limit);
                 const url = new URL(window.location);
-                url.searchParams.set('per_page', limit);
+                url.searchParams.set('elementos_por_pagina', limit);
                 url.searchParams.set('pagina', 1);
                 window.location.href = url.toString();
             };
@@ -71,18 +71,32 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
-function abrirproducto(){ 
-    document.getElementById('modal-nuevo-producto').style.display = 'block';
-    document.getElementById('modal-backdrop').classList.add('show');
+window.abrirproducto = function(){
+    const modalElement = document.getElementById('modal-nuevo-producto');
+    if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else if (modalElement) {
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+        document.getElementById('modal-backdrop').classList.add('show');
+    }
 }
 function cerrarproducto(){
     document.getElementById('modal-nuevo-producto').style.display = 'none';
     document.getElementById('modal-backdrop').classList.remove('show');
 }
 
-function abrirproveedor(){
-    document.getElementById('modal-proveedores').style.display ='block';
-    document.getElementById('modal-backdrop').classList.add('show');
+window.abrirproveedor = function(){
+    const modalElement = document.getElementById('modal-proveedores');
+    if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else if (modalElement) {
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+        document.getElementById('modal-backdrop').classList.add('show');
+    }
 }
 
 function cerrarproveedor(){
@@ -91,17 +105,14 @@ function cerrarproveedor(){
 }
 
 // Funciones para gestión de inventario
-function editarFlor(id) {
-    console.log('Editando flor con ID:', id);
-    
-    // Cargar los datos del producto
+// Funciones para abrir y llenar los modales
+window.abrirModalEditar = function(id, nombre) {
+    // Cargar los datos del producto por AJAX
     fetch(`?ctrl=Cinventario&accion=obtener_producto&id=${id}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 const producto = data.producto;
-                
-                // Llenar los campos del modal con los datos del producto
                 document.getElementById('editar_producto_id').value = id;
                 document.getElementById('editar_nombre_producto').value = producto.producto || '';
                 document.getElementById('editar_tipo_producto').value = producto.tipo || '';
@@ -110,27 +121,24 @@ function editarFlor(id) {
                 document.getElementById('editar_color').value = producto.color || '';
                 document.getElementById('editar_naturaleza').value = producto.naturaleza || '';
                 document.getElementById('editar_estado').value = producto.estado || 'Disponible';
-                
-                // Mostrar el modal
-                const modalElement = document.getElementById('modal-editar-producto');
-                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = new bootstrap.Modal(modalElement);
-                    modal.show();
-                } else if (typeof $ !== 'undefined') {
-                    $(modalElement).modal('show');
-                } else {
-                    modalElement.style.display = 'block';
-                    modalElement.classList.add('show');
-                }
             } else {
-                console.error('Error al obtener datos del producto:', data.message);
-                mostrarMensajeError('Error al cargar los datos del producto: ' + (data.message || 'Error desconocido'));
+                document.getElementById('editar_producto_id').value = id;
+                document.getElementById('editar_nombre_producto').value = nombre;
+            }
+            const modalElement = document.getElementById('modal-editar-producto');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+            } else if (typeof $ !== 'undefined') {
+                $(modalElement).modal('show');
+            } else {
+                modalElement.style.display = 'block';
+                modalElement.classList.add('show');
             }
         })
         .catch(error => {
-            console.error('Error en la petición:', error);
-            // Fallback: abrir modal con campos vacíos
             document.getElementById('editar_producto_id').value = id;
+            document.getElementById('editar_nombre_producto').value = nombre;
             const modalElement = document.getElementById('modal-editar-producto');
             if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                 const modal = new bootstrap.Modal(modalElement);
@@ -142,7 +150,65 @@ function editarFlor(id) {
                 modalElement.classList.add('show');
             }
         });
-}
+};
+
+window.abrirModalAgregarStock = function(id, nombre) {
+    // Cargar los datos del producto por AJAX
+    fetch(`?ctrl=Cinventario&accion=obtener_producto&id=${id}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const producto = data.producto;
+                document.getElementById('stock_producto_id').value = id;
+                document.getElementById('stock_nombre_producto').textContent = producto.producto || nombre;
+                document.getElementById('stock_actual').textContent = producto.stock || 0;
+            } else {
+                document.getElementById('stock_producto_id').value = id;
+                document.getElementById('stock_nombre_producto').textContent = nombre;
+                document.getElementById('stock_actual').textContent = 'N/A';
+            }
+            const modalElement = document.getElementById('modal-agregar-stock');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+            } else if (typeof $ !== 'undefined') {
+                $(modalElement).modal('show');
+            } else {
+                modalElement.style.display = 'block';
+                modalElement.classList.add('show');
+            }
+        })
+        .catch(error => {
+            document.getElementById('stock_producto_id').value = id;
+            document.getElementById('stock_nombre_producto').textContent = nombre;
+            document.getElementById('stock_actual').textContent = 'N/A';
+            const modalElement = document.getElementById('modal-agregar-stock');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+            } else if (typeof $ !== 'undefined') {
+                $(modalElement).modal('show');
+            } else {
+                modalElement.style.display = 'block';
+                modalElement.classList.add('show');
+            }
+        });
+};
+
+window.abrirModalEliminar = function(id, nombre) {
+    document.getElementById('eliminar_producto_id').value = id;
+    document.getElementById('eliminar_nombre_producto').textContent = nombre;
+    const modalElement = document.getElementById('modal-eliminar-producto');
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else if (typeof $ !== 'undefined') {
+        $(modalElement).modal('show');
+    } else {
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+    }
+};
 
 function eliminarFlor(id) {
     console.log('Eliminando flor con ID:', id);

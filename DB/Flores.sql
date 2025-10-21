@@ -191,6 +191,10 @@ INSERT INTO `ent` (`ident`, `fecha_ent`, `hora_ent`, `direccion`, `estado_ent`, 
 
 CREATE TABLE `inv` (
   `idinv` int(11) NOT NULL,
+  `idproducto` int(11) NOT NULL AUTO_INCREMENT UNIQUE COMMENT 'ID único del producto para compatibilidad',
+  `producto` varchar(255) DEFAULT NULL COMMENT 'Nombre del producto',
+  `color` varchar(100) DEFAULT 'Sin especificar' COMMENT 'Color del producto',
+  `estado` varchar(50) DEFAULT 'disponible' COMMENT 'Estado del producto (disponible, agotado, descontinuado)',
   `alimentacion` varchar(255) DEFAULT NULL,
   `tflor_idtflor` int(11) NOT NULL,
   `stock` int(11) NOT NULL DEFAULT 0,
@@ -205,22 +209,22 @@ CREATE TABLE `inv` (
 -- Volcado de datos para la tabla `inv`
 --
 
-INSERT INTO `inv` (`idinv`, `alimentacion`, `tflor_idtflor`, `stock`, `precio`, `fecha_actualizacion`, `empleado_id`, `motivo`, `cantidad_disponible`) VALUES
-(1, 'Agua y nutrientes', 1, 150, 5.99, '2025-07-28 22:13:32', NULL, NULL, 150),
-(2, 'Agua y nutrientes', 2, 80, 7.50, '2025-07-28 22:13:32', NULL, NULL, 80),
-(3, 'Agua y luz solar', 3, 59, 4.75, '2025-07-28 22:13:32', NULL, NULL, 59),
-(4, 'Humedad controlada', 4, 40, 12.99, '2025-07-28 22:13:32', NULL, NULL, 40),
-(5, 'Agua y nutrientes', 5, 70, 6.25, '2025-07-28 22:13:32', NULL, NULL, 70),
-(6, 'N/A', 6, 18, 3.50, '2025-08-11 15:57:37', NULL, NULL, 199),
-(7, 'Luz indirecta', 7, 90, 8.99, '2025-07-28 22:13:32', NULL, NULL, 90),
-(8, 'Poca agua', 8, 120, 2.99, '2025-07-28 22:13:32', NULL, NULL, 120),
-(9, 'Agua diaria', 1, 50, 25.99, '2025-07-28 22:13:32', NULL, NULL, 50),
-(10, 'Agua cada 2 días', 2, 30, 18.50, '2025-07-28 22:13:32', NULL, NULL, 30),
-(11, 'Agua semanal', 3, 25, 35.00, '2025-07-28 22:13:32', NULL, NULL, 25),
-(12, 'Agua diaria', 4, 40, 22.75, '2025-07-28 22:13:32', NULL, NULL, 40),
-(13, 'Agua semanal', 5, 15, 85.00, '2025-07-28 22:13:32', NULL, NULL, 15),
-(14, 'Agua diaria', 20, 22, 16.55, '2025-08-05 13:28:10', NULL, NULL, 0),
-(15, 'Agua diaria', 21, 16, 15.96, '2025-08-05 13:28:10', NULL, NULL, 0);
+INSERT INTO `inv` (`idinv`, `idproducto`, `producto`, `color`, `estado`, `alimentacion`, `tflor_idtflor`, `stock`, `precio`, `fecha_actualizacion`, `empleado_id`, `motivo`, `cantidad_disponible`) VALUES
+(1, 1, 'Rosas', 'Multicolor', 'disponible', 'Agua y nutrientes', 1, 150, 5.99, '2025-07-28 22:13:32', NULL, NULL, 150),
+(2, 2, 'Tulipanes', 'Multicolor', 'disponible', 'Agua y nutrientes', 2, 80, 7.50, '2025-07-28 22:13:32', NULL, NULL, 80),
+(3, 3, 'Girasoles', 'Multicolor', 'disponible', 'Agua y luz solar', 3, 59, 4.75, '2025-07-28 22:13:32', NULL, NULL, 59),
+(4, 4, 'Orquídeas', 'Multicolor', 'disponible', 'Humedad controlada', 4, 40, 12.99, '2025-07-28 22:13:32', NULL, NULL, 40),
+(5, 5, 'Lirios', 'Multicolor', 'disponible', 'Agua y nutrientes', 5, 70, 6.25, '2025-07-28 22:13:32', NULL, NULL, 70),
+(6, 6, 'Flores Artificiales', 'Multicolor', 'disponible', 'N/A', 6, 18, 3.50, '2025-08-11 15:57:37', NULL, NULL, 199),
+(7, 7, 'Plantas de Interior', 'Multicolor', 'disponible', 'Luz indirecta', 7, 90, 8.99, '2025-07-28 22:13:32', NULL, NULL, 90),
+(8, 8, 'Suculentas', 'Multicolor', 'disponible', 'Poca agua', 8, 120, 2.99, '2025-07-28 22:13:32', NULL, NULL, 120),
+(9, 9, 'Rosas Premium', 'Multicolor', 'disponible', 'Agua diaria', 1, 50, 25.99, '2025-07-28 22:13:32', NULL, NULL, 50),
+(10, 10, 'Tulipanes Premium', 'Multicolor', 'disponible', 'Agua cada 2 días', 2, 30, 18.50, '2025-07-28 22:13:32', NULL, NULL, 30),
+(11, 11, 'Girasoles Premium', 'Multicolor', 'disponible', 'Agua semanal', 3, 25, 35.00, '2025-07-28 22:13:32', NULL, NULL, 25),
+(12, 12, 'Orquídeas Premium', 'Multicolor', 'disponible', 'Agua diaria', 4, 40, 22.75, '2025-07-28 22:13:32', NULL, NULL, 40),
+(13, 13, 'Lirios Premium', 'Multicolor', 'disponible', 'Agua semanal', 5, 15, 85.00, '2025-07-28 22:13:32', NULL, NULL, 15),
+(14, 14, 'Producto Especial', 'Sin especificar', 'agotado', 'Agua diaria', 20, 22, 16.55, '2025-08-05 13:28:10', NULL, NULL, 0),
+(15, 15, 'Producto Extra', 'Sin especificar', 'agotado', 'Agua diaria', 21, 16, 15.96, '2025-08-05 13:28:10', NULL, NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -781,8 +785,11 @@ ALTER TABLE `ent`
 --
 ALTER TABLE `inv`
   ADD PRIMARY KEY (`idinv`),
+  ADD UNIQUE KEY `idx_idproducto` (`idproducto`),
   ADD KEY `fk_inv_tflor` (`tflor_idtflor`),
-  ADD KEY `idx_inv_empleado` (`empleado_id`);
+  ADD KEY `idx_inv_empleado` (`empleado_id`),
+  ADD KEY `idx_producto_estado` (`estado`),
+  ADD KEY `idx_producto_stock` (`stock`);
 
 --
 -- Indices de la tabla `inv_historial`
@@ -914,7 +921,8 @@ ALTER TABLE `ent`
 -- AUTO_INCREMENT de la tabla `inv`
 --
 ALTER TABLE `inv`
-  MODIFY `idinv` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `idinv` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16,
+  MODIFY `idproducto` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT de la tabla `inv_historial`
