@@ -38,11 +38,6 @@ if ($action === 'update') {
         $stmt = $db->prepare('UPDATE usu SET nombre_completo=?, naturaleza=?, fecha_registro=?, activo=? WHERE idusu=?');
         $ok = $stmt->execute([$nombre_completo, $cargo, $fecha_ingreso, $activo, $id]);
     }
-    
-    $response['success'] = $ok;
-    echo json_encode($response);
-    exit;
-}
 if ($action === 'delete') {
     $id = intval($_POST['id'] ?? 0);
     $stmt = $db->prepare('DELETE FROM usu WHERE idusu = ?');
