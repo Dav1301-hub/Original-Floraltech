@@ -1,16 +1,17 @@
 <?php
-// filepath: c:\xampp\htdocs\Floraltech\controllers\creportes.php
-
 require_once(__DIR__ . '/../models/mreportes.php');
 
 $mreportes = new Mreportes();
 
-$idped = isset($_REQUEST['idped']) ? $_REQUEST['idped'] : null;
-$ope = isset($_REQUEST['ope']) ? $_REQUEST['ope'] : null;
+$idped   = isset($_REQUEST['idped'])   ? $_REQUEST['idped']   : null;
+$ope     = isset($_REQUEST['ope'])     ? $_REQUEST['ope']     : null;
+$idusu   = isset($_REQUEST['idusu'])   ? $_REQUEST['idusu']   : null;
+$idtflor = isset($_REQUEST['idtflor']) ? $_REQUEST['idtflor'] : null;
+$dtOne   = null;
 
-$dtOne = null;
-
-// Si se solicita ver un solo reporte
+/* ===============================
+   🔹 REPORTE DE PEDIDOS
+   =============================== */
 if ($ope === "ver" && $idped) {
     $todos = $mreportes->getAll();
     foreach ($todos as $reporte) {
@@ -21,10 +22,9 @@ if ($ope === "ver" && $idped) {
     }
 }
 
-// Obtener todos los reportes
 $dtAll = $mreportes->getAll();
 
-// --- FILTRO PARA EL MODAL ---
+/* --- FILTRO PARA EL MODAL DE PEDIDOS --- */
 $modalPedidos = $dtAll ?? [];
 
 if (!empty($_GET['fecha_inicio'])) {
@@ -43,17 +43,71 @@ if (!empty($_GET['estado'])) {
     });
 }
 
-// Aquí puedes incluir la vista y pasarle $dtAll y $dtOne
-// Ejemplo de uso para pruebas (puedes eliminar estos print_r en producción):
-/*
-if ($dtOne) {
-    echo "<pre>Reporte seleccionado:\n";
-    print_r($dtOne);
-    echo "</pre>";
+/* ===============================
+   🔹 REPORTE DE USUARIOS
+   =============================== */
+if ($ope === "ver_usuario" && $idusu) {
+    $todosUsu = $mreportes->getAllusu();
+    foreach ($todosUsu as $usuario) {
+        if ($usuario['idusu'] == $idusu) {
+            $dtOne = $usuario;
+            break;
+        }
+    }
 }
 
-echo "<pre>Todos los reportes:\n";
-print_r($dtAll);
-echo "</pre>";
-*/
+$dtAllUsu = $mreportes->getAllusu();
+
+/* --- FILTRO PARA EL MODAL DE USUARIOS --- */
+$modalUsuarios = $dtAllUsu ?? [];
+if (!empty($_GET['tipo'])) {
+    $modalUsuarios = array_filter($modalUsuarios, function($u) {
+        return strtolower($u['tipo_usuario']) === strtolower($_GET['tipo']);
+    });
+}
+$totalUsuarios = count($dtAllUsu);
+$datos['usuarios']['activos'] = count(array_filter($dtAllUsu, fn($u) => $u['activo'] == 1));
+
+
+/* ===============================
+   🔹 REPORTE DE INVENTARIO
+   =============================== */
+if ($ope === "ver_inventario" && $idtflor) {
+    $todasFlores = $mreportes->getAllInventario();
+    foreach ($todasFlores as $flor) {
+        if ($flor['idtflor'] == $idtflor) {
+            $dtOne = $flor;
+            break;
+        }
+    }
+}
+
+$dtAllInv = $mreportes->getAllInventario();
+
+/* --- FILTRO PARA EL MODAL DE INVENTARIO --- */
+$modalInventario = $dtAllInv ?? [];
+
+
+if (!empty($_GET['naturaleza'])) {
+    $modalInventario = array_filter($modalInventario, function($f) {
+        return strtolower($f['naturaleza']) === strtolower($_GET['naturaleza']);
+    });
+}
+if (!empty($_GET['color'])) {
+    $modalInventario = array_filter($modalInventario, function($f) {
+        return strtolower($f['color']) === strtolower($_GET['color']);
+    });
+}
+if (!empty($_GET['estado'])) {
+    $modalInventario = array_filter($modalInventario, function($f) {
+        return strtolower($f['estado']) === strtolower($_GET['estado']);
+    });
+}
+
+/* --- TOTALES DE INVENTARIO --- */
+$totalFlores = count($dtAllInv);
+$totalStock  = array_sum(array_column($dtAllInv, 'stock'));
+$totalValor  = array_sum(array_column($dtAllInv, 'valor_total'));
+// Prueba temporal:
+
 ?>
