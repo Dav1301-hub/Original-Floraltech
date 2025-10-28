@@ -46,7 +46,7 @@ try {
 
 // Obtener datos del administrador
 try {
-    $sql_admin = "SELECT idusu, nombre_completo, email, username, telefono, direccion FROM usu WHERE idusu = :id_admin LIMIT 1";
+    $sql_admin = "SELECT idusu, nombre_completo, email, username, telefono FROM usu WHERE idusu = :id_admin LIMIT 1";
     $stmt_admin = $conexion->prepare($sql_admin);
     $stmt_admin->bindParam(':id_admin', $id_admin, PDO::PARAM_INT);
     $stmt_admin->execute();
@@ -56,7 +56,7 @@ try {
         // Usuario encontrado correctamente
     } else {
         // Intentar obtener el primer usuario administrador disponible
-        $sql_fallback = "SELECT idusu, nombre_completo, email, username, telefono, direccion FROM usu WHERE tpusu_idtpusu = 1 LIMIT 1";
+    $sql_fallback = "SELECT idusu, nombre_completo, email, username, telefono FROM usu WHERE tpusu_idtpusu = 1 LIMIT 1";
         $stmt_fallback = $conexion->prepare($sql_fallback);
         $stmt_fallback->execute();
         $admin = $stmt_fallback->fetch(PDO::FETCH_ASSOC);
@@ -69,8 +69,7 @@ try {
                 'nombre_completo' => '',
                 'email' => '',
                 'username' => '',
-                'telefono' => '',
-                'direccion' => ''
+                'telefono' => ''
             ];
             $mensaje_error = 'Error: No se encontraron usuarios administradores en el sistema.';
         }
@@ -82,8 +81,7 @@ try {
         'nombre_completo' => '',
         'email' => '',
         'username' => '',
-        'telefono' => '',
-        'direccion' => ''
+        'telefono' => ''
     ];
 }
 
@@ -118,17 +116,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Validar datos
             $nombre = trim($_POST['nombre_completo']);
             $telefono = trim($_POST['telefono']);
-            $direccion = trim($_POST['direccion']);
             
             if (empty($nombre)) {
                 throw new Exception('El nombre completo es requerido');
             }
             
-            $sql_update = "UPDATE usu SET nombre_completo=:nombre, telefono=:telefono, direccion=:direccion WHERE idusu=:id_admin";
+            $sql_update = "UPDATE usu SET nombre_completo=:nombre, telefono=:telefono WHERE idusu=:id_admin";
             $stmt_update = $conexion->prepare($sql_update);
             $stmt_update->bindParam(':nombre', $nombre);
             $stmt_update->bindParam(':telefono', $telefono);
-            $stmt_update->bindParam(':direccion', $direccion);
             $stmt_update->bindParam(':id_admin', $id_admin, PDO::PARAM_INT);
             
             if ($stmt_update->execute()) {
@@ -221,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!empty($mensaje_exito)) {
         // Recargar datos del administrador
         try {
-            $sql_admin = "SELECT nombre_completo, email, username, telefono, direccion FROM usu WHERE idusu = :id_admin LIMIT 1";
+            $sql_admin = "SELECT nombre_completo, email, username, telefono FROM usu WHERE idusu = :id_admin LIMIT 1";
             $stmt_admin = $conexion->prepare($sql_admin);
             $stmt_admin->bindParam(':id_admin', $id_admin, PDO::PARAM_INT);
             $stmt_admin->execute();
@@ -229,8 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'nombre_completo' => '',
                 'email' => '',
                 'username' => '',
-                'telefono' => '',
-                'direccion' => ''
+                'telefono' => ''
             ];
         } catch (PDOException $e) {
             // No cambiar el mensaje de éxito si hay error al recargar
@@ -302,10 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label class="form-label"><i class="fas fa-phone"></i> Teléfono</label>
                             <input type="text" class="form-control" name="telefono" value="<?= htmlspecialchars($admin['telefono']) ?>">
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label"><i class="fas fa-map-marker-alt"></i> Dirección</label>
-                            <input type="text" class="form-control" name="direccion" value="<?= htmlspecialchars($admin['direccion']) ?>">
-                        </div>
+
                         <button class="btn btn-primary w-100 mt-2" name="actualizar_personal"><i class="fas fa-save me-2"></i>Actualizar Información Personal</button>
                     </div>
                 </div>
