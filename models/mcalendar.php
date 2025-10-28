@@ -4,39 +4,39 @@ class mcalendar {
     public function __construct($db) {
         $this->db = $db;
     }
-    // Obtener pedidos por fecha
+    // Obtener pedidos por fecha de entrega
     public function getPedidosPorFecha($fecha) {
         try {
-            // Intentar con JOIN a tabla cli
-            $sql = "SELECT p.idped AS id, p.monto_total AS monto, p.estado, p.fecha_pedido, 
+            // Mostrar pedidos programados para la fecha de entrega o creados ese día
+            $sql = "SELECT p.idped AS id, p.monto_total AS monto, p.estado, p.fecha_entrega_solicitada, p.fecha_pedido,
                            COALESCE(c.nombre, CONCAT('Cliente ID: ', p.cli_idcli)) AS cliente 
                     FROM ped p 
                     LEFT JOIN cli c ON p.cli_idcli = c.idcli 
-                    WHERE DATE(p.fecha_pedido) = :fecha 
-                    ORDER BY p.fecha_pedido DESC";
+                    WHERE (DATE(p.fecha_entrega_solicitada) = :fecha OR DATE(p.fecha_pedido) = :fecha)
+                    ORDER BY COALESCE(p.fecha_entrega_solicitada, p.fecha_pedido) DESC";
             $stmt = $this->db->prepare($sql);
             $stmt->execute(['fecha' => $fecha]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch(Exception $e) {
             // Si falla el JOIN, usar consulta simple
-            $sql = "SELECT idped AS id, monto_total AS monto, estado, fecha_pedido, 
+            $sql = "SELECT idped AS id, monto_total AS monto, estado, fecha_entrega_solicitada, fecha_pedido,
                            CONCAT('Cliente ID: ', cli_idcli) AS cliente 
                     FROM ped 
-                    WHERE DATE(fecha_pedido) = :fecha 
-                    ORDER BY fecha_pedido DESC";
+                    WHERE (DATE(fecha_entrega_solicitada) = :fecha OR DATE(fecha_pedido) = :fecha)
+                    ORDER BY COALESCE(fecha_entrega_solicitada, fecha_pedido) DESC";
             $stmt = $this->db->prepare($sql);
             $stmt->execute(['fecha' => $fecha]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
     }
-    // Obtener resumen por fecha
+    // Obtener resumen por fecha de entrega
     public function getResumenPorFecha($fecha) {
         try {
-            $sqlTotal = "SELECT COUNT(*) FROM ped WHERE DATE(fecha_pedido) = :fecha";
-            $sqlCompletados = "SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND DATE(fecha_pedido) = :fecha";
-            $sqlPendientes = "SELECT COUNT(*) FROM ped WHERE estado = 'Pendiente' AND DATE(fecha_pedido) = :fecha";
-            $sqlEnProceso = "SELECT COUNT(*) FROM ped WHERE estado LIKE '%proceso%' AND DATE(fecha_pedido) = :fecha";
-            $sqlCancelados = "SELECT COUNT(*) FROM ped WHERE estado IN ('Cancelado','Rechazado') AND DATE(fecha_pedido) = :fecha";
+            $sqlTotal = "SELECT COUNT(*) FROM ped WHERE (DATE(fecha_entrega_solicitada) = :fecha OR DATE(fecha_pedido) = :fecha)";
+            $sqlCompletados = "SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND (DATE(fecha_entrega_solicitada) = :fecha OR DATE(fecha_pedido) = :fecha)";
+            $sqlPendientes = "SELECT COUNT(*) FROM ped WHERE estado = 'Pendiente' AND (DATE(fecha_entrega_solicitada) = :fecha OR DATE(fecha_pedido) = :fecha)";
+            $sqlEnProceso = "SELECT COUNT(*) FROM ped WHERE estado LIKE '%proceso%' AND (DATE(fecha_entrega_solicitada) = :fecha OR DATE(fecha_pedido) = :fecha)";
+            $sqlCancelados = "SELECT COUNT(*) FROM ped WHERE estado IN ('Cancelado','Rechazado') AND (DATE(fecha_entrega_solicitada) = :fecha OR DATE(fecha_pedido) = :fecha)";
             
             $stmtTotal = $this->db->prepare($sqlTotal);
             $stmtCompletados = $this->db->prepare($sqlCompletados);
