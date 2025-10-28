@@ -47,35 +47,39 @@
     <div class="card mb-4">
         <div class="card-body pb-2">
             <div class="fw-bold fs-5 mb-2"><i class="fas fa-filter me-2"></i>Filtros de Inventario</div>
-            <form method="GET" action="?ctrl=Cinventario" class="row g-2 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label">Categoría/Naturaleza</label>
-                    <select name="categoria" class="form-select">
-                        <option value="">Todas las categorías</option>
-                        <option value="Natural" <?= ($_GET['categoria'] ?? '') == 'Natural' ? 'selected' : '' ?>>Natural</option>
-                        <option value="Artificial" <?= ($_GET['categoria'] ?? '') == 'Artificial' ? 'selected' : '' ?>>Artificial</option>
-                        <option value="Comestible" <?= ($_GET['categoria'] ?? '') == 'Comestible' ? 'selected' : '' ?>>Comestible</option>
-                        <option value="Decorativo" <?= ($_GET['categoria'] ?? '') == 'Decorativo' ? 'selected' : '' ?>>Decorativo</option>
-                        <option value="Regalo" <?= ($_GET['categoria'] ?? '') == 'Regalo' ? 'selected' : '' ?>>Regalo</option>
-                        <option value="Accesorio" <?= ($_GET['categoria'] ?? '') == 'Accesorio' ? 'selected' : '' ?>>Accesorio</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Estado de Stock</label>
-                    <select name="estado_stock" class="form-select">
-                        <option value="">Todos los estados</option>
-                        <option value="bajo" <?= ($_GET['estado_stock'] ?? '') == 'bajo' ? 'selected' : '' ?>>Stock Bajo</option>
-                        <option value="sin_stock" <?= ($_GET['estado_stock'] ?? '') == 'sin_stock' ? 'selected' : '' ?>>Sin Stock</option>
-                        <option value="normal" <?= ($_GET['estado_stock'] ?? '') == 'normal' ? 'selected' : '' ?>>Stock Normal</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Buscar</label>
-                    <input type="text" name="buscar" class="form-control" placeholder="Nombre de la flor..." value="<?= htmlspecialchars($_GET['buscar'] ?? '') ?>">
-                </div>
-                <div class="col-md-3 d-flex gap-2 align-items-end">
-                    <button type="submit" class="btn btn-success px-4">Filtrar</button>
-                    <a href="?ctrl=Cinventario" class="btn btn-link text-secondary">Limpiar Filtros</a>
+            <form method="GET" action="index.php">
+                <input type="hidden" name="ctrl" value="Cinventario">
+                <input type="hidden" name="action" value="index">
+                <div class="row justify-content-center g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Categoría/Naturaleza</label>
+                        <select name="categoria" class="form-select">
+                            <option value="">Todas las categorías</option>
+                            <option value="Natural" <?= ($_GET['categoria'] ?? '') == 'Natural' ? 'selected' : '' ?>>Natural</option>
+                            <option value="Artificial" <?= ($_GET['categoria'] ?? '') == 'Artificial' ? 'selected' : '' ?>>Artificial</option>
+                            <option value="Comestible" <?= ($_GET['categoria'] ?? '') == 'Comestible' ? 'selected' : '' ?>>Comestible</option>
+                            <option value="Decorativo" <?= ($_GET['categoria'] ?? '') == 'Decorativo' ? 'selected' : '' ?>>Decorativo</option>
+                            <option value="Regalo" <?= ($_GET['categoria'] ?? '') == 'Regalo' ? 'selected' : '' ?>>Regalo</option>
+                            <option value="Accesorio" <?= ($_GET['categoria'] ?? '') == 'Accesorio' ? 'selected' : '' ?>>Accesorio</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Estado de Stock</label>
+                        <select name="estado_stock" class="form-select">
+                            <option value="">Todos los estados</option>
+                            <option value="bajo" <?= ($_GET['estado_stock'] ?? '') == 'bajo' ? 'selected' : '' ?>>Stock Bajo</option>
+                            <option value="sin_stock" <?= ($_GET['estado_stock'] ?? '') == 'sin_stock' ? 'selected' : '' ?>>Sin Stock</option>
+                            <option value="normal" <?= ($_GET['estado_stock'] ?? '') == 'normal' ? 'selected' : '' ?>>Stock Normal</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Buscar</label>
+                        <input type="text" name="buscar" class="form-control" placeholder="Nombre de la flor..." value="<?= htmlspecialchars($_GET['buscar'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-3 d-flex gap-2 align-items-end">
+                        <button type="submit" class="btn btn-success px-4">Filtrar</button>
+                        <a href="?ctrl=Cinventario" class="btn btn-link text-secondary">Limpiar Filtros</a>
+                    </div>
                 </div>
             </form>
         </div>

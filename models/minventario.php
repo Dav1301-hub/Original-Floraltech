@@ -128,7 +128,7 @@ class Minventario {
             
             // Aplicar filtros si existen
             if (!empty($filtros['categoria'])) {
-                $where_conditions[] = "COALESCE(t.naturaleza, 'N/A') = :categoria";
+                $where_conditions[] = "i.naturaleza = :categoria";
                 $params[':categoria'] = $filtros['categoria'];
             }
             
@@ -207,7 +207,7 @@ class Minventario {
             
             // Aplicar mismos filtros que en getInventarioPaginado
             if (!empty($filtros['categoria'])) {
-                $where_conditions[] = "COALESCE(t.naturaleza, 'N/A') = :categoria";
+                $where_conditions[] = "i.naturaleza = :categoria";
                 $params[':categoria'] = $filtros['categoria'];
             }
             
