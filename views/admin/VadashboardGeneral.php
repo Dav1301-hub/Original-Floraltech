@@ -74,37 +74,34 @@ $mesReferencia = $dashboardData['resumenPedidosMes']['mesReferencia'] ?? date('m
 
     <!-- KPIs -->
     <div class="dashboard-cards mb-4" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;">
-        <div class="kpi-card">
-            <div class="kpi-icon" style="background: #007bff; color: #fff;"><i class="fas fa-credit-card"></i></div>
-            <div class="kpi-value"><?= $totalPagos ?></div>
-            <div class="kpi-label">Total Pagos</div>
-            <div class="kpi-trend text-success">
+        <div class="stats-card">
+            <i class="fas fa-credit-card"></i>
+            <h3><?= $totalPagos ?></h3>
+            <p>Total Pagos</p>
+            <div class="trend up">
                 <i class="fas fa-arrow-up"></i> <?= $tendenciaPagos ?>% semana
             </div>
         </div>
-        <div class="kpi-card">
-            <div class="kpi-icon" style="background: #ffc107; color: #fff;"><i class="fas fa-clock"></i></div>
-            <div class="kpi-value"><?= $pagosPendientes ?></div>
-            <div class="kpi-label">Pagos Pendientes</div>
-            <div class="kpi-trend text-info">
+        <div class="stats-card">
+            <i class="fas fa-clock"></i>
+            <h3><?= $pagosPendientes ?></h3>
+            <p>Pagos Pendientes</p>
+            <div class="trend up" style="color: #ffc107;">
                 <i class="fas fa-arrow-up"></i> <?= $tendenciaPendientes ?>% semana
             </div>
         </div>
-        <div class="kpi-card">
-            <div class="kpi-icon" style="background: #dc3545; color: #fff;"><i class="fas fa-ban"></i></div>
-            <div class="kpi-value"><?= $pagosRechazados ?></div>
-            <div class="kpi-label">Pagos Rechazados</div>
-            <div class="kpi-trend text-danger">
+        <div class="stats-card">
+            <i class="fas fa-ban"></i>
+            <h3><?= $pagosRechazados ?></h3>
+            <p>Pagos Rechazados</p>
+            <div class="trend down">
                 <i class="fas fa-arrow-down"></i> <?= $tendenciaRechazados ?>% semana
             </div>
         </div>
-        <div class="kpi-card">
-            <div class="kpi-icon" style="background: #28a745; color: #fff;"><i class="fas fa-users"></i></div>
-            <div class="kpi-value"><?= $usuariosRegistrados ?></div>
-            <div class="kpi-label">Usuarios Registrados</div>
-            <div class="kpi-trend text-success">
-                <i class="fas fa-user-plus"></i> <?= $nuevosUsuarios ?> nuevos esta semana
-            </div>
+        <div class="stats-card">
+            <i class="fas fa-users"></i>
+            <h3><?= $usuariosRegistrados ?></h3>
+            <p>Usuarios Registrados</p>
         </div>
     </div>
 
@@ -176,37 +173,49 @@ document.addEventListener('DOMContentLoaded', function() {
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                right: 'dayGridMonth'
             },
-            dateClick: function(info) {
-                var fecha = info.dateStr;
+            events: function(fetchInfo, successCallback, failureCallback) {
+                // Cargar pedidos como eventos para el rango visible
+                fetch('/Original-Floraltech/controllers/ccalendar_api.php?start=' + fetchInfo.startStr + '&end=' + fetchInfo.endStr)
+                    .then(response => response.json())
+                    .then(events => successCallback(events))
+                    .catch(failureCallback);
+            },
+            eventClick: function(info) {
+                // Mostrar modal con detalle del pedido al hacer click en un evento
+                var fecha = info.event.startStr;
                 fetch('/Original-Floraltech/controllers/ccalendar_api.php?fecha=' + fecha)
                     .then(response => response.json())
                     .then(data => {
                         var html = '';
-                        html += '<h6>Resumen:</h6>';
-                        html += '<ul>';
-                        html += '<li>Total: ' + data.resumen.total + '</li>';
-                        html += '<li>Completados: ' + data.resumen.completados + '</li>';
-                        html += '<li>Pendientes: ' + data.resumen.pendientes + '</li>';
-                        html += '<li>Rechazados: ' + data.resumen.rechazados + '</li>';
-                        html += '</ul>';
-                        html += '<button class="btn btn-success mb-3" id="btnNuevoPedido" data-fecha="' + info.dateStr + '">Crear nuevo pedido</button>';
-                        html += '<h6>Pedidos:</h6>';
-                        if (data.pedidos.length === 0) {
-                            html += '<p>No hay pedidos para este día.</p>';
+                        if (!data || typeof data !== 'object' || data.error) {
+                            html = '<p class="text-danger">No se pudieron cargar los pedidos.</p>';
                         } else {
-                            html += '<table class="table table-bordered"><thead><tr><th>ID</th><th>Cliente</th><th>Estado</th><th>Monto</th><th>Hora</th></tr></thead><tbody>';
-                            data.pedidos.forEach(function(p) {
-                                html += '<tr>';
-                                html += '<td>' + p.id + '</td>';
-                                html += '<td>' + (p.cliente || '-') + '</td>';
-                                html += '<td><span class="badge ' + getStatusBadgeClass(p.estado) + '">' + p.estado + '</span></td>';
-                                html += '<td>' + p.monto + '</td>';
-                                html += '<td>' + (p.fecha_pedido ? p.fecha_pedido.substr(11,5) : '-') + '</td>';
-                                html += '</tr>';
-                            });
-                            html += '</tbody></table>';
+                            html += '<h6>Resumen:</h6>';
+                            html += '<ul>';
+                            html += '<li>Total: ' + (data.resumen && data.resumen.total !== undefined ? data.resumen.total : 0) + '</li>';
+                            html += '<li>Completados: ' + (data.resumen && data.resumen.completados !== undefined ? data.resumen.completados : 0) + '</li>';
+                            html += '<li>Pendientes: ' + (data.resumen && data.resumen.pendientes !== undefined ? data.resumen.pendientes : 0) + '</li>';
+                            html += '<li>Rechazados: ' + (data.resumen && data.resumen.rechazados !== undefined ? data.resumen.rechazados : 0) + '</li>';
+                            html += '</ul>';
+                            html += '<button class="btn btn-success mb-3" id="btnNuevoPedido" data-fecha="' + fecha + '">Crear nuevo pedido</button>';
+                            html += '<h6>Pedidos:</h6>';
+                            if (!data.pedidos || !Array.isArray(data.pedidos) || data.pedidos.length === 0) {
+                                html += '<p>No hay pedidos para este día.</p>';
+                            } else {
+                                html += '<table class="table table-bordered"><thead><tr><th>ID</th><th>Cliente</th><th>Estado</th><th>Monto</th><th>Hora</th></tr></thead><tbody>';
+                                data.pedidos.forEach(function(p) {
+                                    html += '<tr>';
+                                    html += '<td>' + (p.id || '-') + '</td>';
+                                    html += '<td>' + (p.cliente || '-') + '</td>';
+                                    html += '<td><span class="badge ' + getStatusBadgeClass(p.estado) + '">' + (p.estado || '-') + '</span></td>';
+                                    html += '<td>' + (p.monto !== undefined ? p.monto : '-') + '</td>';
+                                    html += '<td>' + (p.fecha_pedido ? String(p.fecha_pedido).substr(11,5) : '-') + '</td>';
+                                    html += '</tr>';
+                                });
+                                html += '</tbody></table>';
+                            }
                         }
                         document.getElementById('modalPedidosDiaBody').innerHTML = html;
                         var modal = new bootstrap.Modal(document.getElementById('modalPedidosDia'));
@@ -229,7 +238,69 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }, 300);
                     })
-                    .catch(() => {
+                    .catch((err) => {
+                        document.getElementById('modalPedidosDiaBody').innerHTML = '<p class="text-danger">No se pudieron cargar los pedidos.</p>';
+                        var modal = new bootstrap.Modal(document.getElementById('modalPedidosDia'));
+                        modal.show();
+                    });
+            },
+            dateClick: function(info) {
+                // También permitir crear pedido desde un día vacío
+                var fecha = info.dateStr;
+                fetch('/Original-Floraltech/controllers/ccalendar_api.php?fecha=' + fecha)
+                    .then(response => response.json())
+                    .then(data => {
+                        var html = '';
+                        if (!data || typeof data !== 'object' || data.error) {
+                            html = '<p class="text-danger">No se pudieron cargar los pedidos.</p>';
+                        } else {
+                            html += '<h6>Resumen:</h6>';
+                            html += '<ul>';
+                            html += '<li>Total: ' + (data.resumen && data.resumen.total !== undefined ? data.resumen.total : 0) + '</li>';
+                            html += '<li>Completados: ' + (data.resumen && data.resumen.completados !== undefined ? data.resumen.completados : 0) + '</li>';
+                            html += '<li>Pendientes: ' + (data.resumen && data.resumen.pendientes !== undefined ? data.resumen.pendientes : 0) + '</li>';
+                            html += '<li>Rechazados: ' + (data.resumen && data.resumen.rechazados !== undefined ? data.resumen.rechazados : 0) + '</li>';
+                            html += '</ul>';
+                            html += '<button class="btn btn-success mb-3" id="btnNuevoPedido" data-fecha="' + info.dateStr + '">Crear nuevo pedido</button>';
+                            html += '<h6>Pedidos:</h6>';
+                            if (!data.pedidos || !Array.isArray(data.pedidos) || data.pedidos.length === 0) {
+                                html += '<p>No hay pedidos para este día.</p>';
+                            } else {
+                                html += '<table class="table table-bordered"><thead><tr><th>ID</th><th>Cliente</th><th>Estado</th><th>Monto</th><th>Hora</th></tr></thead><tbody>';
+                                data.pedidos.forEach(function(p) {
+                                    html += '<tr>';
+                                    html += '<td>' + (p.id || '-') + '</td>';
+                                    html += '<td>' + (p.cliente || '-') + '</td>';
+                                    html += '<td><span class="badge ' + getStatusBadgeClass(p.estado) + '">' + (p.estado || '-') + '</span></td>';
+                                    html += '<td>' + (p.monto !== undefined ? p.monto : '-') + '</td>';
+                                    html += '<td>' + (p.fecha_pedido ? String(p.fecha_pedido).substr(11,5) : '-') + '</td>';
+                                    html += '</tr>';
+                                });
+                                html += '</tbody></table>';
+                            }
+                        }
+                        document.getElementById('modalPedidosDiaBody').innerHTML = html;
+                        var modal = new bootstrap.Modal(document.getElementById('modalPedidosDia'));
+                        modal.show();
+                        setTimeout(function() {
+                            var btn = document.getElementById('btnNuevoPedido');
+                            if (btn) {
+                                btn.onclick = function() {
+                                    var fecha = btn.getAttribute('data-fecha');
+                                    document.getElementById('modalPedidosDiaBody').innerHTML = '<div class="text-center"><div class="spinner-border text-success" role="status"></div><p>Cargando formulario...</p></div>';
+                                    fetch('/Original-Floraltech/controllers/ajax_nuevo_pedido.php?fecha=' + fecha)
+                                        .then(resp => resp.text())
+                                        .then(formHtml => {
+                                            document.getElementById('modalPedidosDiaBody').innerHTML = formHtml;
+                                        })
+                                        .catch(() => {
+                                            document.getElementById('modalPedidosDiaBody').innerHTML = '<p class="text-danger">No se pudo cargar el formulario.</p>';
+                                        });
+                                };
+                            }
+                        }, 300);
+                    })
+                    .catch((err) => {
                         document.getElementById('modalPedidosDiaBody').innerHTML = '<p class="text-danger">No se pudieron cargar los pedidos.</p>';
                         var modal = new bootstrap.Modal(document.getElementById('modalPedidosDia'));
                         modal.show();

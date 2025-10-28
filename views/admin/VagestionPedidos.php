@@ -191,15 +191,14 @@ function obtenerDetallesPedido($conn, $idPedido) {
 
     <!-- Filtros y búsqueda FUNCIONALES -->
     <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtros de Búsqueda</h5>
-        </div>
-        <div class="card-body">
-            <form method="GET" class="row g-3">
+        <div class="card-body pb-2">
+            <div class="fw-bold fs-5 mb-2"><i class="fas fa-filter me-2"></i>Filtros de Búsqueda</div>
+            <div style="max-width: 950px; margin: 0 auto;">
+            <form method="GET">
+                <div class="row g-2 align-items-end justify-content-end">
                 <input type="hidden" name="ctrl" value="dashboard">
                 <input type="hidden" name="action" value="admin">
                 <input type="hidden" name="page" value="pedidos">
-                
                 <div class="col-md-3">
                     <label class="form-label">Cliente</label>
                     <input type="text" class="form-control" placeholder="Nombre del cliente" name="cliente" value="<?= $_GET['cliente'] ?? '' ?>">
@@ -214,21 +213,21 @@ function obtenerDetallesPedido($conn, $idPedido) {
                         <option value="Cancelado" <?= ($_GET['estado'] ?? '') === 'Cancelado' ? 'selected' : '' ?>>Cancelado</option>
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label">Fecha Desde</label>
                     <input type="date" class="form-control" name="fecha_desde" value="<?= $_GET['fecha_desde'] ?? '' ?>">
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label">Fecha Hasta</label>
                     <input type="date" class="form-control" name="fecha_hasta" value="<?= $_GET['fecha_hasta'] ?? '' ?>">
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">&nbsp;</label>
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-search"></i> Filtrar
-                    </button>
+                <div class="col-md-auto d-flex gap-2 align-items-end justify-content-end text-end">
+                    <button type="submit" class="btn btn-success px-4">Filtrar</button>
+                    <a href="?ctrl=dashboard&action=admin&page=pedidos" class="btn btn-link text-secondary">Limpiar Filtros</a>
+                </div>
                 </div>
             </form>
+            </div>
         </div>
     </div>
 
