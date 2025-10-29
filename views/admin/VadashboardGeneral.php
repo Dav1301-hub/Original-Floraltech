@@ -110,8 +110,8 @@ $mesReferencia = $dashboardData['resumenPedidosMes']['mesReferencia'] ?? date('m
         <div class="col-lg-6 col-md-7">
             <div class="card card-noti mb-3">
                 <div class="card-header bg-info text-white"><i class="fas fa-bell me-2"></i>Actividad Reciente</div>
-                <div class="card-body">
-                    <ul class="list-group">
+                <div class="card-body" id="actividad-reciente-body">
+                    <ul class="list-group" id="actividad-reciente-list">
                         <?php foreach ($actividadReciente as $item): ?>
                             <li class="list-group-item">
                                 <span class="icon"><i class="fas fa-history"></i></span>
@@ -320,6 +320,29 @@ function getStatusBadgeClass(estado) {
         default: return 'bg-secondary';
     }
 }
+</script>
+<script>
+// Actualización automática de Actividad Reciente cada 30 segundos
+function actualizarActividadReciente() {
+    fetch('/Original-Floraltech/controllers/CDashboardGeneral.php?action=actividadReciente')
+        .then(res => res.json())
+        .then(data => {
+            if (Array.isArray(data)) {
+                const ul = document.getElementById('actividad-reciente-list');
+                if (ul) {
+                    ul.innerHTML = data.map(item =>
+                        `<li class="list-group-item">
+                            <span class='icon'><i class='fas fa-history'></i></span>
+                            <span>${item.fecha ? new Date(item.fecha).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''} - ${item.descripcion ? item.descripcion.replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''}</span>
+                        </li>`
+                    ).join('');
+                }
+            }
+        })
+        .catch(() => {});
+}
+setInterval(actualizarActividadReciente, 30000);
+document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
 </script>
 </body>
 </html>

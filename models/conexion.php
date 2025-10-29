@@ -20,17 +20,17 @@ class conexion{
 			
 			// Mostrar mensaje específico según el tipo de error
 			if (strpos($e->getMessage(), 'Connection refused') !== false) {
-				die("Error: No se puede conectar al servidor MySQL. Asegúrate de que XAMPP esté ejecutándose.");
+				throw new Exception("Error: No se puede conectar al servidor MySQL. Asegúrate de que XAMPP esté ejecutándose.");
 			} elseif (strpos($e->getMessage(), 'Unknown database') !== false) {
-				die("Error: La base de datos 'flores' no existe. Por favor, crea la base de datos primero.");
+				throw new Exception("Error: La base de datos 'flores' no existe. Por favor, crea la base de datos primero.");
 			} elseif (strpos($e->getMessage(), 'Access denied') !== false) {
-				die("Error: Acceso denegado. Verifica el usuario y contraseña de la base de datos.");
+				throw new Exception("Error: Acceso denegado. Verifica el usuario y contraseña de la base de datos.");
 			} else {
-				die("Error de conexión a la base de datos: " . $e->getMessage());
+				throw new Exception("Error de conexión a la base de datos: " . $e->getMessage());
 			}
 		} catch (Exception $e) {
 			error_log("Error de configuración: " . $e->getMessage());
-			die("Error de configuración: " . $e->getMessage());
+			throw new Exception("Error de configuración: " . $e->getMessage());
 		}
 	}
 	
@@ -38,4 +38,3 @@ class conexion{
 		return $this->db;
 	}
 }
-?>
