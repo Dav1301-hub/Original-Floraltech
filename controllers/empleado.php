@@ -402,12 +402,13 @@ class empleado {
         try {
             $stmt = $this->db->prepare("
                 SELECT 
-                    COUNT(*) as total_productos,
-                    COUNT(CASE WHEN inv.cantidad_disponible < 5 AND inv.cantidad_disponible > 0 THEN 1 END) as stock_bajo,
-                    COUNT(CASE WHEN inv.cantidad_disponible = 0 THEN 1 END) as sin_stock,
-                    SUM(tflor.precio * inv.cantidad_disponible) as valor_total
+                    COUNT(DISTINCT tflor.idtflor) as total_productos,
+                    COUNT(CASE WHEN COALESCE(inv.cantidad_disponible, 0) < 5 AND COALESCE(inv.cantidad_disponible, 0) > 0 THEN 1 END) as stock_bajo,
+                    COUNT(CASE WHEN COALESCE(inv.cantidad_disponible, 0) = 0 THEN 1 END) as sin_stock,
+                    COALESCE(SUM(tflor.precio * COALESCE(inv.cantidad_disponible, 0)), 0) as valor_total
                 FROM tflor
                 LEFT JOIN inv ON tflor.idtflor = inv.tflor_idtflor
+                WHERE tflor.activo = 1
             ");
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_ASSOC) ?: [
@@ -417,6 +418,7 @@ class empleado {
                 'valor_total' => 0
             ];
         } catch (Exception $e) {
+            error_log("Error en obtenerEstadisticasInventario: " . $e->getMessage());
             return [
                 'total_productos' => 0,
                 'stock_bajo' => 0,
@@ -433,7 +435,7 @@ class empleado {
             
             // Filtros de búsqueda
             if (isset($_GET['categoria']) && !empty($_GET['categoria'])) {
-                $where_conditions[] = "tflor.nombre LIKE ?";
+                $where_conditions[] = "tflor.naturaleza LIKE ?";
                 $params[] = '%' . $_GET['categoria'] . '%';
             }
             
@@ -455,13 +457,14 @@ class empleado {
             }
             
             if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
-                $where_conditions[] = "tflor.nombre LIKE ?";
+                $where_conditions[] = "(tflor.nombre LIKE ? OR tflor.naturaleza LIKE ?)";
+                $params[] = '%' . $_GET['buscar'] . '%';
                 $params[] = '%' . $_GET['buscar'] . '%';
             }
             
-            $where_clause = '';
+            $where_clause = 'WHERE tflor.activo = 1';
             if (!empty($where_conditions)) {
-                $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
+                $where_clause .= ' AND ' . implode(' AND ', $where_conditions);
             }
             
             $stmt = $this->db->prepare("
@@ -470,8 +473,9 @@ class empleado {
                     tflor.nombre,
                     tflor.naturaleza,
                     tflor.precio,
-                    tflor.imagen,
-                    COALESCE(inv.cantidad_disponible, 0) as cantidad_disponible
+                    tflor.color,
+                    COALESCE(inv.cantidad_disponible, 0) as cantidad_disponible,
+                    inv.fecha_actualizacion
                 FROM tflor
                 LEFT JOIN inv ON tflor.idtflor = inv.tflor_idtflor
                 $where_clause
@@ -481,6 +485,7 @@ class empleado {
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
+            error_log("Error en obtenerProductosInventario: " . $e->getMessage());
             return [];
         }
     }
@@ -563,8 +568,10 @@ class empleado {
     
     private function actualizarStockProducto($producto_id, $nuevo_stock, $motivo, $observaciones) {
         try {
+            $this->db->beginTransaction();
+            
             // Primero verificar si existe registro en inventario
-            $stmt = $this->db->prepare("SELECT cantidad_disponible FROM inv WHERE tflor_idtflor = ?");
+            $stmt = $this->db->prepare("SELECT idinv, cantidad_disponible FROM inv WHERE tflor_idtflor = ?");
             $stmt->execute([$producto_id]);
             $inventario_actual = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -573,21 +580,58 @@ class empleado {
                 $stmt = $this->db->prepare("
                     UPDATE inv 
                     SET cantidad_disponible = ?, 
+                        stock = ?,
+                        empleado_id = ?,
+                        motivo = ?,
                         fecha_actualizacion = NOW()
                     WHERE tflor_idtflor = ?
                 ");
-                $result = $stmt->execute([$nuevo_stock, $producto_id]);
+                $result = $stmt->execute([$nuevo_stock, $nuevo_stock, $this->empleado_id, $motivo, $producto_id]);
+                
+                // Registrar en historial si existe la tabla
+                if ($result) {
+                    try {
+                        $stmt_hist = $this->db->prepare("
+                            INSERT INTO inv_historial 
+                            (inv_idinv, stock_anterior, stock_nuevo, motivo, empleado_id, fecha_movimiento, observaciones) 
+                            VALUES (?, ?, ?, ?, ?, NOW(), ?)
+                        ");
+                        $stmt_hist->execute([
+                            $inventario_actual['idinv'], 
+                            $inventario_actual['cantidad_disponible'], 
+                            $nuevo_stock, 
+                            $motivo, 
+                            $this->empleado_id, 
+                            $observaciones
+                        ]);
+                    } catch (Exception $e) {
+                        // Si falla el historial, continuar (no es crítico)
+                        error_log("Error registrando historial: " . $e->getMessage());
+                    }
+                }
             } else {
+                // Obtener información del producto
+                $stmt = $this->db->prepare("SELECT precio FROM tflor WHERE idtflor = ?");
+                $stmt->execute([$producto_id]);
+                $producto = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$producto) {
+                    throw new Exception("Producto no encontrado");
+                }
+                
                 // Crear nuevo registro de inventario
                 $stmt = $this->db->prepare("
-                    INSERT INTO inv (tflor_idtflor, cantidad_disponible, fecha_actualizacion) 
-                    VALUES (?, ?, NOW())
+                    INSERT INTO inv (tflor_idtflor, cantidad_disponible, stock, precio, empleado_id, motivo, fecha_actualizacion) 
+                    VALUES (?, ?, ?, ?, ?, ?, NOW())
                 ");
-                $result = $stmt->execute([$producto_id, $nuevo_stock]);
+                $result = $stmt->execute([$producto_id, $nuevo_stock, $nuevo_stock, $producto['precio'], $this->empleado_id, $motivo]);
             }
             
+            $this->db->commit();
             return $result;
         } catch (Exception $e) {
+            $this->db->rollback();
+            error_log("Error en actualizarStockProducto: " . $e->getMessage());
             return false;
         }
     }
