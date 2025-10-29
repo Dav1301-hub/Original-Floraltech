@@ -274,13 +274,21 @@ function cargarEmpleado(id) {
     document.getElementById('edit_estado').value = '';
     document.getElementById('edit_password').value = '';
 
+    console.log('cargarEmpleado llamado con id:', id);
     fetch('/Original-Floraltech/assets/ajax/ajax_empleado.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'action=get&id=' + id
     })
-    .then(r => r.json())
+    .then(r => {
+        if (!r.ok) {
+            alert('Error de red o servidor: ' + r.status);
+            throw new Error('Respuesta HTTP no OK');
+        }
+        return r.json();
+    })
     .then(data => {
+        console.log('Respuesta AJAX:', data);
         if (data.success) {
             document.getElementById('edit_id').value = data.idusu;
             // Separar nombre y apellido correctamente
@@ -303,7 +311,12 @@ function cargarEmpleado(id) {
             modal.show();
         } else {
             alert('No se pudo cargar el empleado.');
+            console.log('Error en datos:', data);
         }
+    })
+    .catch(err => {
+        alert('Error en la petición AJAX: ' + err);
+        console.log('Error en fetch:', err);
     });
 }
 
@@ -367,7 +380,19 @@ function verEmpleado(id) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            alert('Nombre: ' + data.nombre_completo + '\nDocumento: ' + data.username + '\nCargo: ' + data.naturaleza);
+            // Llenar los campos del modal de solo lectura
+            document.getElementById('ver_id').value = data.idusu || '';
+            document.getElementById('ver_nombre').value = data.nombre || '';
+            document.getElementById('ver_apellido').value = data.apellido || '';
+            document.getElementById('ver_documento').value = data.username || '';
+            document.getElementById('ver_cargo').value = data.naturaleza || '';
+            document.getElementById('ver_fecha_ingreso').value = data.fecha_registro ? data.fecha_registro.split('T')[0] : '';
+            document.getElementById('ver_tipo_contrato').value = data.tipo_contrato || '';
+            document.getElementById('ver_estado').value = data.estado || '';
+            document.getElementById('ver_tipo_usuario').value = data.tipo_usuario || '';
+            // Mostrar el modal
+            var modal = new bootstrap.Modal(document.getElementById('verEmpleadoModal'));
+            modal.show();
         } else {
             alert('No se pudo cargar el empleado.');
         }
