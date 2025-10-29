@@ -1,7 +1,7 @@
 <?php
-require_once 'models/InventarioModel.php';
+require_once 'models/Minventario.php';
 
-class cinventario {
+class Cinventario {
     private $inventarioModel;
     private $mensaje_exito = '';
     private $mensaje_error = '';
@@ -38,9 +38,9 @@ class cinventario {
         }
         
         try {
-            $this->inventarioModel = new InventarioModel();
+            $this->inventarioModel = new Minventario();
         } catch (Exception $e) {
-            error_log("Error crítico al cargar InventarioModel: " . $e->getMessage());
+            error_log("Error crítico al cargar Minventario: " . $e->getMessage());
             $this->error_message = "Error de conexión a la base de datos. Por favor, inténtelo más tarde.";
             $this->inventarioModel = null;
         }
@@ -69,49 +69,112 @@ class cinventario {
                     case 'nuevo_producto':
                         $this->inventarioModel->agregarProducto($_POST);
                         $this->mensaje_exito = 'Producto agregado al inventario exitosamente';
-                        header('Location: ?ctrl=cinventario&success=1');
+                        header('Location: ?ctrl=Cinventario&success=1');
                         exit;
                         break;
                         
                     case 'actualizar_parametros':
                         $this->inventarioModel->actualizarParametros($_POST);
                         $this->mensaje_exito = 'Parámetros de inventario actualizados correctamente';
-                        header('Location: ?ctrl=cinventario&success=parametros_actualizados');
+                        header('Location: ?ctrl=Cinventario&success=parametros_actualizados');
                         exit;
                         break;
                         
                     case 'nueva_flor':
                         $this->inventarioModel->crearNuevaFlor($_POST);
                         $this->mensaje_exito = 'Nueva flor creada exitosamente';
-                        header('Location: ?ctrl=cinventario&success=nueva_flor');
+                        header('Location: ?ctrl=Cinventario&success=nueva_flor');
                         exit;
                         break;
                         
                     case 'editar_flor':
                         $this->inventarioModel->actualizarFlor($_POST);
                         $this->mensaje_exito = 'Flor actualizada exitosamente';
-                        header('Location: ?ctrl=cinventario&success=flor_editada');
+                        header('Location: ?ctrl=Cinventario&success=flor_editada');
                         exit;
                         break;
                         
                     case 'eliminar_flor':
                         $this->inventarioModel->eliminarFlor($_POST['id_flor']);
                         $this->mensaje_exito = 'Flor eliminada exitosamente';
-                        header('Location: ?ctrl=cinventario&success=flor_eliminada');
+                        header('Location: ?ctrl=Cinventario&success=flor_eliminada');
                         exit;
                         break;
                         
                     case 'agregar_a_inventario':
                         $this->inventarioModel->agregarFlorAInventario($_POST['id_flor']);
                         $this->mensaje_exito = 'Flor agregada al inventario exitosamente. Puedes actualizar el stock y precio desde la gestión de inventario.';
-                        header('Location: ?ctrl=cinventario&success=agregada_inventario');
+                        header('Location: ?ctrl=Cinventario&success=agregada_inventario');
                         exit;
                         break;
                         
                     case 'nuevo_proveedor':
                         $this->inventarioModel->crearProveedor($_POST);
                         $this->mensaje_exito = 'Proveedor agregado exitosamente';
-                        header('Location: ?ctrl=cinventario&success=proveedor_agregado');
+                        header('Location: ?ctrl=Cinventario&success=proveedor_agregado');
+                        exit;
+                        break;
+                        
+                    case 'editar_producto':
+                        $resultado = $this->inventarioModel->editarProducto($_POST);
+                        if ($resultado['success']) {
+                            echo json_encode(['success' => true, 'message' => 'Producto actualizado correctamente']);
+                        } else {
+                            echo json_encode(['success' => false, 'message' => $resultado['message']]);
+                        }
+                        exit;
+                        break;
+                        
+                    case 'obtener_producto':
+                        $id = $_GET['id'] ?? $_POST['id'] ?? null;
+                        if ($id) {
+                            $producto = $this->inventarioModel->obtenerProductoPorId($id);
+                            if ($producto) {
+                                echo json_encode(['success' => true, 'producto' => $producto]);
+                            } else {
+                                echo json_encode(['success' => false, 'message' => 'Producto no encontrado']);
+                            }
+                        } else {
+                            echo json_encode(['success' => false, 'message' => 'ID de producto requerido']);
+                        }
+                        exit;
+                        break;
+                        
+                    case 'agregar_stock':
+                        $id = $_GET['id'] ?? $_POST['id'] ?? null;
+                        $cantidad = $_GET['cantidad'] ?? $_POST['cantidad'] ?? null;
+                        $motivo = $_GET['motivo'] ?? $_POST['motivo'] ?? '';
+                        
+                        if ($id && $cantidad && $cantidad > 0) {
+                            $resultado = $this->inventarioModel->agregarStock($id, $cantidad, $motivo);
+                            if ($resultado['success']) {
+                                echo json_encode(['success' => true, 'message' => 'Stock agregado correctamente']);
+                            } else {
+                                echo json_encode(['success' => false, 'message' => $resultado['message']]);
+                            }
+                        } else {
+                            echo json_encode(['success' => false, 'message' => 'Datos incompletos']);
+                        }
+                        exit;
+                        break;
+                        
+                    case 'eliminar_producto':
+                        $id = $_GET['id'] ?? $_POST['id'] ?? null;
+                        if ($id) {
+                            $resultado = $this->inventarioModel->eliminarProducto($id);
+                            if ($resultado['success']) {
+                                echo json_encode(['success' => true, 'message' => 'Producto eliminado correctamente']);
+                            } else {
+                                echo json_encode(['success' => false, 'message' => $resultado['message']]);
+                            }
+                        } else {
+                            echo json_encode(['success' => false, 'message' => 'ID de producto requerido']);
+                        }
+                        exit;
+                        break;
+                        
+                    case 'exportar_inventario':
+                        $this->exportarInventarioExcel();
                         exit;
                         break;
                 }
@@ -243,36 +306,118 @@ class cinventario {
      * Cargar la vista del inventario
      */
     private function cargarVista() {
-        // Hacer las variables accesibles en la vista
-        $mensaje_exito = $this->mensaje_exito;
-        $mensaje_error = $this->mensaje_error;
-        $error_message = $this->error_message;
-        
-        // Variables de estadísticas - siempre definidas
-        $total_productos = $this->total_productos;
-        $stock_bajo = $this->stock_bajo;
-        $sin_stock = $this->sin_stock;
-        $valor_total = $this->valor_total;
-        
-        // Variables de inventario - siempre definidas
-        $inventario = $this->inventario;
-        $total_elementos = $this->total_elementos;
-        $total_paginas = $this->total_paginas;
-        $todas_las_flores = $this->todas_las_flores;
-        $flores_para_select = $this->flores_para_select;
-        
-        // Variables de paginación - siempre definidas
-        $elementos_por_pagina = $this->elementos_por_pagina;
-        $pagina_actual = $this->pagina_actual;
-        $offset = $this->offset;
-        
-        // Variables para el layout
-        $usu = $_SESSION['user'];
-        $page = 'inventario'; // Usar un nombre diferente que no active la redirección
-        $totalUsuarios = 0; // Variable requerida por el dashboard
-        
-        // Cargar el dashboard de admin con la vista del inventario
-        include 'views/admin/dashboard.php';
+    // Hacer las variables accesibles en la vista
+    $mensaje_exito = $this->mensaje_exito;
+    $mensaje_error = $this->mensaje_error;
+    $error_message = $this->error_message;
+
+    // Variables de estadísticas - siempre definidas
+    $total_productos = $this->total_productos;
+    $stock_bajo = $this->stock_bajo;
+    $sin_stock = $this->sin_stock;
+    $valor_total = $this->valor_total;
+
+    // Variables de inventario - siempre definidas
+    $inventario = $this->inventario;
+    $total_elementos = $this->total_elementos;
+    $total_paginas = $this->total_paginas;
+    $todas_las_flores = $this->todas_las_flores;
+    $flores_para_select = $this->flores_para_select;
+
+    // NUEVO: Productos para el select de proveedores (todos los productos)
+    $productos_inventario = $this->inventarioModel ? $this->inventarioModel->getInventarioPaginado(9999, 0, []) : [];
+
+    // NUEVO: Proveedores para la tabla de proveedores (con productos asociados)
+    $proveedores = $this->inventarioModel ? $this->inventarioModel->getProveedoresConProductos() : [];
+
+    // Variables de paginación - siempre definidas
+    $elementos_por_pagina = $this->elementos_por_pagina;
+    $pagina_actual = $this->pagina_actual;
+    $offset = $this->offset;
+
+    // Variables para el layout
+    $usu = $_SESSION['user'];
+    $page = 'inventario'; // Forzar siempre la vista de inventario
+    $_GET['page'] = 'inventario'; // Forzar también el parámetro GET por si la vista lo usa
+    $totalUsuarios = 0; // Variable requerida por el dashboard
+
+    // Cargar el dashboard de admin con la vista del inventario
+    include 'views/admin/VadashboardPrincipal.php';
+    }
+
+    /**
+     * Método para exportar inventario a Excel
+     */
+    public function exportarInventarioExcel() {
+        try {
+            if (!$this->inventarioModel) {
+                throw new Exception('Modelo de inventario no disponible');
+            }
+
+            // Obtener todos los datos del inventario
+            $inventario = $this->inventarioModel->getInventarioPaginado(9999, 0, []);
+            
+            // Configurar headers para descarga de Excel
+            $filename = 'inventario_' . date('Y-m-d_H-i-s') . '.csv';
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Cache-Control: no-cache, must-revalidate');
+            header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+            
+            // Crear el contenido CSV
+            $output = fopen('php://output', 'w');
+            
+            // BOM para UTF-8
+            fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+            
+            // Encabezados
+            fputcsv($output, [
+                'ID',
+                'Producto',
+                'Categoría',
+                'Stock',
+                'Precio',
+                'Color',
+                'Naturaleza',
+                'Estado',
+                'Fecha Creación',
+                'Valor Total'
+            ], ';');
+            
+            // Datos
+            foreach ($inventario as $item) {
+                $valor_total = $item['stock'] * $item['precio'];
+                fputcsv($output, [
+                    $item['idinv'] ?? '',
+                    $item['producto'] ?? '',
+                    $item['categoria'] ?? '',
+                    $item['stock'] ?? '0',
+                    number_format($item['precio'] ?? 0, 2),
+                    $item['color'] ?? '',
+                    $item['naturaleza'] ?? '',
+                    $item['estado'] ?? '',
+                    $item['fecha_creacion'] ?? '',
+                    number_format($valor_total, 2)
+                ], ';');
+            }
+            
+            fclose($output);
+            
+        } catch (Exception $e) {
+            // En caso de error, redirigir con mensaje
+            header('Location: ?ctrl=Cinventario&error=export_failed');
+            exit;
+        }
+    }
+
+    /**
+     * Método simple para compatibilidad (antes en InventarioController.php)
+     */
+    public function obtenerInventario() {
+        if (!$this->inventarioModel) {
+            return [];
+        }
+        return $this->inventarioModel->getInventario();
     }
 }
 ?>

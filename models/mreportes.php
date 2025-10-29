@@ -13,6 +13,26 @@ class Mreportes{
     private $notas;
     private $direccion_entrega;
     private $fecha_entrega_solicitada;
+    private $idusu;
+    private $username;
+    private $nombre_completo;
+    private $naturaleza;
+    private $telefono;
+    private $email;
+    private $clave;
+    private $tpusu_idtpusu;
+    private $fecha_registro;
+    private $activo;
+    private $vacaciones;
+    private $idtflor;
+    private $nombre;
+    private $descripcion;
+    private $precio;
+    private $fecha_creacion;
+    private $color;
+    private $precio_venta;
+
+
     
     function getIdped() {
         return $this->idped;
@@ -44,6 +64,61 @@ class Mreportes{
     function getFecha_entrega_solicitada() {
         return $this->fecha_entrega_solicitada;
     }
+    function getIdusu() {
+        return $this->idusu;
+    }
+    function getUsername() {
+        return $this->username;
+    }
+    function getNombre_completo() {
+        return $this->nombre_completo;
+    }
+    function getNaturaleza() {
+        return $this->naturaleza;
+    }
+    function getTelefono() {
+        return $this->telefono;
+    }
+    function getEmail() {
+        return $this->email;
+    }
+    function getClave() {
+        return $this->clave;
+    }
+    function getTpusu_idtpusu() {
+        return $this->tpusu_idtpusu;
+    }
+    function getFecha_registro() {
+        return $this->fecha_registro;
+    }
+    function getActivo() {
+        return $this->activo;
+    }
+    function getVacaciones() {
+        return $this->vacaciones;
+    }
+    function getIdtflor() {
+        return $this->idtflor;
+    }
+    function getNombre() {
+        return $this->nombre;
+    }
+    function getDescripcion() {
+        return $this->descripcion;
+    }
+    function getPrecio() {
+        return $this->precio;
+    }
+    function getFecha_creacion() {
+        return $this->fecha_creacion;
+    }
+    function getColor() {
+        return $this->color;
+    }
+    function getPrecio_venta() {
+        return $this->precio_venta;
+    }
+
     function setIdped($idped) {
         $this->idped = $idped;
     }
@@ -74,6 +149,60 @@ class Mreportes{
     function setFecha_entrega_solicitada($fecha_entrega_solicitada) {
         $this->fecha_entrega_solicitada = $fecha_entrega_solicitada;
     }
+    function setIdusu($idusu) {
+        $this->idusu = $idusu;
+    }
+    function setUsername($username) {
+        $this->username = $username;
+    }
+    function setNombre_completo($nombre_completo) {
+        $this->nombre_completo = $nombre_completo;
+    }
+    function setNaturaleza($naturaleza) {
+        $this->naturaleza = $naturaleza;
+    }
+    function setTelefono($telefono) {
+        $this->telefono = $telefono;
+    }
+    function setEmail($email) {
+        $this->email = $email;
+    }
+    function setClave($clave) {
+        $this->clave = $clave;
+    }
+    function setTpusu_idtpusu($tpusu_idtpusu) {
+        $this->tpusu_idtpusu = $tpusu_idtpusu;
+    }
+    function setFecha_registro($fecha_registro) {
+        $this->fecha_registro = $fecha_registro;
+    }
+    function setActivo($activo) {
+        $this->activo = $activo;
+    }
+    function setVacaciones($vacaciones) {
+        $this->vacaciones = $vacaciones;
+    }
+    function setIdtflor($idtflor) {
+        $this->idtflor = $idtflor;
+    }
+    function setNombre($nombre) {
+        $this->nombre = $nombre;
+    }
+    function setDescripcion($descripcion) {
+        $this->descripcion = $descripcion;
+    }
+    function setPrecio($precio) {
+        $this->precio = $precio;
+    }
+    function setFecha_creacion($fecha_creacion) {
+        $this->fecha_creacion = $fecha_creacion;
+    }
+    function setColor($color) {
+        $this->color = $color;
+    }
+    function setPrecio_venta($precio_venta) {
+        $this->precio_venta = $precio_venta;
+    }
 
     public function getAll() {
     try {
@@ -87,6 +216,56 @@ class Mreportes{
         echo "Error: " . $e->getMessage();
     }
 }
+
+public function getAllusu() {
+    try {
+        $sql = "SELECT 
+                    u.idusu,
+                    u.username,
+                    u.nombre_completo,
+                    t.nombre AS tipo_usuario,
+                    u.telefono,
+                    u.email,
+                    u.activo
+                FROM usu u
+                JOIN tpusu t ON u.tpusu_idtpusu = t.idtpusu";
+
+        $modelo = new conexion();
+        $conexion = $modelo->get_conexion();
+        $res = $conexion->prepare($sql);
+        $res->execute();
+        return $res->fetchAll(PDO::FETCH_ASSOC);
+    } catch(Exception $e) {
+        echo 'Error: ' . $e->getMessage();
+    }
+}
+
+public function getAllInventario() {
+    try {
+        $sql = "SELECT 
+            f.idtflor,
+            f.nombre AS producto,
+            f.naturaleza,
+            f.color,
+            COALESCE(i.stock, 0) AS stock,
+            f.estado,
+            f.precio AS precio_unitario,
+            COALESCE(i.stock, 0) * f.precio AS valor_total
+        FROM tflor f
+        LEFT JOIN inv i ON f.idtflor = i.tflor_idtflor
+        ";
+        
+        $modelo = new conexion();
+        $conexion = $modelo->get_conexion();
+        $res = $conexion->prepare($sql);
+        $res->execute();
+
+        return $res->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        echo "Error: " . $e->getMessage();
+    }
+}
+
 
 }
 

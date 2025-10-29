@@ -51,7 +51,7 @@ class dashboard {
     $user = $_SESSION['user'];
     $pageTitle = "Dashboard - Administrador";
     $totalUsuarios = $this->userModel->getTotalUsuarios();
-    require_once 'views/admin/dashboard.php';
+    require_once 'views/admin/VadashboardPrincipal.php';
     }
 
     /**

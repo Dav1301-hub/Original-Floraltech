@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/conexion.php';
 
-class User {
+class Mdgemp {
     private $conn;
 
     public function __construct() {

@@ -27,15 +27,16 @@ try {
             COALESCE(i.cantidad_disponible, 0) as stock
         FROM tflor tf
         LEFT JOIN inv i ON tf.idtflor = i.tflor_idtflor
+        WHERE COALESCE(i.cantidad_disponible, 0) > 0
         ORDER BY tf.nombre
     ");
     $stmt->execute();
     $flores_disponibles = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Log para debugging
-    error_log("Flores encontradas: " . count($flores_disponibles));
+    error_log("Flores disponibles encontradas: " . count($flores_disponibles));
     if (empty($flores_disponibles)) {
-        error_log("No se encontraron flores en la base de datos");
+        error_log("No se encontraron flores con stock disponible");
     }
     
 } catch (PDOException $e) {
@@ -209,12 +210,20 @@ try {
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="fecha_entrega" class="form-label">Fecha de Entrega Deseada</label>
+                                                <?php
+                                                    $fechaPreseleccionada = isset($_GET['fecha']) ? $_GET['fecha'] : '';
+                                                    $minFecha = date('Y-m-d', strtotime('+1 day'));
+                                                    if ($fechaPreseleccionada && $fechaPreseleccionada > date('Y-m-d')) {
+                                                        $minFecha = $fechaPreseleccionada;
+                                                    }
+                                                ?>
                                                 <input 
                                                     type="date" 
                                                     class="form-control" 
                                                     id="fecha_entrega" 
                                                     name="fecha_entrega"
-                                                    min="<?= date('Y-m-d', strtotime('+1 day')) ?>"
+                                                    min="<?= $minFecha ?>"
+                                                    value="<?= htmlspecialchars($fechaPreseleccionada) ?>"
                                                     required
                                                 >
                                                 <small class="text-muted">Mínimo 24 horas de anticipación</small>

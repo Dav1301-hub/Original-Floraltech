@@ -1,9 +1,9 @@
 <?php
 // controllers/login.php
-require_once 'models/conexion.php';
-require_once 'models/user.php';
+require_once __DIR__ . '/../models/conexion.php';
+require_once __DIR__ . '/../models/user.php';
 // Incluir helper de sesión
-require_once 'helpers/session_helper.php';
+require_once __DIR__ . '/../helpers/session_helper.php';
 
 class login {
     private $model;

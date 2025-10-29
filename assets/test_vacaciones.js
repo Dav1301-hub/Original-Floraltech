@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Enviar datos
-            fetch('assets/ajax/ajax_vacacion.php', {
+            fetch('/Original-Floraltech/assets/ajax/ajax_vacacion.php', {
                 method: 'POST',
                 body: formData
             })

@@ -1,8 +1,8 @@
 <?php
-require_once '../../models/PagoModel.php';
+require_once '../../models/Mpago.php';
 require_once '../../config/db.php';
 $db = (new Database())->connect();
-$model = new PagoModel($db);
+$model = new Mpago($db);
 
 $pagos = $model->obtenerTodosLosPagos();
 
