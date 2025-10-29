@@ -1,4 +1,3 @@
-
 <?php
 // Este archivo es incluido por dashboard.php, no es una página independiente
 
