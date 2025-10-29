@@ -1,3 +1,38 @@
+/* Filtros horizontales para formularios tipo inventario/pedidos */
+.filtros-horizontal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: end;
+    justify-content: center;
+}
+.filtros-horizontal .form-label {
+    margin-bottom: 4px;
+}
+.filtros-horizontal .form-control,
+.filtros-horizontal .form-select {
+    min-width: 180px;
+    max-width: 220px;
+}
+.filtros-horizontal .btn,
+.filtros-horizontal a.btn {
+    min-width: 100px;
+}
+@media (max-width: 900px) {
+    .filtros-horizontal {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filtros-horizontal .form-control,
+    .filtros-horizontal .form-select {
+        min-width: 100%;
+        max-width: 100%;
+    }
+    .filtros-horizontal .btn,
+    .filtros-horizontal a.btn {
+        min-width: 100%;
+    }
+}
 error
 body {
     font-family: Arial, sans-serif;
