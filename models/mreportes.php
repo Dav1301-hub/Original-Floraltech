@@ -31,6 +31,13 @@ class Mreportes{
     private $fecha_creacion;
     private $color;
     private $precio_venta;
+    private $idpago;
+    private $fecha_pago;
+    private $metodo_pago;
+    private $estado_pag;
+    private $monto;
+    private $transaccion_id;
+    private $comprobante_transferencia;
 
 
     
@@ -118,7 +125,27 @@ class Mreportes{
     function getPrecio_venta() {
         return $this->precio_venta;
     }
-
+    function getIdpago() {
+        return $this->idpago;
+    }
+    function getFecha_pago() {
+        return $this->fecha_pago;
+    }
+    function getMetodo_pago() {
+        return $this->metodo_pago;
+    }
+    function getEstado_pag() {
+        return $this->estado_pag;
+    }
+    function getMonto() {
+        return $this->monto;
+    }
+    function getTransaccion_id() {
+        return $this->transaccion_id;
+    }
+    function getComprobante_transferencia() {
+        return $this->comprobante_transferencia;
+    }
     function setIdped($idped) {
         $this->idped = $idped;
     }
@@ -203,6 +230,27 @@ class Mreportes{
     function setPrecio_venta($precio_venta) {
         $this->precio_venta = $precio_venta;
     }
+    function setIdpago($idpago) {
+        $this->idpago = $idpago;
+    }
+    function setFecha_pago($fecha_pago) {
+        $this->fecha_pago = $fecha_pago;
+    }
+    function setMetodo_pago($metodo_pago) {
+        $this->metodo_pago = $metodo_pago;
+    }
+    function setEstado_pag($estado_pag) {
+        $this->estado_pag = $estado_pag;
+    }
+    function setMonto($monto) {
+        $this->monto = $monto;
+    }
+    function setTransaccion_id($transaccion_id) {
+        $this->transaccion_id = $transaccion_id;
+    }
+    function setComprobante_transferencia($comprobante_transferencia) {
+        $this->comprobante_transferencia = $comprobante_transferencia;
+    }
 
     public function getAll() {
     try {
@@ -266,6 +314,18 @@ public function getAllInventario() {
     }
 }
 
+public function getAllPagos() {
+    try {
+        $sql = "SELECT idpago, fecha_pago, metodo_pago, estado_pag, monto, transaccion_id, comprobante_transferencia FROM pagos";
+        $modelo = new conexion();
+        $conexion = $modelo->get_conexion();
+        $res = $conexion->prepare($sql);
+        $res->execute();
+        return $res->fetchAll(PDO::FETCH_ASSOC);
+    } catch(Exception $e) {
+        echo "Error: " . $e->getMessage();
+    }
+}
 
 }
 

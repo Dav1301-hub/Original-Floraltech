@@ -123,3 +123,52 @@ document.getElementById('formPdfFlores')?.addEventListener('submit', function(e)
     document.getElementById('pdf_ids_flores').value = seleccionados.join(',');
     console.log('Flores seleccionadas:', seleccionados);
 });
+
+// --- FILTRADO EN MODAL DE PAGOS ---
+document.getElementById('btnFiltrarPagos')?.addEventListener('click', function() {
+    const fechaInicio = document.getElementById('modal_fecha_inicio_pagos')?.value;
+    const fechaFin = document.getElementById('modal_fecha_fin_pagos')?.value;
+    const estado = document.getElementById('modal_estado_pagos')?.value?.toLowerCase();
+
+    const rows = document.querySelectorAll('#tablaPagosModal tbody tr');
+    if (rows.length === 0) return; // Si no hay pagos en la tabla, salir
+
+    rows.forEach(row => {
+        const fechaPagoTexto = row.querySelector('td:nth-child(3)')?.textContent.trim(); // 3ª columna = fecha
+        const partes = fechaPagoTexto?.split('/');
+        const fechaPago = partes ? `${partes[2]}-${partes[1]}-${partes[0]}` : '';
+        const estadoPago = row.querySelector('td:nth-child(6)')?.textContent.trim().toLowerCase(); // 6ª columna = estado
+
+        let mostrar = true;
+        if (fechaInicio && fechaPago < fechaInicio) mostrar = false;
+        if (fechaFin && fechaPago > fechaFin) mostrar = false;
+        if (estado && estadoPago !== estado) mostrar = false;
+
+        row.style.display = mostrar ? '' : 'none';
+    });
+});
+
+// --- SELECCIÓN GENERAL DE CHECKBOXES EN PAGOS ---
+document.getElementById('selectAllPagos')?.addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.select-row');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+});
+
+// --- ENVÍO DEL PDF DE PAGOS ---
+document.getElementById('formPdfPagos')?.addEventListener('submit', function(e) {
+    const seleccionados = Array.from(document.querySelectorAll('#tablaPagosModal tbody tr'))
+        .filter(row => $(row).is(':visible'))
+        .map(row => row.querySelector('.select-row'))
+        .filter(cb => cb && cb.checked)
+        .map(cb => cb.value);
+
+    document.getElementById('pdf_ids_pagos').value = seleccionados.join(',');
+
+    if (seleccionados.length === 0) {
+        e.preventDefault();
+        alert('Selecciona al menos un pago para generar el PDF.');
+        return;
+    }
+
+    console.log('Pagos seleccionados:', seleccionados);
+});

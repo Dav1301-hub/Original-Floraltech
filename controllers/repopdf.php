@@ -172,6 +172,88 @@ echo '</pre>';
 
 }
 
+if (isset($_POST['accion']) && $_POST['accion'] === 'pagos_pdf') {
+    $ids = isset($_POST['ids']) ? explode(',', $_POST['ids']) : [];
+    $ids = array_filter($ids);
+
+    // Obtener todos los pagos
+    $pagos = $mreportes->getAllPagos();
+
+    // Filtrar los pagos seleccionados
+    $pagosSeleccionados = array_filter($pagos, function($p) use ($ids) {
+        return in_array((string)$p['idpago'], $ids, true);
+    });
+
+    // Variables para totales
+    $totalMonto = 0;
+
+    $html = '
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; color: #2C3E50; font-size: 12px; }
+        h1 { text-align: center; color: #1A5276; border-bottom: 2px solid #1A5276; padding-bottom: 10px; margin-bottom: 30px; }
+        p { text-align: right; color: #555; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
+        thead { background-color: #2471A3; color: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        tr:nth-child(even) { background-color: #f8f9f9; }
+        tr:hover { background-color: #EBF5FB; }
+    </style>
+
+    <h1>💰 Reporte de Pagos Seleccionados</h1>
+    <p>Generado el ' . date("d/m/Y H:i") . '</p>
+    <table>
+        <thead>
+            <tr>
+                <th>ID Pago</th>
+                <th>Fecha de Pago</th>
+                <th>Método de Pago</th>
+                <th>Monto</th>
+                <th>Estado</th>
+                <th>ID Transacción</th>
+                <th>Comprobante</th>
+            </tr>
+        </thead>
+        <tbody>';
+
+    if (!empty($pagosSeleccionados)) {
+        foreach ($pagosSeleccionados as $pago) {
+            $monto = (float)$pago['monto'];
+            $totalMonto += $monto;
+
+            $html .= '
+            <tr>
+                <td>' . htmlspecialchars($pago['idpago']) . '</td>
+                <td>' . date('d/m/Y', strtotime($pago['fecha_pago'])) . '</td>
+                <td>' . htmlspecialchars($pago['metodo_pago']) . '</td>
+                <td>$' . number_format($monto, 2) . '</td>
+                <td>' . htmlspecialchars($pago['estado_pag']) . '</td>
+                <td>' . htmlspecialchars($pago['transaccion_id']) . '</td>
+                <td>' . htmlspecialchars($pago['comprobante_transferencia']) . '</td>
+            </tr>';
+        }
+
+        // Fila de total general
+        $html .= '
+        <tr style="font-weight:bold; background-color:#D6EAF8;">
+            <td colspan="3" style="text-align:right;">Total General:</td>
+            <td>$' . number_format($totalMonto, 2) . '</td>
+            <td colspan="3"></td>
+        </tr>';
+    } else {
+        $html .= '<tr><td colspan="7">No se encontraron pagos seleccionados</td></tr>';
+    }
+
+    $html .= '</tbody></table>';
+
+    // Generar PDF
+    ob_clean();
+    $mpdf = new \Mpdf\Mpdf();
+    $mpdf->WriteHTML($html);
+    $mpdf->Output('Pagos_Seleccionados.pdf', \Mpdf\Output\Destination::DOWNLOAD);
+    exit;
+}
+
+
 // ---------------------- //
 //  📦 PDF DE PEDIDOS
 // ---------------------- //
@@ -227,6 +309,7 @@ $mpdf = new Mpdf();
 $mpdf->WriteHTML($html);
 $mpdf->Output('Pedidos_Seleccionados.pdf', \Mpdf\Output\Destination::DOWNLOAD);
 exit;
+
 
 
 

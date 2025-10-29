@@ -53,7 +53,7 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
         </div>
         <!-- Pagos -->
         <div class="col-12 col-md-6">
-            <div class="card border-secondary h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalPagos" style="cursor:pointer;">
+            <div class="card border-secondary h-100 shadow-sm" data-bs-toggle="modal" data-bs-target="#tablaModalPagos" style="cursor:pointer;">
                 <div class="card-body text-center">
                     <i class="bi bi-cash-stack h1 text-secondary"></i>
                     <h6 class="fw-bold mt-2">Pagos</h6>
@@ -64,58 +64,6 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
         </div>
     </div>
 </div>
-<div class="container my-4">
-    <div class="row g-3">   <!-- Filtros adicionales mes/año antes de las cards -->
-        <form class="row mb-3 g-2 flex-wrap" onsubmit="return false;">
-            <div class="col-12 col-md-4">
-                <input type="date" class="form-control" name="fecha_inicio" value="<?= htmlspecialchars($_GET['fecha_inicio'] ?? '') ?>">
-            </div>
-            <div class="col-12 col-md-4">
-                <input type="date" class="form-control" name="fecha_fin" value="<?= htmlspecialchars($_GET['fecha_fin'] ?? '') ?>">
-            </div>
-            <div class="col-12 col-md-4">
-                <button type="submit" class="btn btn-primary w-100" style="background: linear-gradient(90deg, #6a5af9 0%, #7c3aed 100%);">Filtrar</button>
-            </div>
-        </form>
-    </div>
-</div>
-        
-<div class="table-responsive">
-    <table class="table table-hover align-middle">
-        <thead class="table-light">
-            <tr>
-                <th>Fecha</th>
-                <th>Cliente</th>
-                <th>Pedido ID</th>
-                <th>Total</th>
-                <th>Método</th>
-                <th>Estado</th>
-                <th>Transacción</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (!empty($pagosFiltrados)): ?>
-            <?php foreach ($pagosFiltrados as $pago): ?>
-            <tr>
-                <td><?= date('d/m/Y H:i', strtotime($pago['fecha_pago'])) ?></td>
-                <td><?= htmlspecialchars($pago['cliente']) ?></td>
-                <td><?= htmlspecialchars($pago['numped']) ?></td>
-                <td>$<?= number_format($pago['monto'], 2) ?></td>
-                <td><?= htmlspecialchars($pago['metodo_pago']) ?></td>
-                <td></td>
-                <td><?= htmlspecialchars($pago['transaccion_id'] ?? 'N/A') ?></td>
-            </tr>
-            <?php endforeach; ?>
-            <?php else: ?>
-            <tr>
-                <td colspan="7" class="text-center text-warning">No se encontraron datos para los filtros seleccionados.</td>
-            </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
-</div>
-
-
 <div class="modal fade" id="tablaModal" tabindex="-1" aria-labelledby="tablaModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -203,7 +151,6 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
         </div>
     </div>
 </div>
-
 
 <div class="modal fade" id="modalUsuario" tabindex="-1" aria-labelledby="tablaModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -376,6 +323,104 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"style="background: linear-gradient(90deg, #6a5af9 0%, #7c3aed 100%);">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="modal fade" id="tablaModalPagos" tabindex="-1" aria-labelledby="tablaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header text-white" style="background: linear-gradient(90deg, #6a5af9 0%, #7c3aed 100%);" >
+                <h5 class="modal-title" id="tablaModalLabel">Lista de Ventas</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="container my-4">
+                    <div class="row g-3">
+                        <form class="row mb-3 g-2 flex-wrap" onsubmit="return false;">
+                            <div class="col-12 col-md-3">
+                                <input type="date" class="form-control" name="fecha_inicio" id="modal_fecha_inicio_pagos">
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <input type="date" class="form-control" name="fecha_fin" id="modal_fecha_fin_pagos">
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <select class="form-select" name="estado" id="modal_estado_pagos">
+                                    <option value="">Todos</option>
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Completado">Completado</option>
+                                    <option value="Reembolsado">Reembolsado</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <button type="button" class="btn w-100 text-white" id="btnFiltrarPagos" style="background: linear-gradient(90deg, #6a5af9 0%, #7c3aed 100%);">Filtrar</button>
+                            </div>
+                        </form>
+                        <div class="col-12 col-md-6">
+                            <form id="formPdfPagos" action="controllers/repopdf.php" method="POST">
+                                <input type="hidden" name="accion" value="pagos_pdf">
+                                <input type="hidden" name="ids" id="pdf_ids_pagos">
+                                <button type="submit" class="btn btn-primary w-100" 
+                                    style="background: linear-gradient(90deg, #6a5af9 0%, #7c3aed 100%);">
+                                    <i class="bi bi-file-earmark-pdf"></i> Generar PDF
+                                </button>
+                            </form>
+                        </div>
+                        
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="tablaPagosModal">
+                        <thead class="table-light">
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="selectAllPagos" title="Seleccionar todo">
+                                </th>
+                                <th>ID</th>
+                                <th>Fecha Pago</th>
+                                <th>Metodo</th>
+                                <th>Estado</th>
+                                <th>Monto a pagar</th>
+                                <th>Transaccion_id</th>
+                                <th>Comprobante transferencia</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($dtAllPagos)): ?>
+                                <?php foreach ($dtAllPagos as $pago): ?>
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" class="select-row" value="<?= htmlspecialchars($pago['idpago']) ?>">
+                                        </td>
+                                        <td><?= htmlspecialchars($pago['idpago']) ?></td>
+                                        <td><?= date('d/m/Y', strtotime($pago['fecha_pago'])) ?></td>
+                                        <td><?= htmlspecialchars($pago['metodo_pago']) ?></td>
+                                        <td>$<?= number_format($pago['monto'], 2) ?></td>
+                                        <td><?= htmlspecialchars($pago['estado_pag']) ?></td>
+                                        <td><?= htmlspecialchars($pago['transaccion_id']) ?></td>
+                                        <td>
+                                            <?php if (!empty($pago['comprobante_transferencia'])): ?>
+                                                <a href="<?= htmlspecialchars($pago['comprobante_transferencia']) ?>" target="_blank">Ver</a>
+                                            <?php else: ?>
+                                                <span class="text-muted">Sin comprobante</span>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="8" class="text-center text-warning">No hay pagos registrados.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="background: linear-gradient(90deg, #6a5af9 0%, #7c3aed 100%);">Cerrar</button>
             </div>
         </div>
     </div>

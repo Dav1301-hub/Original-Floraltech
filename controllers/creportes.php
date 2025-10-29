@@ -7,6 +7,7 @@ $idped   = isset($_REQUEST['idped'])   ? $_REQUEST['idped']   : null;
 $ope     = isset($_REQUEST['ope'])     ? $_REQUEST['ope']     : null;
 $idusu   = isset($_REQUEST['idusu'])   ? $_REQUEST['idusu']   : null;
 $idtflor = isset($_REQUEST['idtflor']) ? $_REQUEST['idtflor'] : null;
+$idpago  = isset($_REQUEST['idpago'])  ? $_REQUEST['idpago']  : null;
 $dtOne   = null;
 
 /* ===============================
@@ -110,4 +111,38 @@ $totalStock  = array_sum(array_column($dtAllInv, 'stock'));
 $totalValor  = array_sum(array_column($dtAllInv, 'valor_total'));
 // Prueba temporal:
 
+
+/* ===============================
+   🔹 REPORTE DE PAGOS
+   =============================== */
+if ($ope === "ver" && $idpago) {
+    $todos = $mreportes->getAllPagos();
+    foreach ($todos as $reporte) {
+        if ($reporte['idpago'] == $idpago) {
+            $dtOne = $reporte;
+            break;
+        }
+    }
+}
+
+$dtAllPagos = $mreportes->getAllPagos();
+
+/* --- FILTRO PARA EL MODAL DE PEDIDOS --- */
+$modalPagos = $dtAllPagos ?? [];
+
+if (!empty($_GET['fecha_inicio'])) {
+    $modalPagos = array_filter($modalPagos, function($q) {
+        return strtotime($q['fecha_pago']) >= strtotime($_GET['fecha_inicio']);
+    });
+}
+if (!empty($_GET['fecha_fin'])) {
+    $modalPagos = array_filter($modalPagos, function($q) {
+        return strtotime($q['fecha_pago']) <= strtotime($_GET['fecha_fin'] . ' 23:59:59');
+    });
+}
+if (!empty($_GET['estado_pag'])) {
+    $modalPagos = array_filter($modalPagos, function($q) {
+        return strtolower($q['estado_pag']) === strtolower($_GET['estado_pag']);
+    });
+}
 ?>
