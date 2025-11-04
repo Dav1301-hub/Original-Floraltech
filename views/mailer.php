@@ -36,7 +36,7 @@ function enviarCorreoRecuperacion($destinatario, $token) {
         $mail->isHTML(true);
         $mail->Subject = 'Recuperación de Contraseña - FloralTech';
 
-        $link = "http://localhost/ProyectoFloralTechhh/index.php?ctrl=login&action=resetPassword&token=$token";
+        $link = "http://localhost/Original-Floraltech/index.php?ctrl=login&action=resetPassword&token=$token";
         $mail->Body = "
             <!DOCTYPE html>
             <html>
