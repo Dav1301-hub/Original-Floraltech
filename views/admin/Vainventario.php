@@ -1,3 +1,5 @@
+<!-- FontAwesome 6.5.2 CDN -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-+Cf+8J2k6U5zQ6QwQ6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <!-- Gestión de Inventario - Vista -->
 <main class="container-fluid py-4">
     <!-- Backdrop para modales manuales -->
@@ -203,8 +205,8 @@
                                         <?= $item['estado_stock'] ?>
                                     </span>
                                 </td>
-                                <td class="d-none d-md-table-cell">$<?= number_format($item['precio_unitario'] ?? 0, 2) ?></td>
-                                <td class="d-none d-lg-table-cell">$<?= number_format(($item['stock'] ?? 0) * ($item['precio_unitario'] ?? 0), 2) ?></td>
+                                <td class="d-none d-md-table-cell">$<?= number_format($item['precio'] ?? 0, 2) ?></td>
+                                <td class="d-none d-lg-table-cell">$<?= number_format(($item['stock'] ?? 0) * ($item['precio'] ?? 0), 2) ?></td>
                                 <td>
                                     <div class="btn-group" role="group">
                                         <button type="button" class="btn btn-warning btn-sm btn-modal-editar" data-producto-id="<?= $item['idinv'] ?>" data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>" title="Editar" data-bs-toggle="modal" data-bs-target="#modal-editar-producto">
