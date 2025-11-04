@@ -22,7 +22,7 @@ unset($_SESSION['register_success']);
     <div class="row w-100 shadow-lg rounded overflow-hidden" style="max-width: 1000px;">
         <!-- Logo -->
         <div class="col-lg-6 d-flex flex-column align-items-center justify-content-center" style="background:#f9d6df; padding: 40px 20px; min-height: 500px;">
-            <img src="/ProyectoFloralTechhh/assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:280px; max-width: 80%;">
+            <img src="/Original-Floraltech/assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:280px; max-width: 80%;">
             <p class="text-center px-3" style="font-size: 1.1rem; color: #333;">"Regístrate y gestiona tu florería de manera fácil y eficiente, ¡haz que la tecnología trabaje para ti!"</p>
         </div>
 

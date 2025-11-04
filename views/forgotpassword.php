@@ -18,9 +18,14 @@ unset($_SESSION['forgot_success']);
 <div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center">
     <div class="row w-75 shadow-lg rounded overflow-hidden">
         <!-- Sección del Logo -->
+
         <div class="col-md-6 d-flex flex-column align-items-center justify-content-center" style="background:transparent; padding: 40px 0;">
         <div style="width:100%;height:100%;background:rgba(249,214,223,0.65);padding:40px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
             <img src="assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:220px;">
+
+        <div class="col-md-6 d-flex flex-column align-items-center justify-content-center" style="background:#f9d6df;">
+            <img src="/Original-Floraltech/assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:220px;">
+
             <p class="text-center px-3" style="font-size:1.2rem;">"Recupera el acceso a tu cuenta de manera fácil y segura."</p>
         </div>
         </div>

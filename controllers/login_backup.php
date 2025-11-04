@@ -252,7 +252,7 @@ class login {
             
             // Mostrar enlace para debugging
             $baseUrl = "http://" . $_SERVER['HTTP_HOST'];
-            $projectPath = "/ProyectoFloralTechhh";
+            $projectPath = "/Original-Floraltech";
             $recoveryLink = $baseUrl . $projectPath . "/index.php?ctrl=login&action=resetPassword&token=" . $token;
             error_log("🔗 Enlace de recuperación: $recoveryLink");
         } else {

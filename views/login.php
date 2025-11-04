@@ -32,9 +32,14 @@ unset($_SESSION['forgot_success']);
 <div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center" style="padding: 40px 0;">
     <div class="row w-75 shadow-lg rounded overflow-hidden">
         <!-- Sección del Logo -->
+
         <div class="col-md-6 d-flex flex-column align-items-center justify-content-center" style="background:transparent; padding: 40px 0;">
         <div style="width:100%;height:100%;background:rgba(181,180,180,0.65);padding:40px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
             <img src="assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:320px;">
+
+        <div class="col-md-6 d-flex flex-column align-items-center justify-content-center" style="background:#b5b4b4; padding: 40px 0;">
+            <img src="/Original-Floraltech/assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:320px;">
+
             <p class="text-center px-3" style="font-size:1.2rem;">"Gestiona tu floristería con facilidad, ¡deja que la tecnología florezca contigo!"</p>
         </div>
         </div>
