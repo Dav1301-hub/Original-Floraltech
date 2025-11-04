@@ -191,7 +191,7 @@ INSERT INTO `ent` (`ident`, `fecha_ent`, `hora_ent`, `direccion`, `estado_ent`, 
 
 CREATE TABLE `inv` (
   `idinv` int(11) NOT NULL,
-  `idproducto` int(11) NOT NULL AUTO_INCREMENT UNIQUE COMMENT 'ID único del producto para compatibilidad',
+  `idproducto` int(11) NOT NULL UNIQUE COMMENT 'ID único del producto para compatibilidad',
   `producto` varchar(255) DEFAULT NULL COMMENT 'Nombre del producto',
   `color` varchar(100) DEFAULT 'Sin especificar' COMMENT 'Color del producto',
   `estado` varchar(50) DEFAULT 'disponible' COMMENT 'Estado del producto (disponible, agotado, descontinuado)',
@@ -921,8 +921,7 @@ ALTER TABLE `ent`
 -- AUTO_INCREMENT de la tabla `inv`
 --
 ALTER TABLE `inv`
-  MODIFY `idinv` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16,
-  MODIFY `idproducto` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `idinv` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT de la tabla `inv_historial`

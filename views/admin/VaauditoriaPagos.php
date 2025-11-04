@@ -1,4 +1,3 @@
-
 <?php
 // Asegurar que el archivo se procese como PHP y que no haya contenido antes del primer <?php
 ?>
@@ -63,57 +62,56 @@
     $totalMonto = array_sum(array_column($registros, 'monto'));
     ?>
 
-    <!-- Filtros -->
-    <div class="row mb-4">
-        <div class="col-lg-10 mx-auto">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">Filtros de Auditoría</div>
-                <div class="card-body">
-                    <form method="GET" class="row g-3 align-items-end">
-                        <div class="col-lg-2 col-md-4">
-                            <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
-                            <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" value="<?= htmlspecialchars($_GET['fecha_inicio'] ?? '') ?>">
-                        </div>
-                        <div class="col-lg-2 col-md-4">
-                            <label for="fecha_fin" class="form-label">Fecha Fin</label>
-                            <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" value="<?= htmlspecialchars($_GET['fecha_fin'] ?? '') ?>">
-                        </div>
-                        <div class="col-lg-2 col-md-4">
-                            <label for="estado" class="form-label">Estado</label>
-                            <select class="form-select" id="estado" name="estado">
-                                <option value="">Todos</option>
-                                <option value="Aprobado">Aprobado</option>
-                                <option value="Pendiente">Pendiente</option>
-                                <option value="Fallido">Fallido</option>
-                                <option value="Reembolsado">Reembolsado</option>
-                            </select>
-                        </div>
-                        <div class="col-lg-2 col-md-4">
-                            <label for="tipo_cuenta" class="form-label">Tipo de Cuenta</label>
-                            <select class="form-select" id="tipo_cuenta" name="tipo_cuenta">
-                                <option value="">Todas</option>
-                                <option value="Ventas">Ventas</option>
-                                <option value="Costos">Costos</option>
-                                <option value="Existencias">Existencias</option>
-                                <option value="Cuentas por cobrar">Cuentas por cobrar</option>
-                            </select>
-                        </div>
-                        <div class="col-lg-2 col-md-4">
-                            <label for="metodo_pago" class="form-label">Método de Pago</label>
-                            <select class="form-select" id="metodo_pago" name="metodo_pago">
-                                <option value="">Todos</option>
-                                <option value="Efectivo">Efectivo</option>
-                                <option value="Tarjeta">Tarjeta</option>
-                                <option value="Transferencia">Transferencia</option>
-                                <option value="PayPal">PayPal</option>
-                            </select>
-                        </div>
-                        <div class="col-lg-2 col-md-4 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100">Filtrar</button>
-                        </div>
-                    </form>
+    <!-- Filtros funcionales -->
+    <div class="card mb-4">
+        <div class="card-body pb-2">
+            <div class="fw-bold fs-5 mb-2"><i class="fas fa-filter me-2"></i>Filtros de Auditoría</div>
+            <form method="GET">
+                <div class="row justify-content-center g-2 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label">Fecha Inicio</label>
+                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" value="<?= htmlspecialchars($_GET['fecha_inicio'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Fecha Fin</label>
+                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" value="<?= htmlspecialchars($_GET['fecha_fin'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" id="estado" name="estado">
+                            <option value="">Todos</option>
+                            <option value="Aprobado">Aprobado</option>
+                            <option value="Pendiente">Pendiente</option>
+                            <option value="Fallido">Fallido</option>
+                            <option value="Reembolsado">Reembolsado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Tipo de Cuenta</label>
+                        <select class="form-select" id="tipo_cuenta" name="tipo_cuenta">
+                            <option value="">Todas</option>
+                            <option value="Ventas">Ventas</option>
+                            <option value="Costos">Costos</option>
+                            <option value="Existencias">Existencias</option>
+                            <option value="Cuentas por cobrar">Cuentas por cobrar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Método de Pago</label>
+                        <select class="form-select" id="metodo_pago" name="metodo_pago">
+                            <option value="">Todos</option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Tarjeta">Tarjeta</option>
+                            <option value="Transferencia">Transferencia</option>
+                            <option value="PayPal">PayPal</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex gap-2 align-items-end">
+                        <button type="submit" class="btn btn-primary px-4">Filtrar</button>
+                        <a href="?" class="btn btn-link text-secondary">Limpiar Filtros</a>
+                    </div>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 
@@ -259,20 +257,43 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // Gráfico de estados de pagos
+// Cambiado a barras verticales
+//
 document.addEventListener('DOMContentLoaded', function() {
     var ctx = document.getElementById('graficoEstados').getContext('2d');
     new Chart(ctx, {
-        type: 'doughnut',
+        type: 'bar',
         data: {
             labels: ['Aprobados', 'Pendientes', 'Fallidos', 'Reembolsados'],
             datasets: [{
+                label: 'Cantidad',
                 data: [<?= $totalAprobados ?>, <?= $totalPendientes ?>, <?= $totalFallidos ?>, <?= $totalReembolsados ?>],
-                backgroundColor: ['#198754', '#0dcaf0', '#dc3545', '#ffc107']
+                backgroundColor: ['#198754', '#0dcaf0', '#dc3545', '#ffc107'],
+                borderRadius: 8,
+                maxBarThickness: 50
             }]
         },
         options: {
             plugins: {
-                legend: { position: 'bottom' }
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: 'Estados de Pagos',
+                    font: { size: 18 }
+                }
+            },
+            responsive: true,
+            scales: {
+                x: {
+                    grid: { display: false },
+                    title: { display: false }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#eee' },
+                    title: { display: true, text: 'Cantidad' },
+                    ticks: { precision:0 }
+                }
             }
         }
     });
