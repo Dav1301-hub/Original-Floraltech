@@ -38,7 +38,7 @@ function enviarCorreoRecuperacionSeguro($destinatario, $token) {
 
         // Generar enlace de recuperación
         $baseUrl = "http://" . $_SERVER['HTTP_HOST'];
-        $projectPath = "/ProyectoFloralTechhh";
+        $projectPath = "/Original-Floraltech";
         $link = $baseUrl . $projectPath . "/index.php?ctrl=login&action=resetPassword&token=" . $token;
 
         // Template HTML del correo

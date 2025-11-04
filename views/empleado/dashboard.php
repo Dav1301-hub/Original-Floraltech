@@ -22,7 +22,7 @@ unset($_SESSION['tipo_mensaje']);
             --empleado-secondary: #20c997;
             --empleado-accent: #17a2b8;
             --bg-light: #f8f9fa;
-            --border-radius: 12px;
+            --border-radius: 8px;
             --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
             --shadow-hover: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
         }
@@ -30,27 +30,33 @@ unset($_SESSION['tipo_mensaje']);
         body {
             background-color: var(--bg-light);
             font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
         }
         
         .dashboard-container {
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         
         .navbar {
             background: linear-gradient(135deg, var(--empleado-primary), var(--empleado-secondary)) !important;
             box-shadow: var(--shadow);
-            margin-bottom: 2rem;
+            margin-bottom: 0;
+            padding: 0.75rem 0;
         }
         
         .main-content {
-            padding: 0 1.5rem 2rem;
-            max-width: 1400px;
+            padding: 1rem;
+            flex: 1;
+            max-width: 100%;
             margin: 0 auto;
         }
         
-        /* Tarjeta de Bienvenida */
+        /* Tarjeta de Bienvenida - Más compacta */
         .welcome-section {
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
         }
         
         .welcome-card {
@@ -61,35 +67,46 @@ unset($_SESSION['tipo_mensaje']);
             box-shadow: var(--shadow-hover);
         }
         
+        .welcome-card .card-body {
+            padding: 1rem 1.5rem;
+        }
+        
         .welcome-header h2 {
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
+            font-size: 1.5rem;
+        }
+        
+        .welcome-header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
         }
         
         .welcome-stats {
-            margin-top: 1rem;
+            margin-top: 0.75rem;
             display: flex;
-            gap: 2rem;
+            gap: 1.5rem;
+            font-size: 0.85rem;
         }
         
         .welcome-stats span {
             opacity: 0.9;
         }
         
-        /* Grid de Estadísticas */
+        /* Grid de Estadísticas - Más compacto */
         .stats-section {
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
         }
         
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
         }
         
         .stat-card {
             background: white;
             border-radius: var(--border-radius);
-            padding: 1.5rem;
+            padding: 1rem;
             display: flex;
             align-items: center;
             box-shadow: var(--shadow);
@@ -98,7 +115,7 @@ unset($_SESSION['tipo_mensaje']);
         }
         
         .stat-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-1px);
             box-shadow: var(--shadow-hover);
         }
         
@@ -109,14 +126,15 @@ unset($_SESSION['tipo_mensaje']);
         
         .stat-icon {
             background: var(--bg-light);
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 1rem;
-            font-size: 1.5rem;
+            margin-right: 0.75rem;
+            font-size: 1.25rem;
+            flex-shrink: 0;
         }
         
         .stat-card.success .stat-icon { color: var(--empleado-primary); }
@@ -126,32 +144,34 @@ unset($_SESSION['tipo_mensaje']);
         
         .stat-info h3 {
             margin: 0;
-            font-size: 2rem;
+            font-size: 1.5rem;
             font-weight: 700;
             color: #333;
+            line-height: 1;
         }
         
         .stat-info p {
             margin: 0;
             color: #6c757d;
             font-weight: 500;
+            font-size: 0.85rem;
         }
         
-        /* Grid Principal de Contenido */
+        /* Grid Principal de Contenido - Optimizado */
         .content-grid {
             display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 2rem;
-            margin-bottom: 2rem;
+            grid-template-columns: 1fr 350px;
+            gap: 1rem;
+            margin-bottom: 1rem;
         }
         
-        @media (max-width: 992px) {
+        @media (max-width: 1200px) {
             .content-grid {
                 grid-template-columns: 1fr;
             }
         }
         
-        /* Tarjetas de Contenido */
+        /* Tarjetas de Contenido - Más compactas */
         .content-card {
             background: white;
             border: none;
@@ -168,7 +188,7 @@ unset($_SESSION['tipo_mensaje']);
             background: linear-gradient(135deg, #f8f9fa, #e9ecef);
             border-bottom: 1px solid #dee2e6;
             border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
-            padding: 1rem 1.5rem;
+            padding: 0.75rem 1rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -178,81 +198,39 @@ unset($_SESSION['tipo_mensaje']);
             margin: 0;
             font-weight: 600;
             color: #333;
+            font-size: 1rem;
         }
         
         .card-body {
-            padding: 1.5rem;
+            padding: 1rem;
         }
         
-        /* Estados Vacíos */
+        /* Estados Vacíos - Más compactos */
         .empty-state {
             text-align: center;
-            padding: 3rem 1rem;
+            padding: 2rem 1rem;
             color: #6c757d;
         }
         
         .empty-state i {
-            font-size: 3rem;
-            margin-bottom: 1rem;
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
             opacity: 0.5;
         }
         
         .empty-state h4 {
-            margin-bottom: 0.5rem;
-            color: #495057;
-        }
-        
-        /* Acciones Rápidas */
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-        
-        .quick-actions .btn {
-            padding: 1rem;
-            border-radius: var(--border-radius);
-            font-weight: 500;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-        
-        .quick-actions .btn i {
-            display: block;
-            font-size: 1.5rem;
+            font-size: 1.1rem;
             margin-bottom: 0.5rem;
         }
         
-        .quick-actions .btn-primary {
-            background: var(--empleado-primary);
-            border-color: var(--empleado-primary);
-        }
-        
-        .quick-actions .btn-primary:hover {
-            background: #218838;
-            border-color: #218838;
-            transform: translateY(-2px);
-        }
-        
-        .quick-actions .btn-outline {
-            background: white;
-            color: var(--empleado-primary);
-            border: 2px solid var(--empleado-primary);
-        }
-        
-        .quick-actions .btn-outline:hover {
-            background: var(--empleado-primary);
-            color: white;
-            transform: translateY(-2px);
-        }
-        
-        /* Tablas */
+        /* Tablas más compactas */
         .table-responsive {
             border-radius: var(--border-radius);
         }
         
         .table {
             margin-bottom: 0;
+            font-size: 0.85rem;
         }
         
         .table th {
@@ -260,27 +238,30 @@ unset($_SESSION['tipo_mensaje']);
             border-top: none;
             font-weight: 600;
             color: #495057;
+            padding: 0.5rem;
         }
         
         .table td {
             vertical-align: middle;
+            padding: 0.5rem;
         }
         
-        /* Lista de Pagos en Sidebar */
+        /* Lista de Pagos en Sidebar - Optimizada */
         .payment-list {
-            max-height: 400px;
+            max-height: 350px;
             overflow-y: auto;
         }
         
         .payment-item {
             transition: all 0.2s ease;
+            padding: 0.5rem 0;
         }
         
         .payment-item:hover {
             background-color: var(--bg-light);
-            border-radius: 8px;
-            padding: 0.75rem !important;
-            margin: 0 -0.75rem 0.75rem -0.75rem !important;
+            border-radius: 6px;
+            padding: 0.5rem !important;
+            margin: 0 -0.5rem 0.5rem -0.5rem !important;
         }
         
         .payment-item:last-child {
@@ -292,13 +273,14 @@ unset($_SESSION['tipo_mensaje']);
         .alert {
             border: none;
             border-radius: var(--border-radius);
-            margin-bottom: 2rem;
+            margin-bottom: 1rem;
+            padding: 0.75rem 1rem;
         }
         
-        /* Navbar mejorado */
+        /* Navbar mejorado y compacto */
         .navbar-brand {
             font-weight: 600;
-            font-size: 1.25rem;
+            font-size: 1.1rem;
         }
         
         .navbar-user {
@@ -315,11 +297,12 @@ unset($_SESSION['tipo_mensaje']);
             margin: 0;
             font-weight: 600;
             color: white;
+            font-size: 0.9rem;
         }
         
         .user-welcome {
             margin: 0;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             opacity: 0.9;
             color: white;
         }
@@ -328,10 +311,11 @@ unset($_SESSION['tipo_mensaje']);
             background: rgba(255, 255, 255, 0.2) !important;
             border: 1px solid rgba(255, 255, 255, 0.3) !important;
             color: white !important;
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            padding: 0.4rem 0.8rem;
             text-decoration: none;
             transition: all 0.3s ease;
+            font-size: 0.85rem;
         }
         
         .logout-btn:hover {
@@ -340,23 +324,88 @@ unset($_SESSION['tipo_mensaje']);
             transform: translateY(-1px);
         }
         
-        /* Responsivo */
+        /* Acciones rápidas más compactas */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+        
+        .action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .action-btn i {
+            margin-right: 0.5rem;
+        }
+        
+        /* Responsivo mejorado */
         @media (max-width: 768px) {
             .main-content {
-                padding: 0 1rem 2rem;
+                padding: 0.75rem;
             }
             
             .stats-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
             }
             
             .welcome-stats {
                 flex-direction: column;
-                gap: 1rem;
+                gap: 0.5rem;
             }
             
-            .quick-actions {
+            .welcome-card .card-body {
+                padding: 0.75rem 1rem;
+            }
+            
+            .content-grid {
+                gap: 0.75rem;
+            }
+            
+            .navbar-user .user-info {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .stats-grid {
                 grid-template-columns: 1fr;
+            }
+            
+            .main-content {
+                padding: 0.5rem;
+            }
+        }
+        
+        /* Ajustes para pantallas muy anchas */
+        @media (min-width: 1400px) {
+            .main-content {
+                max-width: 1320px;
+                padding: 1rem 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .content-grid {
+                grid-template-columns: 2fr 400px;
+                gap: 1.5rem;
             }
         }
     </style>
@@ -544,30 +593,23 @@ unset($_SESSION['tipo_mensaje']);
                         </div>
                         <div class="card-body">
                             <div class="quick-actions">
-                                <a href="index.php?ctrl=empleado&action=gestion_pedidos" class="btn btn-primary">
+                                <a href="index.php?ctrl=empleado&action=gestion_pedidos" class="action-btn btn btn-primary">
                                     <i class="fas fa-clipboard-list"></i>
                                     Gestionar Pedidos
                                 </a>
-                                <a href="index.php?ctrl=empleado&action=procesar_pagos" class="btn btn-outline">
+                                <a href="index.php?ctrl=CempleadoPagos&action=reportes" class="action-btn btn btn-success">
                                     <i class="fas fa-credit-card"></i>
                                     Procesar Pagos
                                 </a>
-                                <?php if($user['tpusu_idtpusu'] == 3): // Empleado de inventario ?>
-                                <a href="index.php?ctrl=cinventario" class="btn btn-outline">
+                                <a href="index.php?ctrl=empleado&action=inventario" class="action-btn btn btn-info">
                                     <i class="fas fa-boxes"></i>
-                                    Inventario Completo
+                                    <?php if($user['tpusu_idtpusu'] == 3): ?>
+                                        Inventario Completo
+                                    <?php else: ?>
+                                        Inventario
+                                    <?php endif; ?>
                                 </a>
-                                <?php else: ?>
-                                <a href="index.php?ctrl=empleado&action=inventario" class="btn btn-outline">
-                                    <i class="fas fa-boxes"></i>
-                                    Inventario
-                                </a>
-
-                                <a href="index.php?ctrl=empleadoPagos&action=index" class="btn btn-outline">
-
-                                <?php endif; ?>
-                                <a href="index.php?ctrl=CempleadoPagos&action=index" class="btn btn-outline">
-
+                                <a href="index.php?ctrl=CempleadoPagos&action=reportes" class="action-btn btn btn-warning">
                                     <i class="fas fa-chart-bar"></i>
                                     Reportes
                                 </a>
