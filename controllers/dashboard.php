@@ -16,9 +16,6 @@ class dashboard {
         }
     }
 
-    /**
-     * Dashboard principal - redirige según el tipo de usuario
-     */
     public function index() {
         $userType = $_SESSION['user']['tpusu_idtpusu'];
         
