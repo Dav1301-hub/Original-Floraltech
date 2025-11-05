@@ -28,13 +28,13 @@ unset($_SESSION['forgot_success']);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/styles.css">
 </head>
-<body style="background:#f8f9fa;">
+<body style="background: #f8f9fa url('assets/images/composicion-de-flores-y-conos-de-waffle.jpg') no-repeat center center fixed; background-size: cover;">
 <div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center" style="padding: 40px 0;">
     <div class="row w-75 shadow-lg rounded overflow-hidden">
         <!-- Sección del Logo -->
-        <div class="col-md-6 d-flex flex-column align-items-center justify-content-center" style="background:#b5b4b4; padding: 40px 0;">
-            <img src="/Original-Floraltech/assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:320px;">
-            <p class="text-center px-3" style="font-size:1.2rem;">"Gestiona tu floristería con facilidad, ¡deja que la tecnología florezca contigo!"</p>
+        <div class="col-md-6 d-flex flex-column align-items-center justify-content-center" style="background:rgba(181,180,180,0.65); padding: 40px 0;">
+            <img src="assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:320px;">
+            <p class="text-center px-3" style="font-size:1.2rem; color: #333;">"Gestiona tu floristería con facilidad, ¡deja que la tecnología florezca contigo!"</p>
         </div>
 
         <!-- Sección de Inicio de Sesión -->
@@ -61,7 +61,6 @@ unset($_SESSION['forgot_success']);
                 <?php if (!empty($forgot_success)): ?>
                     <div class="alert alert-info text-center"><?= htmlspecialchars($forgot_success) ?></div>
                 <?php endif; ?>
-
                 
                 <?php if ($attempts_remaining !== null && $attempts_remaining > 0 && !$account_locked): ?>
                     <div class="alert alert-warning text-center">
@@ -70,17 +69,12 @@ unset($_SESSION['forgot_success']);
                     </div>
                 <?php endif; ?>
 
-                <?php if (!empty($error)): ?>
-                    <div class="alert alert-danger text-center"><?= htmlspecialchars($error) ?></div>
-                <?php endif; ?>
-
                 <?php if ($account_locked): ?>
                     <div class="alert alert-danger text-center">
                         <strong>¡Cuenta Bloqueada!</strong><br>
                         Has excedido el número máximo de intentos. Contacta al administrador.
                     </div>
                 <?php endif; ?>
-
 
                 <form method="POST" action="index.php?ctrl=login&action=authenticate">
                     <input type="text" class="form-control rounded mb-3" placeholder="Usuario o Email" name="username" required>
