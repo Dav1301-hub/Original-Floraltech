@@ -1,25 +1,36 @@
 <?php
 // views/empleado/gestion_pedidos.php
-require_once __DIR__ . '/../../controllers/Cpedido.php';
-$controller = new Cpedido();
+// Los datos de pedidos ya vienen paginados desde el controlador de empleado
 
-// Filtros
+// Obtener mensajes de sesión si existen
+$mensaje = isset($_SESSION['mensaje']) ? $_SESSION['mensaje'] : '';
+$tipo_mensaje = isset($_SESSION['tipo_mensaje']) ? $_SESSION['tipo_mensaje'] : '';
+// Limpiar los mensajes después de mostrarlos
+unset($_SESSION['mensaje']);
+unset($_SESSION['tipo_mensaje']);
+
+// Filtros para mantener en el formulario
 $estadoPedido = $_GET['estado_pedido'] ?? '';
 $estadoPago = $_GET['estado_pago'] ?? '';
 $fechaDesde = $_GET['fecha_desde'] ?? '';
 $fechaHasta = $_GET['fecha_hasta'] ?? '';
 
-// Procesar actualización de estado
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pedido_id'], $_POST['nuevo_estado'])) {
-    $pedidoId = $_POST['pedido_id'];
-    $nuevoEstado = $_POST['nuevo_estado'];
-    $resultado = $controller->actualizarEstadoPedido($pedidoId, $nuevoEstado);
+// Los pedidos ya vienen filtrados y paginados desde el controlador
+// Debug temporal
+if (!isset($pedidosPaginados)) {
+    error_log("ERROR: Variable \$pedidosPaginados no existe en la vista");
+    $pedidosPaginados = [];
+} else {
+    error_log("Vista recibió " . count($pedidosPaginados) . " pedidos paginados");
+    if (count($pedidosPaginados) > 0) {
+        error_log("Primer pedido en vista: " . print_r($pedidosPaginados[0], true));
+    }
 }
 
-// Obtener pedidos filtrados
-$pedidos = $controller->obtenerPedidosFiltrados($estadoPedido, $estadoPago, $fechaDesde, $fechaHasta);
+// Las variables de paginación también vienen del controlador:
+// $paginaActual, $totalPaginas, $totalPedidos, $pedidosPorPagina
 ?>
-    <!DOCTYPE html>
+<!DOCTYPE html>
     <html lang="es">
     <head>
         <meta charset="UTF-8">
@@ -272,6 +283,33 @@ $pedidos = $controller->obtenerPedidosFiltrados($estadoPedido, $estadoPago, $fec
                 border-radius: 6px;
             }
 
+            /* Estilos de Paginación */
+            .pagination {
+                --bs-pagination-color: var(--empleado-primary);
+                --bs-pagination-border-color: #dee2e6;
+                --bs-pagination-hover-color: white;
+                --bs-pagination-hover-bg: var(--empleado-primary);
+                --bs-pagination-hover-border-color: var(--empleado-primary);
+                --bs-pagination-active-color: white;
+                --bs-pagination-active-bg: var(--empleado-primary);
+                --bs-pagination-active-border-color: var(--empleado-primary);
+                --bs-pagination-disabled-color: #6c757d;
+                --bs-pagination-disabled-bg: white;
+                --bs-pagination-disabled-border-color: #dee2e6;
+            }
+
+            .pagination .page-link {
+                border-radius: 6px;
+                margin: 0 2px;
+                transition: all 0.2s ease;
+                font-size: 0.85rem;
+                padding: 0.5rem 0.75rem;
+            }
+
+            .pagination .page-item.active .page-link {
+                box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+            }
+
             /* Responsive Design */
             @media (max-width: 768px) {
                 .main-content {
@@ -308,6 +346,25 @@ $pedidos = $controller->obtenerPedidosFiltrados($estadoPedido, $estadoPago, $fec
                     padding: 0.5rem 0.25rem;
                     font-size: 0.8rem;
                 }
+
+                /* Paginación responsiva */
+                .pagination {
+                    flex-wrap: wrap;
+                    justify-content: center;
+                }
+
+                .pagination .page-link {
+                    padding: 0.375rem 0.5rem;
+                    font-size: 0.8rem;
+                    margin: 0 1px;
+                }
+
+                /* Ocultar información de "Mostrando X de Y" en móviles */
+                .d-flex.justify-content-between {
+                    flex-direction: column;
+                    gap: 1rem;
+                    text-align: center;
+                }
             }
         </style>
     </head>
@@ -338,7 +395,10 @@ $pedidos = $controller->obtenerPedidosFiltrados($estadoPedido, $estadoPago, $fec
                         <div class="filter-title">
                             <i class="fas fa-filter me-2"></i>Filtros de Búsqueda
                         </div>
-                        <form method="GET" action="gestion_pedidos.php" class="row g-2 align-items-end">
+                        <form method="GET" action="" class="row g-2 align-items-end">
+                            <input type="hidden" name="ctrl" value="empleado">
+                            <input type="hidden" name="action" value="gestion_pedidos">
+                            <input type="hidden" name="pagina" value="1">
                             <div class="col-md-3">
                                 <label class="form-label">Estado del Pedido</label>
                                 <select name="estado_pedido" class="form-select">
@@ -350,13 +410,15 @@ $pedidos = $controller->obtenerPedidosFiltrados($estadoPedido, $estadoPago, $fec
                                     <option value="Cancelado" <?= $estadoPedido=='Cancelado'?'selected':'' ?>>Cancelado</option>
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="form-label">Estado del Pago</label>
                                 <select name="estado_pago" class="form-select">
                                     <option value="">Todos los pagos</option>
+                                    <option value="Sin pago" <?= $estadoPago=='Sin pago'?'selected':'' ?>>Sin pago</option>
                                     <option value="Pendiente" <?= $estadoPago=='Pendiente'?'selected':'' ?>>Pendiente</option>
+                                    <option value="Procesando" <?= $estadoPago=='Procesando'?'selected':'' ?>>Procesando</option>
                                     <option value="Completado" <?= $estadoPago=='Completado'?'selected':'' ?>>Completado</option>
-                                    <option value="Cancelado" <?= $estadoPago=='Cancelado'?'selected':'' ?>>Cancelado</option>
+                                    <option value="Rechazado" <?= $estadoPago=='Rechazado'?'selected':'' ?>>Rechazado</option>
                                 </select>
                             </div>
                             <div class="col-md-2">
@@ -371,7 +433,7 @@ $pedidos = $controller->obtenerPedidosFiltrados($estadoPedido, $estadoPago, $fec
                                 <button type="submit" class="btn btn-success">
                                     <i class="fas fa-search"></i> Filtrar
                                 </button>
-                                <a href="gestion_pedidos.php" class="btn btn-outline-secondary btn-sm">
+                                <a href="?ctrl=empleado&action=gestion_pedidos" class="btn btn-outline-secondary btn-sm">
                                     <i class="fas fa-times"></i>
                                 </a>
                             </div>
@@ -382,22 +444,38 @@ $pedidos = $controller->obtenerPedidosFiltrados($estadoPedido, $estadoPago, $fec
                     <div class="content-card">
                         <div class="pedido-list-header">
                             <span><i class="fas fa-list me-2"></i>Lista de Pedidos</span>
-                            <span class="badge"><?= count($pedidos) ?> pedidos</span>
+                            <span class="badge">
+                                <?= $totalPedidos ?> total 
+                                <?php if ($totalPedidos > 0): ?>
+                                    (Página <?= $paginaActual ?> de <?= $totalPaginas ?>)
+                                <?php endif; ?>
+                            </span>
                         </div>
-                        <div class="card-body p-0">
-                            <?php if (isset($resultado)): ?>
-                                <div class="alert alert-info alert-dismissible fade show m-3" role="alert">
+                        <div class="card-body">
+                            <?php if ($mensaje): ?>
+                                <div class="alert alert-<?= $tipo_mensaje ?> alert-dismissible fade show" role="alert">
                                     <i class="fas fa-info-circle me-2"></i>
-                                    <?php echo $resultado ? 'Estado actualizado correctamente.' : 'Error al actualizar el estado.'; ?>
+                                    <?= htmlspecialchars($mensaje) ?>
                                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                                 </div>
                             <?php endif; ?>
                             
-                            <?php if (empty($pedidos)): ?>
+                            <?php if (empty($pedidosPaginados)): ?>
                                 <div class="empty-state-pedidos">
                                     <i class="fas fa-clipboard-list"></i>
                                     <h4>No hay pedidos</h4>
                                     <p>No se encontraron pedidos con los filtros aplicados</p>
+                                    <!-- Debug temporal -->
+                                    <small class="text-muted">
+                                        Debug: Total pedidos = <?= $totalPedidos ?>, 
+                                        Página actual = <?= $paginaActual ?>, 
+                                        Pedidos paginados = <?= count($pedidosPaginados) ?>
+                                        <?php if (isset($pedidos)): ?>
+                                            <br>Pedidos originales = <?= count($pedidos) ?>
+                                        <?php else: ?>
+                                            <br>Variable $pedidos no definida
+                                        <?php endif; ?>
+                                    </small>
                                 </div>
                             <?php else: ?>
                                 <div class="table-responsive">
@@ -411,13 +489,13 @@ $pedidos = $controller->obtenerPedidosFiltrados($estadoPedido, $estadoPago, $fec
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php foreach ($pedidos as $pedido): ?>
+                                            <?php foreach ($pedidosPaginados as $pedido): ?>
                                                 <tr>
-                                                    <td class="fw-bold text-primary">PED-<?php echo $pedido['id']; ?></td>
-                                                    <td><?php echo $pedido['cliente']; ?></td>
+                                                    <td class="fw-bold text-primary">PED-<?php echo $pedido['idped']; ?></td>
+                                                    <td><?php echo htmlspecialchars($pedido['cliente_nombre']); ?></td>
                                                     <td>
                                                         <span class="badge bg-<?php echo ($pedido['estado'] === 'Pendiente') ? 'warning' : (($pedido['estado'] === 'Completado') ? 'success' : (($pedido['estado'] === 'Cancelado') ? 'danger' : 'info')); ?>">
-                                                            <?php echo $pedido['estado']; ?>
+                                                            <?php echo htmlspecialchars($pedido['estado']); ?>
                                                         </span>
                                                     </td>
                                                     <td>
@@ -429,17 +507,97 @@ $pedidos = $controller->obtenerPedidosFiltrados($estadoPedido, $estadoPago, $fec
                                                                 <option value="Completado" <?php echo ($pedido['estado'] === 'Completado') ? 'selected' : ''; ?>>Completado</option>
                                                                 <option value="Cancelado" <?php echo ($pedido['estado'] === 'Cancelado') ? 'selected' : ''; ?>>Cancelado</option>
                                                             </select>
-                                                            <input type="hidden" name="pedido_id" value="<?php echo $pedido['id']; ?>">
+                                                            <input type="hidden" name="pedido_id" value="<?php echo $pedido['idped']; ?>">
                                                             <button type="submit" class="btn btn-success btn-sm">
-                                                                <i class="fas fa-sync-alt"></i>
+                                                                <i class="fas fa-sync-alt"></i> Actualizar
                                                             </button>
                                                         </form>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
                                         </tbody>
-                                                    </table>
+                                    </table>
                                 </div>
+                                
+                                <!-- Paginación -->
+                                <?php if ($totalPaginas > 1): ?>
+                                    <div class="d-flex justify-content-between align-items-center mt-3 px-3 pb-3">
+                                        <div class="text-muted">
+                                            Mostrando <?= count($pedidosPaginados) ?> de <?= $totalPedidos ?> pedidos
+                                        </div>
+                                        <nav aria-label="Paginación de pedidos">
+                                            <ul class="pagination mb-0">
+                                                <!-- Botón Anterior -->
+                                                <?php if ($paginaActual > 1): ?>
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['pagina' => $paginaActual - 1])) ?>">
+                                                            <i class="fas fa-chevron-left"></i>
+                                                        </a>
+                                                    </li>
+                                                <?php else: ?>
+                                                    <li class="page-item disabled">
+                                                        <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                                                    </li>
+                                                <?php endif; ?>
+
+                                                <!-- Números de página -->
+                                                <?php
+                                                // Calcular el rango de páginas a mostrar
+                                                $inicio = max(1, $paginaActual - 2);
+                                                $fin = min($totalPaginas, $paginaActual + 2);
+                                                
+                                                // Ajustar si estamos cerca del inicio o fin
+                                                if ($fin - $inicio < 4) {
+                                                    if ($inicio == 1) {
+                                                        $fin = min($totalPaginas, $inicio + 4);
+                                                    } else {
+                                                        $inicio = max(1, $fin - 4);
+                                                    }
+                                                }
+
+                                                // Mostrar primera página si no está en el rango
+                                                if ($inicio > 1): ?>
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['pagina' => 1])) ?>">1</a>
+                                                    </li>
+                                                    <?php if ($inicio > 2): ?>
+                                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
+
+                                                <!-- Páginas en el rango -->
+                                                <?php for ($i = $inicio; $i <= $fin; $i++): ?>
+                                                    <li class="page-item <?= $i == $paginaActual ? 'active' : '' ?>">
+                                                        <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['pagina' => $i])) ?>"><?= $i ?></a>
+                                                    </li>
+                                                <?php endfor; ?>
+
+                                                <!-- Mostrar última página si no está en el rango -->
+                                                <?php if ($fin < $totalPaginas): ?>
+                                                    <?php if ($fin < $totalPaginas - 1): ?>
+                                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                                    <?php endif; ?>
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['pagina' => $totalPaginas])) ?>"><?= $totalPaginas ?></a>
+                                                    </li>
+                                                <?php endif; ?>
+
+                                                <!-- Botón Siguiente -->
+                                                <?php if ($paginaActual < $totalPaginas): ?>
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['pagina' => $paginaActual + 1])) ?>">
+                                                            <i class="fas fa-chevron-right"></i>
+                                                        </a>
+                                                    </li>
+                                                <?php else: ?>
+                                                    <li class="page-item disabled">
+                                                        <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                                                    </li>
+                                                <?php endif; ?>
+                                            </ul>
+                                        </nav>
+                                    </div>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -447,5 +605,30 @@ $pedidos = $controller->obtenerPedidosFiltrados($estadoPedido, $estadoPago, $fec
             </div>
         </div>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(alert => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+
+            // Auto-submit on filter change (opcional - comentado para evitar envíos no deseados)
+            /*
+            document.addEventListener('DOMContentLoaded', function() {
+                const filterForm = document.querySelector('form');
+                const selects = filterForm.querySelectorAll('select');
+                const dateInputs = filterForm.querySelectorAll('input[type="date"]');
+                
+                [...selects, ...dateInputs].forEach(element => {
+                    element.addEventListener('change', function() {
+                        filterForm.submit();
+                    });
+                });
+            });
+            */
+        </script>
     </body>
     </html>
