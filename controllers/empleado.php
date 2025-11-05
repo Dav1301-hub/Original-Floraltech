@@ -62,7 +62,21 @@ class empleado {
                     }
                     
                     // Redirigir para evitar reenvío del formulario
-                    header("Location: " . $_SERVER['PHP_SELF'] . "?action=gestion_pedidos");
+                    $redirect_url = "index.php?ctrl=empleado&action=gestion_pedidos";
+                    
+                    // Mantener parámetros de paginación y filtros
+                    $params = [];
+                    if (isset($_GET['pagina'])) $params['pagina'] = $_GET['pagina'];
+                    if (isset($_GET['estado_pedido']) && !empty($_GET['estado_pedido'])) $params['estado_pedido'] = $_GET['estado_pedido'];
+                    if (isset($_GET['estado_pago']) && !empty($_GET['estado_pago'])) $params['estado_pago'] = $_GET['estado_pago'];
+                    if (isset($_GET['fecha_desde']) && !empty($_GET['fecha_desde'])) $params['fecha_desde'] = $_GET['fecha_desde'];
+                    if (isset($_GET['fecha_hasta']) && !empty($_GET['fecha_hasta'])) $params['fecha_hasta'] = $_GET['fecha_hasta'];
+                    
+                    if (!empty($params)) {
+                        $redirect_url .= "&" . http_build_query($params);
+                    }
+                    
+                    header("Location: " . $redirect_url);
                     exit;
                 }
             }
@@ -721,11 +735,12 @@ class empleado {
                 UPDATE ped 
                 SET estado = ?, 
                     fecha_actualizacion = NOW(),
-                    empleado_actualiza = ?
+                    empleado_actualizacion = ?
                 WHERE idped = ?
             ");
             return $stmt->execute([$nuevo_estado, $this->empleado_id, $id_pedido]);
         } catch (Exception $e) {
+            error_log("Error actualizando estado pedido: " . $e->getMessage());
             return false;
         }
     }

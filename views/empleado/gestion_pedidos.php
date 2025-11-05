@@ -500,14 +500,15 @@ if (!isset($pedidosPaginados)) {
                                                     </td>
                                                     <td>
                                                         <form method="POST" class="d-flex align-items-center gap-1">
-                                                            <select name="nuevo_estado" class="form-select form-select-sm" style="width: auto;">
+                                                            <input type="hidden" name="accion" value="actualizar_estado">
+                                                            <input type="hidden" name="idped" value="<?php echo $pedido['idped']; ?>">
+                                                            <select name="estado" class="form-select form-select-sm" style="width: auto;">
                                                                 <option value="Pendiente" <?php echo ($pedido['estado'] === 'Pendiente') ? 'selected' : ''; ?>>Pendiente</option>
                                                                 <option value="En Proceso" <?php echo ($pedido['estado'] === 'En Proceso' || $pedido['estado'] === 'En proceso') ? 'selected' : ''; ?>>En Proceso</option>
                                                                 <option value="En Preparación" <?php echo ($pedido['estado'] === 'En Preparación') ? 'selected' : ''; ?>>En Preparación</option>
                                                                 <option value="Completado" <?php echo ($pedido['estado'] === 'Completado') ? 'selected' : ''; ?>>Completado</option>
                                                                 <option value="Cancelado" <?php echo ($pedido['estado'] === 'Cancelado') ? 'selected' : ''; ?>>Cancelado</option>
                                                             </select>
-                                                            <input type="hidden" name="pedido_id" value="<?php echo $pedido['idped']; ?>">
                                                             <button type="submit" class="btn btn-success btn-sm">
                                                                 <i class="fas fa-sync-alt"></i> Actualizar
                                                             </button>
