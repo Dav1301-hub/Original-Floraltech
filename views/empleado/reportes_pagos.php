@@ -13,8 +13,13 @@ $filtros = [
     'estado' => $_GET['estado'] ?? '',
     'cliente' => $_GET['cliente'] ?? '',
     'metodo_pago' => $_GET['metodo_pago'] ?? '',
-    'limite' => $_GET['limite'] ?? '20'
+    'monto_min' => $_GET['monto_min'] ?? '',
+    'monto_max' => $_GET['monto_max'] ?? '',
+    'limite' => $_GET['limite'] ?? '50'
 ];
+
+// Limitar pagos completados a solo los 5 más recientes
+$pagosCompletadosRecientes = isset($pagosCompletados) ? array_slice($pagosCompletados, 0, 5) : [];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -73,61 +78,6 @@ $filtros = [
             justify-content: space-between;
         }
         
-        .filters-card {
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            margin-bottom: 2rem;
-            border-left: 4px solid var(--empleado-primary);
-        }
-        
-        .filters-form {
-            padding: 1.5rem;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .stat-card {
-            background: white;
-            border-radius: var(--border-radius);
-            padding: 1.5rem;
-            display: flex;
-            align-items: center;
-            box-shadow: var(--shadow);
-            border-left: 4px solid #dee2e6;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-hover);
-        }
-        
-        .stat-card.success { border-left-color: var(--empleado-primary); }
-        .stat-card.warning { border-left-color: #ffc107; }
-        .stat-card.info { border-left-color: var(--empleado-accent); }
-        
-        .stat-icon {
-            background: var(--bg-light);
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1rem;
-            font-size: 1.5rem;
-        }
-        
-        .stat-card.success .stat-icon { color: var(--empleado-primary); }
-        .stat-card.warning .stat-icon { color: #ffc107; }
-        .stat-card.info .stat-icon { color: var(--empleado-accent); }
-        
         .table-responsive {
             border-radius: var(--border-radius);
         }
@@ -168,15 +118,28 @@ $filtros = [
             transform: translateY(-1px);
             box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.15);
         }
-        
-        .filter-badge {
-            background: var(--empleado-primary);
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.375rem;
-            font-size: 0.75rem;
-            margin: 0.25rem;
-            display: inline-block;
+
+        .filters-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--empleado-primary);
+        }
+
+        .badge.bg-primary {
+            background: var(--empleado-primary) !important;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--empleado-primary);
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
         }
         
         @media (max-width: 992px) {
@@ -192,10 +155,6 @@ $filtros = [
         @media (max-width: 576px) {
             .main-content {
                 padding: 0 0.5rem 2rem;
-            }
-            
-            .filters-form {
-                padding: 1rem;
             }
         }
     </style>
@@ -228,18 +187,18 @@ $filtros = [
             </div>
         <?php endif; ?>
 
-        <!-- Filtros de Búsqueda -->
-        <div class="filters-card">
+        <!-- Filtros de Búsqueda para Exportación -->
+        <div class="content-card mb-4">
             <div class="card-header">
-                <h5><i class="fas fa-filter me-2"></i>Filtros de Búsqueda</h5>
+                <h5><i class="fas fa-filter me-2"></i>Filtros para Reportes</h5>
                 <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#filtrosCollapse">
                     <i class="fas fa-chevron-down"></i>
                 </button>
             </div>
-            <div class="collapse show" id="filtrosCollapse">
-                <div class="filters-form">
-                    <form method="GET" action="index.php" id="filtrosForm">
-                        <input type="hidden" name="ctrl" value="CempleadoPagos">
+            <div class="collapse" id="filtrosCollapse">
+                <div class="card-body">
+                    <form method="GET" action="" id="filtrosForm">
+                        <input type="hidden" name="ctrl" value="empleado">
                         <input type="hidden" name="action" value="reportes">
                         
                         <div class="row g-3">
@@ -251,112 +210,90 @@ $filtros = [
                                 <label for="fecha_fin" class="form-label">Fecha Fin</label>
                                 <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" value="<?= $filtros['fecha_fin'] ?>">
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-3">
                                 <label for="estado" class="form-label">Estado</label>
                                 <select class="form-select" id="estado" name="estado">
-                                    <option value="">Todos</option>
+                                    <option value="">Todos los Estados</option>
                                     <option value="Pendiente" <?= $filtros['estado'] === 'Pendiente' ? 'selected' : '' ?>>Pendiente</option>
                                     <option value="Completado" <?= $filtros['estado'] === 'Completado' ? 'selected' : '' ?>>Completado</option>
+                                    <option value="Procesando" <?= $filtros['estado'] === 'Procesando' ? 'selected' : '' ?>>Procesando</option>
                                     <option value="Cancelado" <?= $filtros['estado'] === 'Cancelado' ? 'selected' : '' ?>>Cancelado</option>
                                 </select>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-3">
                                 <label for="cliente" class="form-label">Cliente</label>
                                 <input type="text" class="form-control" id="cliente" name="cliente" value="<?= htmlspecialchars($filtros['cliente']) ?>" placeholder="Buscar cliente...">
                             </div>
-                            <div class="col-md-2">
-                                <label for="limite" class="form-label">Límite</label>
-                                <select class="form-select" id="limite" name="limite">
-                                    <option value="20" <?= $filtros['limite'] === '20' ? 'selected' : '' ?>>20</option>
-                                    <option value="50" <?= $filtros['limite'] === '50' ? 'selected' : '' ?>>50</option>
-                                    <option value="100" <?= $filtros['limite'] === '100' ? 'selected' : '' ?>>100</option>
-                                </select>
-                            </div>
                         </div>
                         
-                        <?php if (!empty($metodosPago)): ?>
                         <div class="row g-3 mt-2">
                             <div class="col-md-3">
                                 <label for="metodo_pago" class="form-label">Método de Pago</label>
                                 <select class="form-select" id="metodo_pago" name="metodo_pago">
-                                    <option value="">Todos</option>
-                                    <?php foreach ($metodosPago as $metodo): ?>
-                                        <option value="<?= htmlspecialchars($metodo) ?>" <?= $filtros['metodo_pago'] === $metodo ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($metodo) ?>
-                                        </option>
-                                    <?php endforeach; ?>
+                                    <option value="">Todos los Métodos</option>
+                                    <option value="efectivo" <?= $filtros['metodo_pago'] === 'efectivo' ? 'selected' : '' ?>>Efectivo</option>
+                                    <option value="transferencia" <?= $filtros['metodo_pago'] === 'transferencia' ? 'selected' : '' ?>>Transferencia</option>
+                                    <option value="tarjeta_credito" <?= $filtros['metodo_pago'] === 'tarjeta_credito' ? 'selected' : '' ?>>Tarjeta de Crédito</option>
+                                    <option value="nequi" <?= $filtros['metodo_pago'] === 'nequi' ? 'selected' : '' ?>>Nequi</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="monto_min" class="form-label">Monto Mínimo</label>
+                                <input type="number" class="form-control" id="monto_min" name="monto_min" value="<?= $filtros['monto_min'] ?? '' ?>" placeholder="0.00" step="0.01">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="monto_max" class="form-label">Monto Máximo</label>
+                                <input type="number" class="form-control" id="monto_max" name="monto_max" value="<?= $filtros['monto_max'] ?? '' ?>" placeholder="999999.99" step="0.01">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="limite" class="form-label">Límite de Resultados</label>
+                                <select class="form-select" id="limite" name="limite">
+                                    <option value="50" <?= $filtros['limite'] === '50' ? 'selected' : '' ?>>50</option>
+                                    <option value="100" <?= $filtros['limite'] === '100' ? 'selected' : '' ?>>100</option>
+                                    <option value="200" <?= $filtros['limite'] === '200' ? 'selected' : '' ?>>200</option>
+                                    <option value="500" <?= $filtros['limite'] === '500' ? 'selected' : '' ?>>500</option>
                                 </select>
                             </div>
                         </div>
-                        <?php endif; ?>
                         
-                        <div class="mt-3 d-flex gap-2 flex-wrap">
+                        <div class="mt-4 d-flex gap-2 flex-wrap align-items-center">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search me-1"></i>Filtrar
+                                <i class="fas fa-search me-1"></i>Aplicar Filtros
                             </button>
-                            <a href="index.php?ctrl=CempleadoPagos&action=reportes" class="btn btn-secondary">
-                                <i class="fas fa-times me-1"></i>Limpiar
+                            <a href="index.php?ctrl=empleado&action=reportes" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>Limpiar Filtros
                             </a>
-                            <div class="export-buttons ms-auto">
-                                <a href="index.php?ctrl=CempleadoPagos&action=generarPDF&<?= http_build_query($filtros) ?>" class="btn btn-danger btn-export">
-                                    <i class="fas fa-file-pdf me-1"></i>PDF
-                                </a>
-                                <a href="index.php?ctrl=CempleadoPagos&action=exportarExcel&<?= http_build_query($filtros) ?>" class="btn btn-success btn-export">
-                                    <i class="fas fa-file-excel me-1"></i>Excel
-                                </a>
+                            
+                            <div class="ms-auto d-flex gap-2">
+                                <button type="button" class="btn btn-danger" onclick="exportarPDF()">
+                                    <i class="fas fa-file-pdf me-1"></i>Exportar PDF
+                                </button>
+                                <button type="button" class="btn btn-success" onclick="exportarExcel()">
+                                    <i class="fas fa-file-excel me-1"></i>Exportar Excel
+                                </button>
                             </div>
                         </div>
                         
                         <!-- Filtros activos -->
-                        <?php if (array_filter($filtros)): ?>
+                        <?php 
+                        $filtrosActivos = array_filter($filtros, function($value) { 
+                            return !empty($value) && $value !== '20' && $value !== '50'; 
+                        });
+                        ?>
+                        <?php if (!empty($filtrosActivos)): ?>
                         <div class="mt-3">
-                            <small class="text-muted">Filtros activos:</small>
-                            <?php foreach ($filtros as $key => $value): ?>
-                                <?php if (!empty($value) && $key !== 'limite'): ?>
-                                    <span class="filter-badge">
+                            <small class="text-muted fw-bold">Filtros activos:</small>
+                            <div class="mt-2">
+                                <?php foreach ($filtrosActivos as $key => $value): ?>
+                                    <span class="badge bg-primary me-1 mb-1">
+                                        <i class="fas fa-filter me-1"></i>
                                         <?= ucfirst(str_replace('_', ' ', $key)) ?>: <?= htmlspecialchars($value) ?>
                                     </span>
-                                <?php endif; ?>
-                            <?php endforeach; ?>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                         <?php endif; ?>
                     </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Estadísticas de Pagos -->
-        <div class="stats-grid">
-            <div class="stat-card warning">
-                <div class="stat-icon">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="stat-info">
-                    <h3><?= number_format($stats['pendientes'] ?? 0) ?></h3>
-                    <p>Pagos Pendientes</p>
-                    <small class="text-muted">$<?= number_format($stats['monto_pendiente'] ?? 0, 2) ?></small>
-                </div>
-            </div>
-
-            <div class="stat-card success">
-                <div class="stat-icon">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="stat-info">
-                    <h3><?= number_format($stats['completados'] ?? 0) ?></h3>
-                    <p>Pagos Completados</p>
-                    <small class="text-muted">$<?= number_format($stats['monto_completado'] ?? 0, 2) ?></small>
-                </div>
-            </div>
-
-            <div class="stat-card info">
-                <div class="stat-icon">
-                    <i class="fas fa-calendar-day"></i>
-                </div>
-                <div class="stat-info">
-                    <h3><?= number_format($stats['completados_hoy'] ?? 0) ?></h3>
-                    <p>Completados Hoy</p>
-                    <small class="text-muted">$<?= number_format($stats['monto_hoy'] ?? 0, 2) ?></small>
                 </div>
             </div>
         </div>
@@ -419,10 +356,10 @@ $filtros = [
             <div class="content-card">
                 <div class="card-header">
                     <h5><i class="fas fa-check-circle me-2"></i>Pagos Completados Recientes</h5>
-                    <small class="text-muted"><?= count($pagosCompletados ?? []) ?> recientes</small>
+                    <small class="text-muted"><?= count($pagosCompletadosRecientes) ?> recientes</small>
                 </div>
                 <div class="card-body">
-                    <?php if (empty($pagosCompletados)): ?>
+                    <?php if (empty($pagosCompletadosRecientes)): ?>
                         <div class="empty-state">
                             <i class="fas fa-info-circle"></i>
                             <h4>Sin pagos completados</h4>
@@ -441,7 +378,7 @@ $filtros = [
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($pagosCompletados as $pago): ?>
+                                    <?php foreach ($pagosCompletadosRecientes as $pago): ?>
                                     <tr>
                                         <td><strong class="text-primary"><?= htmlspecialchars($pago['numped']) ?></strong></td>
                                         <td><?= htmlspecialchars($pago['cliente_nombre']) ?></td>
@@ -457,56 +394,6 @@ $filtros = [
                 </div>
             </div>
         </div>
-
-        <!-- Reporte Mensual -->
-        <div class="content-card">
-            <div class="card-header">
-                <h5><i class="fas fa-chart-line me-2"></i>Reporte por Período</h5>
-                <small class="text-muted">Últimos <?= count($reporteMensual ?? []) ?> días con actividad</small>
-            </div>
-            <div class="card-body">
-                <?php if (empty($reporteMensual)): ?>
-                    <div class="empty-state">
-                        <i class="fas fa-chart-line"></i>
-                        <h4>Sin datos del período</h4>
-                        <p>No hay actividad de pagos en el período seleccionado</p>
-                    </div>
-                <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Total Pagos</th>
-                                    <th>Monto Total</th>
-                                    <th>Completados</th>
-                                    <th>Pendientes</th>
-                                    <th>Efectividad</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($reporteMensual ?? [] as $dia): ?>
-                                <tr>
-                                    <td><strong><?= date('d/m/Y', strtotime($dia['fecha'])) ?></strong></td>
-                                    <td><?= number_format($dia['total_pagos']) ?></td>
-                                    <td><strong class="text-primary">$<?= number_format($dia['monto_total'], 2) ?></strong></td>
-                                    <td><span class="badge bg-success"><?= number_format($dia['completados']) ?></span></td>
-                                    <td><span class="badge bg-warning"><?= number_format($dia['pendientes']) ?></span></td>
-                                    <td>
-                                        <?php 
-                                        $efectividad = $dia['total_pagos'] > 0 ? ($dia['completados'] / $dia['total_pagos']) * 100 : 0;
-                                        $clase = $efectividad >= 80 ? 'success' : ($efectividad >= 60 ? 'warning' : 'danger');
-                                        ?>
-                                        <span class="badge bg-<?= $clase ?>"><?= number_format($efectividad, 1) ?>%</span>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
@@ -520,16 +407,46 @@ $filtros = [
             });
         }, 5000);
 
-        // Auto submit on filter change
+        // Función para exportar PDF con filtros
+        function exportarPDF() {
+            const filtros = obtenerFiltrosActuales();
+            const url = `index.php?ctrl=CempleadoPagos&action=generarPDF&${filtros}`;
+            window.open(url, '_blank');
+        }
+
+        // Función para exportar Excel con filtros
+        function exportarExcel() {
+            const filtros = obtenerFiltrosActuales();
+            const url = `index.php?ctrl=CempleadoPagos&action=exportarExcel&${filtros}`;
+            window.open(url, '_blank');
+        }
+
+        // Función para obtener los filtros actuales del formulario
+        function obtenerFiltrosActuales() {
+            const form = document.getElementById('filtrosForm');
+            const formData = new FormData(form);
+            const params = new URLSearchParams();
+            
+            for (let [key, value] of formData.entries()) {
+                if (value && value.trim() !== '' && key !== 'ctrl' && key !== 'action') {
+                    params.append(key, value);
+                }
+            }
+            
+            return params.toString();
+        }
+
+        // Auto submit en cambio de filtros importantes
         document.addEventListener('DOMContentLoaded', function() {
-            const inputs = document.querySelectorAll('#filtrosForm input, #filtrosForm select');
-            inputs.forEach(input => {
-                if (input.type !== 'submit') {
+            const autoSubmitInputs = ['fecha_inicio', 'fecha_fin', 'estado'];
+            
+            autoSubmitInputs.forEach(inputId => {
+                const input = document.getElementById(inputId);
+                if (input) {
                     input.addEventListener('change', function() {
-                        // Auto submit después de un pequeño delay
                         setTimeout(() => {
                             document.getElementById('filtrosForm').submit();
-                        }, 500);
+                        }, 300);
                     });
                 }
             });
