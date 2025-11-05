@@ -609,10 +609,10 @@ unset($_SESSION['tipo_mensaje']);
                                         Inventario
                                     <?php endif; ?>
                                 </a>
-                                <a href="index.php?ctrl=CempleadoPagos&action=reportes" class="action-btn btn btn-warning">
+                                <!-- <a href="index.php?ctrl=CempleadoPagos&action=reportes" class="action-btn btn btn-warning">
                                     <i class="fas fa-chart-bar"></i>
                                     Reportes
-                                </a>
+                                </a> -->
                             </div>
                         </div>
                     </div>

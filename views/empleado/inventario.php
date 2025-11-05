@@ -5,6 +5,23 @@ $tipo_mensaje = isset($_SESSION['tipo_mensaje']) ? $_SESSION['tipo_mensaje'] : '
 // Limpiar los mensajes después de mostrarlos
 unset($_SESSION['mensaje']);
 unset($_SESSION['tipo_mensaje']);
+
+// Configuración de paginación
+$productos_por_pagina = 5;
+$pagina_actual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
+$total_productos = count($productos ?? []);
+$total_paginas = ceil($total_productos / $productos_por_pagina);
+$offset = ($pagina_actual - 1) * $productos_por_pagina;
+
+// Productos para la página actual
+$productos_paginados = isset($productos) ? array_slice($productos, $offset, $productos_por_pagina) : [];
+
+// Función para construir URL de paginación
+function construirUrlPaginacion($pagina) {
+    $params = $_GET;
+    $params['pagina'] = $pagina;
+    return 'index.php?' . http_build_query($params);
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -284,6 +301,37 @@ unset($_SESSION['tipo_mensaje']);
             font-weight: 600;
         }
 
+        /* Estilos para paginación */
+        .pagination .page-link {
+            color: var(--empleado-primary);
+            border-color: #dee2e6;
+            border-radius: 6px;
+            margin: 0 2px;
+            transition: var(--transition);
+        }
+
+        .pagination .page-link:hover {
+            color: white;
+            background-color: var(--empleado-primary);
+            border-color: var(--empleado-primary);
+        }
+
+        .pagination .page-item.active .page-link {
+            background-color: var(--empleado-primary);
+            border-color: var(--empleado-primary);
+        }
+
+        .pagination .page-item.disabled .page-link {
+            color: #6c757d;
+            background-color: white;
+            border-color: #dee2e6;
+        }
+
+        .card-footer {
+            border-top: 1px solid #dee2e6;
+            padding: 1rem;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .main-content {
@@ -453,14 +501,17 @@ unset($_SESSION['tipo_mensaje']);
                     </form>
                 </div>
 
-                <!-- Tabla de Inventario -->
+                <!-- Tabla de Inventario con Paginación -->
                 <div class="content-card">
                     <div class="card-header">
                         <h5><i class="fas fa-boxes me-2"></i>Inventario de Productos</h5>
-                        <small><?= count($productos ?? []) ?> productos encontrados</small>
+                        <small>
+                            Página <?= $pagina_actual ?> de <?= $total_paginas ?> 
+                            (<?= $total_productos ?> productos total, mostrando <?= count($productos_paginados) ?>)
+                        </small>
                     </div>
                     <div class="card-body p-0">
-                        <?php if (empty($productos)): ?>
+                        <?php if (empty($productos_paginados)): ?>
                             <div class="empty-state">
                                 <i class="fas fa-box-open"></i>
                                 <h4>No hay productos en inventario</h4>
@@ -480,7 +531,7 @@ unset($_SESSION['tipo_mensaje']);
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach ($productos as $producto): ?>
+                                        <?php foreach ($productos_paginados as $producto): ?>
                                         <tr>
                                             <td><strong class="text-primary"><?= htmlspecialchars($producto['idtflor']) ?></strong></td>
                                             <td><?= htmlspecialchars($producto['nombre']) ?></td>
@@ -511,6 +562,85 @@ unset($_SESSION['tipo_mensaje']);
                                     </tbody>
                                 </table>
                             </div>
+                            
+                            <!-- Paginación Bootstrap -->
+                            <?php if ($total_paginas > 1): ?>
+                            <div class="card-footer bg-light">
+                                <nav aria-label="Paginación de productos">
+                                    <ul class="pagination pagination-sm justify-content-center mb-0">
+                                        <!-- Botón Anterior -->
+                                        <?php if ($pagina_actual > 1): ?>
+                                            <li class="page-item">
+                                                <a class="page-link" href="<?= construirUrlPaginacion($pagina_actual - 1) ?>" aria-label="Anterior">
+                                                    <span aria-hidden="true">&laquo;</span>
+                                                </a>
+                                            </li>
+                                        <?php else: ?>
+                                            <li class="page-item disabled">
+                                                <span class="page-link">&laquo;</span>
+                                            </li>
+                                        <?php endif; ?>
+
+                                        <!-- Números de página -->
+                                        <?php
+                                        $inicio = max(1, $pagina_actual - 2);
+                                        $fin = min($total_paginas, $pagina_actual + 2);
+                                        
+                                        // Mostrar primera página si no está en el rango
+                                        if ($inicio > 1): ?>
+                                            <li class="page-item">
+                                                <a class="page-link" href="<?= construirUrlPaginacion(1) ?>">1</a>
+                                            </li>
+                                            <?php if ($inicio > 2): ?>
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">...</span>
+                                                </li>
+                                            <?php endif;
+                                        endif;
+
+                                        // Páginas en el rango
+                                        for ($i = $inicio; $i <= $fin; $i++): ?>
+                                            <li class="page-item <?= $i == $pagina_actual ? 'active' : '' ?>">
+                                                <a class="page-link" href="<?= construirUrlPaginacion($i) ?>"><?= $i ?></a>
+                                            </li>
+                                        <?php endfor;
+
+                                        // Mostrar última página si no está en el rango
+                                        if ($fin < $total_paginas): ?>
+                                            <?php if ($fin < $total_paginas - 1): ?>
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">...</span>
+                                                </li>
+                                            <?php endif; ?>
+                                            <li class="page-item">
+                                                <a class="page-link" href="<?= construirUrlPaginacion($total_paginas) ?>"><?= $total_paginas ?></a>
+                                            </li>
+                                        <?php endif; ?>
+
+                                        <!-- Botón Siguiente -->
+                                        <?php if ($pagina_actual < $total_paginas): ?>
+                                            <li class="page-item">
+                                                <a class="page-link" href="<?= construirUrlPaginacion($pagina_actual + 1) ?>" aria-label="Siguiente">
+                                                    <span aria-hidden="true">&raquo;</span>
+                                                </a>
+                                            </li>
+                                        <?php else: ?>
+                                            <li class="page-item disabled">
+                                                <span class="page-link">&raquo;</span>
+                                            </li>
+                                        <?php endif; ?>
+                                    </ul>
+                                </nav>
+                                
+                                <!-- Información adicional de paginación -->
+                                <div class="text-center mt-2">
+                                    <small class="text-muted">
+                                        Mostrando productos <?= $offset + 1 ?>-<?= min($offset + $productos_por_pagina, $total_productos) ?> 
+                                        de <?= $total_productos ?> total
+                                    </small>
+                                </div>
+                            </div>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 </div>
