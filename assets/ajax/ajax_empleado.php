@@ -1,65 +1,8 @@
 <?php
-// DEBUG: Forzar mostrar todos los errores como JSON y loguear todo
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-// Si hay salida previa, limpiar buffer
-if (ob_get_level()) ob_end_clean();
-
-// Capturar cualquier salida inesperada
-ob_start(function($buffer) {
-    if (trim($buffer) !== '') {
-        header('Content-Type: application/json');
-        echo json_encode([
-            'success' => false,
-            'error' => 'Salida inesperada: ' . $buffer
-        ]);
-        return '';
-    }
-    return $buffer;
-});
-// --- Verificación de sesión/autenticación para AJAX ---
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-// Unificar nombre de variable de sesión
-if (!isset($_SESSION['usuario_id'])) {
-    if (isset($_SESSION['user_id'])) {
-        $_SESSION['usuario_id'] = $_SESSION['user_id'];
-    }
-}
-if (!isset($_SESSION['usuario_id'])) {
-    header('Content-Type: application/json');
-    http_response_code(401);
-    echo json_encode([
-        'success' => false,
-        'error' => 'Sesión expirada o no autenticado. Por favor, inicie sesión nuevamente.'
-    ]);
-    exit;
-}
-// ajax_empleado.php
-// Forzar header JSON SIEMPRE
+// ajax_empleado.php - Endpoint AJAX para gestión de empleados
 header('Content-Type: application/json; charset=utf-8');
-
-// Manejo global de errores para evitar HTML en la respuesta
-set_exception_handler(function($e) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => 'Excepción: ' . $e->getMessage()
-    ]);
-    exit;
-});
-set_error_handler(function($errno, $errstr, $errfile, $errline) {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => "Error PHP [$errno]: $errstr en $errfile:$errline"
-    ]);
-    exit;
-});
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // No mostrar errores en pantalla, solo en JSON
 
 require_once __DIR__ . '/../../models/conexion.php';
 $conn = new conexion();
