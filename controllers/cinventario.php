@@ -10,6 +10,7 @@ class Cinventario {
     // Variables de datos
     private $total_productos = 0;
     private $stock_bajo = 0;
+    private $stock_critico = 0;
     private $sin_stock = 0;
     private $valor_total = 0;
     private $inventario = [];
@@ -263,6 +264,7 @@ class Cinventario {
                 if (is_array($estadisticas)) {
                     $this->total_productos = $estadisticas['total_productos'] ?? 0;
                     $this->stock_bajo = $estadisticas['stock_bajo'] ?? 0;
+                    $this->stock_critico = $estadisticas['stock_critico'] ?? 0;
                     $this->sin_stock = $estadisticas['sin_stock'] ?? 0;
                     $this->valor_total = $estadisticas['valor_total'] ?? 0;
                 }
@@ -338,6 +340,7 @@ class Cinventario {
     // Variables de estadísticas - siempre definidas
     $total_productos = $this->total_productos;
     $stock_bajo = $this->stock_bajo;
+    $stock_critico = $this->stock_critico;
     $sin_stock = $this->sin_stock;
     $valor_total = $this->valor_total;
 

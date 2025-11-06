@@ -88,11 +88,17 @@ class Minventario {
             $stmt_total->execute();
             $total_productos = $stmt_total->fetch(PDO::FETCH_ASSOC)['total'];
             
-            // Productos con stock bajo (menos de 20)
-            $sql_bajo = "SELECT COUNT(*) as bajo FROM inv WHERE stock < 20";
+            // Productos con stock bajo (10-19 unidades)
+            $sql_bajo = "SELECT COUNT(*) as bajo FROM inv WHERE stock >= 10 AND stock < 20";
             $stmt_bajo = $this->db->prepare($sql_bajo);
             $stmt_bajo->execute();
             $stock_bajo = $stmt_bajo->fetch(PDO::FETCH_ASSOC)['bajo'];
+            
+            // Productos con stock crítico (1-9 unidades)
+            $sql_critico = "SELECT COUNT(*) as critico FROM inv WHERE stock > 0 AND stock < 10";
+            $stmt_critico = $this->db->prepare($sql_critico);
+            $stmt_critico->execute();
+            $stock_critico = $stmt_critico->fetch(PDO::FETCH_ASSOC)['critico'];
             
             // Productos sin stock
             $sql_sin = "SELECT COUNT(*) as sin_stock FROM inv WHERE stock = 0";
@@ -109,6 +115,7 @@ class Minventario {
             return [
                 'total_productos' => $total_productos,
                 'stock_bajo' => $stock_bajo,
+                'stock_critico' => $stock_critico,
                 'sin_stock' => $sin_stock,
                 'valor_total' => $valor_total
             ];
@@ -969,6 +976,21 @@ class Minventario {
      */
     public function eliminarProducto($id) {
         try {
+            // Primero verificar si el producto tiene historial de movimientos
+            $sqlCheck = "SELECT COUNT(*) as total FROM inv_historial WHERE idinv = :id";
+            $stmtCheck = $this->db->prepare($sqlCheck);
+            $stmtCheck->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmtCheck->execute();
+            $historial = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+            
+            if ($historial['total'] > 0) {
+                return [
+                    'success' => false, 
+                    'message' => 'No se puede eliminar este producto porque tiene ' . $historial['total'] . ' movimiento(s) en el historial. Los productos con historial no pueden eliminarse para preservar la integridad de los datos.'
+                ];
+            }
+            
+            // Si no tiene historial, proceder con la eliminación
             $sql = "DELETE FROM inv WHERE idinv = :id";
             $stmt = $this->db->prepare($sql);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);

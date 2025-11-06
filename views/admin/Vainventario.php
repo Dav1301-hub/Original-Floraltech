@@ -22,6 +22,17 @@
                         <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
                         <div class="fw-bold text-muted">Stock Bajo</div>
                         <div class="fs-3 fw-bold text-dark"><?= $stock_bajo ?? 0 ?></div>
+                        <small class="text-muted">10-19 unidades</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-0 shadow-sm">
+                    <div class="card-body">
+                        <i class="fas fa-exclamation-circle fa-2x mb-2" style="color: #ff6b35;"></i>
+                        <div class="fw-bold text-muted">Stock Crítico</div>
+                        <div class="fs-3 fw-bold text-dark"><?= $stock_critico ?? 0 ?></div>
+                        <small class="text-muted">1-9 unidades</small>
                     </div>
                 </div>
             </div>
@@ -31,15 +42,7 @@
                         <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
                         <div class="fw-bold text-muted">Sin Stock</div>
                         <div class="fs-3 fw-bold text-dark"><?= $sin_stock ?? 0 ?></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center border-0 shadow-sm">
-                    <div class="card-body">
-                        <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
-                        <div class="fw-bold text-muted">Valor Total</div>
-                        <div class="fs-3 fw-bold text-dark">$<?= number_format($valor_total ?? 0, 2) ?></div>
+                        <small class="text-muted">0 unidades</small>
                     </div>
                 </div>
             </div>
@@ -237,9 +240,8 @@
                                                 class="btn btn-danger btn-sm btn-modal-eliminar" 
                                                 data-producto-id="<?= $item['idinv'] ?>" 
                                                 data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>" 
-                                                title="Eliminar producto" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#modal-eliminar-producto">
+                                                title="Eliminar producto"
+                                                onclick="abrirModalEliminar('<?= $item['idinv'] ?>', '<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>')">
                                             <i class="fas fa-trash"></i>
                                         </button>
 <!-- Modal Eliminar Producto (ubicado al final del archivo) -->
@@ -253,7 +255,7 @@
             <div class="modal-body">
                 <form method="POST" action="?ctrl=cinventario" id="form-eliminar-producto">
                     <input type="hidden" name="accion" value="eliminar_producto">
-                    <input type="hidden" name="producto_id" id="eliminar_producto_id">
+                    <input type="hidden" name="id" id="eliminar_producto_id">
                     <p>¿Estás seguro que deseas eliminar el producto <span id="eliminar_nombre_producto" class="fw-bold text-danger"></span> del inventario?</p>
                 </form>
             </div>
@@ -1573,45 +1575,7 @@ window.abrirModalAgregarStock = function(idProducto, nombreProducto) {
     }
 }
 
-window.abrirModalEliminar = function(idProducto, nombreProducto) {
-    console.log('🔧 Función eliminar llamada para:', idProducto, nombreProducto);
-    try {
-        // No hay modal específico de eliminar, usar confirmación simple
-        const confirmMsg = '¿Estás seguro de que deseas eliminar el producto "' + nombreProducto + '"?\n\nEsta acción no se puede deshacer.';
-        
-        if (confirm(confirmMsg)) {
-            console.log('✅ Usuario confirmó eliminación de:', idProducto);
-            
-            // Crear y enviar formulario para eliminar
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '?ctrl=cinventario';
-            form.style.display = 'none';
-            
-            const accionInput = document.createElement('input');
-            accionInput.type = 'hidden';
-            accionInput.name = 'accion';
-            accionInput.value = 'eliminar_producto';
-            form.appendChild(accionInput);
-            
-            const idInput = document.createElement('input');
-            idInput.type = 'hidden';
-            idInput.name = 'producto_id';
-            idInput.value = idProducto;
-            form.appendChild(idInput);
-            
-            document.body.appendChild(form);
-            form.submit();
-            
-            console.log('📋 Formulario de eliminación enviado');
-        } else {
-            console.log('❌ Usuario canceló eliminación');
-        }
-    } catch (error) {
-        console.error('💥 Error al eliminar producto:', error);
-        alert('Error al eliminar producto: ' + error.message);
-    }
-}
+// Función abrirModalEliminar definida más adelante en el archivo (línea ~2462)
 
 // Función para cambiar elementos por página (con fallback robusto)
 function cambiarElementosPorPagina(nuevoValor) {
@@ -2457,13 +2421,54 @@ window.abrirModalAgregarStock = function(id, nombre) {
 };
 
 window.abrirModalEliminar = function(id, nombre) {
-    if (confirm('¿Eliminar "' + nombre + '"?')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '?ctrl=cinventario';
-        form.innerHTML = '<input type="hidden" name="accion" value="eliminar_producto"><input type="hidden" name="producto_id" value="' + id + '">';
-        document.body.appendChild(form);
-        form.submit();
+    console.log('🗑️ Abriendo modal eliminar - ID:', id, 'Nombre:', nombre);
+    
+    try {
+        // Configurar valores en el modal
+        const inputId = document.getElementById('eliminar_producto_id');
+        const spanNombre = document.getElementById('eliminar_nombre_producto');
+        
+        if (inputId) {
+            inputId.value = id;
+            console.log('✅ ID asignado:', id);
+        } else {
+            console.error('❌ Input eliminar_producto_id no encontrado');
+        }
+        
+        if (spanNombre) {
+            spanNombre.textContent = nombre;
+            console.log('✅ Nombre asignado:', nombre);
+        } else {
+            console.error('❌ Span eliminar_nombre_producto no encontrado');
+        }
+        
+        // Abrir el modal
+        const modalElement = document.getElementById('modal-eliminar-producto');
+        if (modalElement) {
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+                console.log('✅ Modal mostrado con Bootstrap');
+            } else {
+                modalElement.style.display = 'block';
+                modalElement.classList.add('show');
+                console.log('✅ Modal mostrado manualmente');
+            }
+        } else {
+            console.error('❌ Modal modal-eliminar-producto no encontrado');
+            // Fallback a confirm
+            if (confirm('¿Eliminar "' + nombre + '"?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '?ctrl=cinventario';
+                form.innerHTML = '<input type="hidden" name="accion" value="eliminar_producto"><input type="hidden" name="producto_id" value="' + id + '">';
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    } catch (error) {
+        console.error('💥 Error al abrir modal eliminar:', error);
+        alert('Error al abrir modal: ' + error.message);
     }
 };
 
@@ -2538,6 +2543,72 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 1000);
 });
+
+// Event listener para el formulario de eliminar producto
+document.addEventListener('DOMContentLoaded', function() {
+    const formEliminar = document.getElementById('form-eliminar-producto');
+    
+    if (formEliminar) {
+        formEliminar.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('📋 Formulario de eliminación enviado');
+            
+            const formData = new FormData(this);
+            const id = formData.get('id');
+            
+            console.log('🗑️ Eliminando producto ID:', id);
+            
+            // Mostrar loader
+            const btnSubmit = formEliminar.querySelector('button[type="submit"]');
+            const originalText = btnSubmit.innerHTML;
+            btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Eliminando...';
+            btnSubmit.disabled = true;
+            
+            // Enviar petición AJAX
+            fetch('?ctrl=cinventario&accion=eliminar_producto', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('📥 Respuesta del servidor:', data);
+                
+                if (data.success) {
+                    // Cerrar modal
+                    const modalElement = document.getElementById('modal-eliminar-producto');
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const modal = bootstrap.Modal.getInstance(modalElement);
+                        if (modal) modal.hide();
+                    }
+                    
+                    // Mostrar mensaje de éxito
+                    alert('✅ ' + data.message);
+                    
+                    // Recargar página
+                    location.reload();
+                } else {
+                    // Mostrar error
+                    alert('❌ ' + data.message);
+                    
+                    // Restaurar botón
+                    btnSubmit.innerHTML = originalText;
+                    btnSubmit.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('💥 Error:', error);
+                alert('Error de conexión al servidor');
+                
+                // Restaurar botón
+                btnSubmit.innerHTML = originalText;
+                btnSubmit.disabled = false;
+            });
+        });
+        
+        console.log('✅ Event listener para formulario eliminar configurado');
+    }
+});
+
 </script>
 
 
