@@ -209,13 +209,37 @@
                                 <td class="d-none d-lg-table-cell">$<?= number_format(($item['stock'] ?? 0) * ($item['precio'] ?? 0), 2) ?></td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-warning btn-sm btn-modal-editar" data-producto-id="<?= $item['idinv'] ?>" data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>" title="Editar" data-bs-toggle="modal" data-bs-target="#modal-editar-producto">
+                                        <button type="button" 
+                                                class="btn btn-warning btn-sm btn-modal-editar" 
+                                                data-producto-id="<?= $item['idinv'] ?>" 
+                                                data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>"
+                                                data-producto-naturaleza="<?= htmlspecialchars($item['naturaleza']) ?>"
+                                                data-producto-color="<?= htmlspecialchars($item['color']) ?>"
+                                                data-producto-stock="<?= $item['stock'] ?>"
+                                                data-producto-precio="<?= $item['precio'] ?? 0 ?>"
+                                                data-producto-estado="<?= $item['estado_stock'] ?>"
+                                                title="Editar" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#modal-editar-producto">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button type="button" class="btn btn-info btn-sm btn-modal-stock" data-producto-id="<?= $item['idinv'] ?>" data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>" title="Agregar stock" data-bs-toggle="modal" data-bs-target="#modal-agregar-stock">
+                                        <button type="button" 
+                                                class="btn btn-info btn-sm btn-modal-stock" 
+                                                data-producto-id="<?= $item['idinv'] ?>" 
+                                                data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>"
+                                                data-producto-stock="<?= $item['stock'] ?>"
+                                                title="Agregar stock" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#modal-agregar-stock">
                                             <i class="fas fa-plus"></i>
                                         </button>
-                                        <button type="button" class="btn btn-danger btn-sm btn-modal-eliminar" data-producto-id="<?= $item['idinv'] ?>" data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>" title="Eliminar producto" data-bs-toggle="modal" data-bs-target="#modal-eliminar-producto">
+                                        <button type="button" 
+                                                class="btn btn-danger btn-sm btn-modal-eliminar" 
+                                                data-producto-id="<?= $item['idinv'] ?>" 
+                                                data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>" 
+                                                title="Eliminar producto" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#modal-eliminar-producto">
                                             <i class="fas fa-trash"></i>
                                         </button>
 <!-- Modal Eliminar Producto (ubicado al final del archivo) -->
@@ -392,6 +416,7 @@
 </main>
 
 <script src="/Original-Floraltech/assets/inventario.js"></script>
+<script src="/Original-Floraltech/assets/inventario_modal_handler.js"></script>
 <!-- Modales -->
 <!-- Modal Nuevo Producto Mejorado -->
 <div class="modal fade" id="modal-nuevo-producto" tabindex="-1">
