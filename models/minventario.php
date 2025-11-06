@@ -128,7 +128,8 @@ class Minventario {
             
             // Aplicar filtros si existen
             if (!empty($filtros['categoria'])) {
-                $where_conditions[] = "i.naturaleza = :categoria";
+                // CORREGIDO: Buscar en t.naturaleza Y manejar NULLs con COALESCE
+                $where_conditions[] = "COALESCE(t.naturaleza, 'Sin clasificar') = :categoria";
                 $params[':categoria'] = $filtros['categoria'];
             }
             
@@ -207,7 +208,8 @@ class Minventario {
             
             // Aplicar mismos filtros que en getInventarioPaginado
             if (!empty($filtros['categoria'])) {
-                $where_conditions[] = "i.naturaleza = :categoria";
+                // CORREGIDO: Buscar en t.naturaleza Y manejar NULLs con COALESCE
+                $where_conditions[] = "COALESCE(t.naturaleza, 'Sin clasificar') = :categoria";
                 $params[':categoria'] = $filtros['categoria'];
             }
             
@@ -768,28 +770,61 @@ class Minventario {
      */
     public function editarProducto($data) {
         try {
-            $sql = "UPDATE inv SET 
-                    producto = :nombre_producto,
-                    naturaleza = :naturaleza,
-                    color = :color,
-                    stock = :stock,
-                    precio = :precio
-                    WHERE idinv = :producto_id";
+            $this->db->beginTransaction();
             
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':nombre_producto', $data['nombre_producto']);
-            $stmt->bindParam(':naturaleza', $data['naturaleza']);
-            $stmt->bindParam(':color', $data['color']);
-            $stmt->bindParam(':stock', $data['stock'], PDO::PARAM_INT);
-            $stmt->bindParam(':precio', $data['precio']);
-            $stmt->bindParam(':producto_id', $data['producto_id'], PDO::PARAM_INT);
+            // Primero obtener el tflor_idtflor del producto en inventario
+            $sql_get_tflor = "SELECT tflor_idtflor FROM inv WHERE idinv = :producto_id";
+            $stmt_get_tflor = $this->db->prepare($sql_get_tflor);
+            $stmt_get_tflor->bindParam(':producto_id', $data['producto_id'], PDO::PARAM_INT);
+            $stmt_get_tflor->execute();
+            $resultado = $stmt_get_tflor->fetch(PDO::FETCH_ASSOC);
             
-            if ($stmt->execute()) {
+            if (!$resultado) {
+                $this->db->rollBack();
+                return ['success' => false, 'message' => 'Producto no encontrado en el inventario'];
+            }
+            
+            $tflor_id = $resultado['tflor_idtflor'];
+            
+            // Actualizar la tabla tflor (nombre, naturaleza, color)
+            if ($tflor_id) {
+                $sql_update_tflor = "UPDATE tflor SET 
+                                     nombre = :nombre_producto,
+                                     naturaleza = :naturaleza,
+                                     color = :color
+                                     WHERE idtflor = :tflor_id";
+                
+                $stmt_tflor = $this->db->prepare($sql_update_tflor);
+                $stmt_tflor->bindParam(':nombre_producto', $data['nombre_producto']);
+                $stmt_tflor->bindParam(':naturaleza', $data['naturaleza']);
+                $stmt_tflor->bindParam(':color', $data['color']);
+                $stmt_tflor->bindParam(':tflor_id', $tflor_id, PDO::PARAM_INT);
+                $stmt_tflor->execute();
+            }
+            
+            // Actualizar la tabla inv (stock y precio)
+            $sql_update_inv = "UPDATE inv SET 
+                              stock = :stock,
+                              precio = :precio,
+                              fecha_actualizacion = NOW()
+                              WHERE idinv = :producto_id";
+            
+            $stmt_inv = $this->db->prepare($sql_update_inv);
+            $stmt_inv->bindParam(':stock', $data['stock'], PDO::PARAM_INT);
+            $stmt_inv->bindParam(':precio', $data['precio']);
+            $stmt_inv->bindParam(':producto_id', $data['producto_id'], PDO::PARAM_INT);
+            
+            if ($stmt_inv->execute()) {
+                $this->db->commit();
                 return ['success' => true, 'message' => 'Producto actualizado correctamente'];
             } else {
+                $this->db->rollBack();
                 return ['success' => false, 'message' => 'Error al actualizar el producto'];
             }
         } catch (PDOException $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log('Error al editar producto: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Error de base de datos: ' . $e->getMessage()];
         }

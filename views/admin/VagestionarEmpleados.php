@@ -192,10 +192,10 @@ foreach ($turnos as $turno) {
                                 <tr>
                                     <th>ID</th>
                                     <th>Nombre</th>
-                                    <th>Documento</th>
-                                    <th>Cargo</th>
+                                    <th>Usuario</th>
+                                    <th>Perfil</th>
                                     <th>Fecha Ingreso</th>
-                                    <th>Tipo</th>
+                                    <th>Permiso</th>
                                     <th>Estado</th>
                                     <th>Acciones</th>
                                 </tr>
