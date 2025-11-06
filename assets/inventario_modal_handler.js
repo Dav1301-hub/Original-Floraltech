@@ -15,9 +15,11 @@
     function configurarBotonesAccion() {
         console.log('🔧 Configurando botones de acción...');
         
-        // Botones de EDITAR
+        // ========== BOTONES DE PRODUCTOS ==========
+        
+        // Botones de EDITAR PRODUCTOS
         const botonesEditar = document.querySelectorAll('.btn-modal-editar');
-        console.log(`📝 Encontrados ${botonesEditar.length} botones de editar`);
+        console.log(`📝 Encontrados ${botonesEditar.length} botones de editar productos`);
         
         botonesEditar.forEach(btn => {
             btn.addEventListener('click', function(e) {
@@ -61,9 +63,9 @@
             });
         });
         
-        // Botones de ELIMINAR
+        // Botones de ELIMINAR PRODUCTOS
         const botonesEliminar = document.querySelectorAll('.btn-modal-eliminar');
-        console.log(`🗑️ Encontrados ${botonesEliminar.length} botones de eliminar`);
+        console.log(`🗑️ Encontrados ${botonesEliminar.length} botones de eliminar productos`);
         
         botonesEliminar.forEach(btn => {
             btn.addEventListener('click', function(e) {
@@ -78,6 +80,54 @@
                 
                 console.log('🗑️ Abriendo modal de eliminación para:', productoData);
                 cargarDatosModalEliminar(productoData);
+            });
+        });
+        
+        // ========== BOTONES DE PROVEEDORES ==========
+        
+        // Botones de EDITAR PROVEEDORES
+        const botonesEditarProveedor = document.querySelectorAll('.btn-modal-editar-proveedor');
+        console.log(`👤 Encontrados ${botonesEditarProveedor.length} botones de editar proveedores`);
+        
+        botonesEditarProveedor.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Extraer datos del proveedor desde los data attributes
+                const proveedorData = {
+                    id: this.dataset.proveedorId,
+                    nombre: this.dataset.proveedorNombre,
+                    categoria: this.dataset.proveedorCategoria,
+                    telefono: this.dataset.proveedorTelefono,
+                    email: this.dataset.proveedorEmail,
+                    direccion: this.dataset.proveedorDireccion || '',
+                    notas: this.dataset.proveedorNotas || '',
+                    estado: this.dataset.proveedorEstado || 'activo'
+                };
+                
+                console.log('👤 Abriendo modal de edición de proveedor:', proveedorData);
+                cargarDatosModalEditarProveedor(proveedorData);
+            });
+        });
+        
+        // Botones de ELIMINAR PROVEEDORES
+        const botonesEliminarProveedor = document.querySelectorAll('.btn-modal-eliminar-proveedor');
+        console.log(`🗑️ Encontrados ${botonesEliminarProveedor.length} botones de eliminar proveedores`);
+        
+        botonesEliminarProveedor.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Extraer datos del proveedor desde los data attributes
+                const proveedorData = {
+                    id: this.dataset.proveedorId,
+                    nombre: this.dataset.proveedorNombre
+                };
+                
+                console.log('🗑️ Abriendo modal de eliminación de proveedor:', proveedorData);
+                cargarDatosModalEliminarProveedor(proveedorData);
             });
         });
         
@@ -192,6 +242,61 @@
             console.log('📄 DOM ya está listo, configurando botones...');
             setTimeout(configurarBotonesAccion, 100);
         }
+    }
+    
+    /**
+     * Carga los datos del proveedor en el modal de edición
+     */
+    function cargarDatosModalEditarProveedor(proveedorData) {
+        console.log('👤 Llenando campos del modal de edición de proveedor...');
+        
+        // Llenar campos del formulario
+        const campos = {
+            'editar_proveedor_id': proveedorData.id,
+            'editar_nombre_proveedor': proveedorData.nombre,
+            'editar_categoria_proveedor': proveedorData.categoria,
+            'editar_telefono_proveedor': proveedorData.telefono,
+            'editar_email_proveedor': proveedorData.email,
+            'editar_direccion_proveedor': proveedorData.direccion,
+            'editar_notas_proveedor': proveedorData.notas,
+            'editar_estado_proveedor': proveedorData.estado
+        };
+        
+        // Asignar valores a los campos
+        Object.keys(campos).forEach(idCampo => {
+            const elemento = document.getElementById(idCampo);
+            if (elemento) {
+                elemento.value = campos[idCampo] || '';
+                console.log(`  ✓ ${idCampo} = ${campos[idCampo]}`);
+            } else {
+                console.warn(`  ⚠️ Campo ${idCampo} no encontrado`);
+            }
+        });
+        
+        console.log('✅ Datos cargados en el modal de edición de proveedor');
+    }
+    
+    /**
+     * Carga los datos del proveedor en el modal de eliminar
+     */
+    function cargarDatosModalEliminarProveedor(proveedorData) {
+        console.log('🗑️ Llenando campos del modal de eliminación de proveedor...');
+        
+        // ID del proveedor (hidden input)
+        const inputId = document.getElementById('eliminar_proveedor_id');
+        if (inputId) {
+            inputId.value = proveedorData.id;
+            console.log(`  ✓ eliminar_proveedor_id = ${proveedorData.id}`);
+        }
+        
+        // Nombre del proveedor (span)
+        const spanNombre = document.getElementById('eliminar_nombre_proveedor');
+        if (spanNombre) {
+            spanNombre.textContent = proveedorData.nombre;
+            console.log(`  ✓ eliminar_nombre_proveedor = ${proveedorData.nombre}`);
+        }
+        
+        console.log('✅ Datos cargados en el modal de eliminación de proveedor');
     }
     
     // Exportar funciones para uso externo si es necesario

@@ -13,7 +13,7 @@ $response = ['success' => false];
 
 if ($action === 'get') {
     $id = intval($_POST['id'] ?? 0);
-    $stmt = $db->prepare('SELECT * FROM usu WHERE idusu = ?');
+    $stmt = $db->prepare('SELECT idusu, username, nombre_completo, naturaleza, telefono, email, clave, tpusu_idtpusu, fecha_registro, activo FROM usu WHERE idusu = ?');
     $stmt->execute([$id]);
     $response = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
     $response['success'] = !!$response;

@@ -22,6 +22,17 @@
                         <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
                         <div class="fw-bold text-muted">Stock Bajo</div>
                         <div class="fs-3 fw-bold text-dark"><?= $stock_bajo ?? 0 ?></div>
+                        <small class="text-muted">10-19 unidades</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-0 shadow-sm">
+                    <div class="card-body">
+                        <i class="fas fa-exclamation-circle fa-2x mb-2" style="color: #ff6b35;"></i>
+                        <div class="fw-bold text-muted">Stock Crítico</div>
+                        <div class="fs-3 fw-bold text-dark"><?= $stock_critico ?? 0 ?></div>
+                        <small class="text-muted">1-9 unidades</small>
                     </div>
                 </div>
             </div>
@@ -31,15 +42,7 @@
                         <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
                         <div class="fw-bold text-muted">Sin Stock</div>
                         <div class="fs-3 fw-bold text-dark"><?= $sin_stock ?? 0 ?></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center border-0 shadow-sm">
-                    <div class="card-body">
-                        <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
-                        <div class="fw-bold text-muted">Valor Total</div>
-                        <div class="fs-3 fw-bold text-dark">$<?= number_format($valor_total ?? 0, 2) ?></div>
+                        <small class="text-muted">0 unidades</small>
                     </div>
                 </div>
             </div>
@@ -237,9 +240,8 @@
                                                 class="btn btn-danger btn-sm btn-modal-eliminar" 
                                                 data-producto-id="<?= $item['idinv'] ?>" 
                                                 data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>" 
-                                                title="Eliminar producto" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#modal-eliminar-producto">
+                                                title="Eliminar producto"
+                                                onclick="abrirModalEliminar('<?= $item['idinv'] ?>', '<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>')">
                                             <i class="fas fa-trash"></i>
                                         </button>
 <!-- Modal Eliminar Producto (ubicado al final del archivo) -->
@@ -253,7 +255,7 @@
             <div class="modal-body">
                 <form method="POST" action="?ctrl=cinventario" id="form-eliminar-producto">
                     <input type="hidden" name="accion" value="eliminar_producto">
-                    <input type="hidden" name="producto_id" id="eliminar_producto_id">
+                    <input type="hidden" name="id" id="eliminar_producto_id">
                     <p>¿Estás seguro que deseas eliminar el producto <span id="eliminar_nombre_producto" class="fw-bold text-danger"></span> del inventario?</p>
                 </form>
             </div>
@@ -316,9 +318,32 @@
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <!-- Acciones: editar, eliminar, ver más -->
-                                        <button class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-sm btn-danger" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" 
+                                                    class="btn btn-warning btn-sm btn-modal-editar-proveedor" 
+                                                    data-proveedor-id="<?= $prov['id'] ?>" 
+                                                    data-proveedor-nombre="<?= htmlspecialchars($prov['nombre']) ?>"
+                                                    data-proveedor-categoria="<?= htmlspecialchars($prov['categoria']) ?>"
+                                                    data-proveedor-telefono="<?= htmlspecialchars($prov['telefono']) ?>"
+                                                    data-proveedor-email="<?= htmlspecialchars($prov['email']) ?>"
+                                                    data-proveedor-direccion="<?= htmlspecialchars($prov['direccion'] ?? '') ?>"
+                                                    data-proveedor-notas="<?= htmlspecialchars($prov['notas'] ?? '') ?>"
+                                                    data-proveedor-estado="<?= htmlspecialchars($prov['estado']) ?>"
+                                                    title="Editar proveedor" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#modal-editar-proveedor">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" 
+                                                    class="btn btn-danger btn-sm btn-modal-eliminar-proveedor" 
+                                                    data-proveedor-id="<?= $prov['id'] ?>" 
+                                                    data-proveedor-nombre="<?= htmlspecialchars($prov['nombre']) ?>" 
+                                                    title="Eliminar proveedor" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#modal-eliminar-proveedor">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -783,6 +808,127 @@
                 </button>
                 <button type="submit" form="form-agregar-stock" class="btn btn-info">
                     <i class="fas fa-plus me-1"></i>Agregar Stock
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Proveedor -->
+<div class="modal fade" id="modal-editar-proveedor" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Proveedor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="?ctrl=Cinventario" id="form-editar-proveedor">
+                    <input type="hidden" name="accion" value="editar_proveedor">
+                    <input type="hidden" name="proveedor_id" id="editar_proveedor_id">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-building me-1"></i>Nombre del Proveedor *</label>
+                            <input type="text" class="form-control" name="nombre_proveedor" id="editar_nombre_proveedor" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-tags me-1"></i>Categoría *</label>
+                            <select class="form-select" name="categoria_proveedor" id="editar_categoria_proveedor" required>
+                                <option value="">Seleccionar categoría...</option>
+                                <option value="flores_frescas">Flores Frescas</option>
+                                <option value="flores_artificiales">Flores Artificiales</option>
+                                <option value="plantas">Plantas y Arbustos</option>
+                                <option value="chocolates">Chocolates y Dulces</option>
+                                <option value="caramelos">Caramelos Gourmet</option>
+                                <option value="fotografias">Servicios de Fotografía</option>
+                                <option value="globos">Globos y Decoraciones</option>
+                                <option value="tarjetas">Tarjetas y Papelería</option>
+                                <option value="perfumes">Perfumes y Fragancias</option>
+                                <option value="velas">Velas Aromáticas</option>
+                                <option value="accesorios">Accesorios Florales</option>
+                                <option value="macetas">Macetas y Contenedores</option>
+                                <option value="fertilizantes">Fertilizantes y Nutrientes</option>
+                                <option value="herramientas">Herramientas de Jardinería</option>
+                                <option value="cestas">Cestas y Canastas</option>
+                                <option value="lazos">Lazos y Cintas</option>
+                                <option value="empaques">Materiales de Empaque</option>
+                                <option value="preservantes">Preservantes Florales</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-phone me-1"></i>Teléfono</label>
+                            <input type="tel" class="form-control" name="telefono_proveedor" id="editar_telefono_proveedor">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-envelope me-1"></i>Email</label>
+                            <input type="email" class="form-control" name="email_proveedor" id="editar_email_proveedor">
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-map-marker-alt me-1"></i>Dirección</label>
+                            <textarea class="form-control" name="direccion_proveedor" id="editar_direccion_proveedor" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-sticky-note me-1"></i>Notas / Comentarios</label>
+                            <textarea class="form-control" name="notas_proveedor" id="editar_notas_proveedor" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-toggle-on me-1"></i>Estado</label>
+                            <select class="form-select" name="estado_proveedor" id="editar_estado_proveedor">
+                                <option value="activo">Activo</option>
+                                <option value="inactivo">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="submit" form="form-editar-proveedor" class="btn btn-warning">
+                    <i class="fas fa-save me-1"></i>Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Proveedor -->
+<div class="modal fade" id="modal-eliminar-proveedor" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash me-2"></i>Eliminar Proveedor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="?ctrl=Cinventario" id="form-eliminar-proveedor">
+                    <input type="hidden" name="accion" value="eliminar_proveedor">
+                    <input type="hidden" name="proveedor_id" id="eliminar_proveedor_id">
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">¿Estás seguro?</h5>
+                        <p>¿Deseas eliminar el proveedor <span id="eliminar_nombre_proveedor" class="fw-bold text-danger"></span>?</p>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Esta acción no se puede deshacer.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="submit" form="form-eliminar-proveedor" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i>Eliminar Proveedor
                 </button>
             </div>
         </div>
@@ -1429,45 +1575,7 @@ window.abrirModalAgregarStock = function(idProducto, nombreProducto) {
     }
 }
 
-window.abrirModalEliminar = function(idProducto, nombreProducto) {
-    console.log('🔧 Función eliminar llamada para:', idProducto, nombreProducto);
-    try {
-        // No hay modal específico de eliminar, usar confirmación simple
-        const confirmMsg = '¿Estás seguro de que deseas eliminar el producto "' + nombreProducto + '"?\n\nEsta acción no se puede deshacer.';
-        
-        if (confirm(confirmMsg)) {
-            console.log('✅ Usuario confirmó eliminación de:', idProducto);
-            
-            // Crear y enviar formulario para eliminar
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '?ctrl=cinventario';
-            form.style.display = 'none';
-            
-            const accionInput = document.createElement('input');
-            accionInput.type = 'hidden';
-            accionInput.name = 'accion';
-            accionInput.value = 'eliminar_producto';
-            form.appendChild(accionInput);
-            
-            const idInput = document.createElement('input');
-            idInput.type = 'hidden';
-            idInput.name = 'producto_id';
-            idInput.value = idProducto;
-            form.appendChild(idInput);
-            
-            document.body.appendChild(form);
-            form.submit();
-            
-            console.log('📋 Formulario de eliminación enviado');
-        } else {
-            console.log('❌ Usuario canceló eliminación');
-        }
-    } catch (error) {
-        console.error('💥 Error al eliminar producto:', error);
-        alert('Error al eliminar producto: ' + error.message);
-    }
-}
+// Función abrirModalEliminar definida más adelante en el archivo (línea ~2462)
 
 // Función para cambiar elementos por página (con fallback robusto)
 function cambiarElementosPorPagina(nuevoValor) {
@@ -2313,13 +2421,54 @@ window.abrirModalAgregarStock = function(id, nombre) {
 };
 
 window.abrirModalEliminar = function(id, nombre) {
-    if (confirm('¿Eliminar "' + nombre + '"?')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '?ctrl=cinventario';
-        form.innerHTML = '<input type="hidden" name="accion" value="eliminar_producto"><input type="hidden" name="producto_id" value="' + id + '">';
-        document.body.appendChild(form);
-        form.submit();
+    console.log('🗑️ Abriendo modal eliminar - ID:', id, 'Nombre:', nombre);
+    
+    try {
+        // Configurar valores en el modal
+        const inputId = document.getElementById('eliminar_producto_id');
+        const spanNombre = document.getElementById('eliminar_nombre_producto');
+        
+        if (inputId) {
+            inputId.value = id;
+            console.log('✅ ID asignado:', id);
+        } else {
+            console.error('❌ Input eliminar_producto_id no encontrado');
+        }
+        
+        if (spanNombre) {
+            spanNombre.textContent = nombre;
+            console.log('✅ Nombre asignado:', nombre);
+        } else {
+            console.error('❌ Span eliminar_nombre_producto no encontrado');
+        }
+        
+        // Abrir el modal
+        const modalElement = document.getElementById('modal-eliminar-producto');
+        if (modalElement) {
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+                console.log('✅ Modal mostrado con Bootstrap');
+            } else {
+                modalElement.style.display = 'block';
+                modalElement.classList.add('show');
+                console.log('✅ Modal mostrado manualmente');
+            }
+        } else {
+            console.error('❌ Modal modal-eliminar-producto no encontrado');
+            // Fallback a confirm
+            if (confirm('¿Eliminar "' + nombre + '"?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '?ctrl=cinventario';
+                form.innerHTML = '<input type="hidden" name="accion" value="eliminar_producto"><input type="hidden" name="producto_id" value="' + id + '">';
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    } catch (error) {
+        console.error('💥 Error al abrir modal eliminar:', error);
+        alert('Error al abrir modal: ' + error.message);
     }
 };
 
@@ -2394,6 +2543,72 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 1000);
 });
+
+// Event listener para el formulario de eliminar producto
+document.addEventListener('DOMContentLoaded', function() {
+    const formEliminar = document.getElementById('form-eliminar-producto');
+    
+    if (formEliminar) {
+        formEliminar.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('📋 Formulario de eliminación enviado');
+            
+            const formData = new FormData(this);
+            const id = formData.get('id');
+            
+            console.log('🗑️ Eliminando producto ID:', id);
+            
+            // Mostrar loader
+            const btnSubmit = formEliminar.querySelector('button[type="submit"]');
+            const originalText = btnSubmit.innerHTML;
+            btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Eliminando...';
+            btnSubmit.disabled = true;
+            
+            // Enviar petición AJAX
+            fetch('?ctrl=cinventario&accion=eliminar_producto', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('📥 Respuesta del servidor:', data);
+                
+                if (data.success) {
+                    // Cerrar modal
+                    const modalElement = document.getElementById('modal-eliminar-producto');
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const modal = bootstrap.Modal.getInstance(modalElement);
+                        if (modal) modal.hide();
+                    }
+                    
+                    // Mostrar mensaje de éxito
+                    alert('✅ ' + data.message);
+                    
+                    // Recargar página
+                    location.reload();
+                } else {
+                    // Mostrar error
+                    alert('❌ ' + data.message);
+                    
+                    // Restaurar botón
+                    btnSubmit.innerHTML = originalText;
+                    btnSubmit.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('💥 Error:', error);
+                alert('Error de conexión al servidor');
+                
+                // Restaurar botón
+                btnSubmit.innerHTML = originalText;
+                btnSubmit.disabled = false;
+            });
+        });
+        
+        console.log('✅ Event listener para formulario eliminar configurado');
+    }
+});
+
 </script>
 
 

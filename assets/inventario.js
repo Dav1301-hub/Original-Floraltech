@@ -283,11 +283,12 @@ function eliminarFlor(id) {
 
 // Función auxiliar para procesar la eliminación
 function procesarEliminarProducto(id) {
-    fetch(`?ctrl=Cinventario&accion=eliminar_producto&id=${id}`, {
+    const formData = new FormData();
+    formData.append('id', id);
+    
+    fetch(`?ctrl=Cinventario&accion=eliminar_producto`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
+        body: formData
     })
     .then(response => response.json())
     .then(data => {

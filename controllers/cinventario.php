@@ -10,6 +10,7 @@ class Cinventario {
     // Variables de datos
     private $total_productos = 0;
     private $stock_bajo = 0;
+    private $stock_critico = 0;
     private $sin_stock = 0;
     private $valor_total = 0;
     private $inventario = [];
@@ -112,6 +113,30 @@ class Cinventario {
                         $this->inventarioModel->crearProveedor($_POST);
                         $this->mensaje_exito = 'Proveedor agregado exitosamente';
                         header('Location: ?ctrl=Cinventario&success=proveedor_agregado');
+                        exit;
+                        break;
+                        
+                    case 'editar_proveedor':
+                        $resultado = $this->inventarioModel->editarProveedor($_POST);
+                        if ($resultado['success']) {
+                            $this->mensaje_exito = 'Proveedor actualizado exitosamente';
+                            header('Location: ?ctrl=Cinventario&success=proveedor_editado');
+                        } else {
+                            $this->mensaje_error = $resultado['message'];
+                            header('Location: ?ctrl=Cinventario&error=proveedor_editar_fallido');
+                        }
+                        exit;
+                        break;
+                        
+                    case 'eliminar_proveedor':
+                        $resultado = $this->inventarioModel->eliminarProveedor($_POST['proveedor_id']);
+                        if ($resultado['success']) {
+                            $this->mensaje_exito = 'Proveedor eliminado exitosamente';
+                            header('Location: ?ctrl=Cinventario&success=proveedor_eliminado');
+                        } else {
+                            $this->mensaje_error = $resultado['message'];
+                            header('Location: ?ctrl=Cinventario&error=proveedor_eliminar_fallido');
+                        }
                         exit;
                         break;
                         
@@ -239,6 +264,7 @@ class Cinventario {
                 if (is_array($estadisticas)) {
                     $this->total_productos = $estadisticas['total_productos'] ?? 0;
                     $this->stock_bajo = $estadisticas['stock_bajo'] ?? 0;
+                    $this->stock_critico = $estadisticas['stock_critico'] ?? 0;
                     $this->sin_stock = $estadisticas['sin_stock'] ?? 0;
                     $this->valor_total = $estadisticas['valor_total'] ?? 0;
                 }
@@ -314,6 +340,7 @@ class Cinventario {
     // Variables de estadísticas - siempre definidas
     $total_productos = $this->total_productos;
     $stock_bajo = $this->stock_bajo;
+    $stock_critico = $this->stock_critico;
     $sin_stock = $this->sin_stock;
     $valor_total = $this->valor_total;
 

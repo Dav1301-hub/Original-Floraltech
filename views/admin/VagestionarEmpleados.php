@@ -64,7 +64,7 @@ try {
 // Consulta vacaciones
 $vacaciones = [];
 try {
-    $stmt = $db->prepare("SELECT v.id, u.nombre_completo as empleado, v.fecha_inicio, v.fecha_fin, v.estado, v.motivo, v.tipo FROM vacaciones v LEFT JOIN usu u ON v.id_empleado = u.idusu");
+    $stmt = $db->prepare("SELECT v.id, u.nombre_completo as empleado, v.fecha_inicio, v.fecha_fin, v.estado, v.motivo FROM vacaciones v LEFT JOIN usu u ON v.id_empleado = u.idusu");
     $stmt->execute();
     $vacaciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {}
@@ -392,12 +392,10 @@ foreach ($turnos as $turno) {
                                 $diferencia = $fecha_inicio->diff($fecha_fin);
                                 $dias_vacaciones = $diferencia->days + 1; // +1 para incluir el día de inicio
                                 
-                                // Usar el tipo de la base de datos si existe, sino calcularlo
-                                $tipo_vacacion = !empty($vacacion['tipo']) ? $vacacion['tipo'] : (
-                                    $dias_vacaciones <= 3 ? "Cortas" : (
-                                        $dias_vacaciones <= 7 ? "Semanales" : (
-                                            $dias_vacaciones <= 15 ? "Quincenales" : "Extendidas"
-                                        )
+                                // Calcular el tipo de vacación basado en los días
+                                $tipo_vacacion = $dias_vacaciones <= 3 ? "Cortas" : (
+                                    $dias_vacaciones <= 7 ? "Semanales" : (
+                                        $dias_vacaciones <= 15 ? "Quincenales" : "Extendidas"
                                     )
                                 );
                             ?>
@@ -808,20 +806,7 @@ foreach ($turnos as $turno) {
                                 <label for="vacacionMotivo" class="form-label">Motivo</label>
                                 <input type="text" class="form-control" id="vacacionMotivo" name="motivo" required>
                             </div>
-                            <div class="mb-3">
-                                <label for="vacacionTipo" class="form-label">Tipo de Vacaciones</label>
-                                <select class="form-select" id="vacacionTipo" name="tipo">
-                                    <option value="Cortas">Cortas (1-3 días)</option>
-                                    <option value="Semanales">Semanales (4-7 días)</option>
-                                    <option value="Quincenales">Quincenales (8-15 días)</option>
-                                    <option value="Extendidas">Extendidas (16+ días)</option>
-                                    <option value="Anuales">Anuales</option>
-                                    <option value="Por enfermedad">Por enfermedad</option>
-                                    <option value="Por maternidad">Por maternidad</option>
-                                    <option value="Por paternidad">Por paternidad</option>
-                                    <option value="Personales">Personales</option>
-                                </select>
-                            </div>
+                            <!-- Campo Tipo eliminado - se calcula automáticamente según días -->
                             <div class="mb-3">
                                 <label for="vacacionEstado" class="form-label">Estado</label>
                                 <select class="form-select" id="vacacionEstado" name="estado">
@@ -872,20 +857,7 @@ foreach ($turnos as $turno) {
                                 <label for="edit_vacacionMotivo" class="form-label">Motivo</label>
                                 <input type="text" class="form-control" id="edit_vacacionMotivo" name="motivo" required>
                             </div>
-                            <div class="mb-3">
-                                <label for="edit_vacacionTipo" class="form-label">Tipo de Vacaciones</label>
-                                <select class="form-select" id="edit_vacacionTipo" name="tipo">
-                                    <option value="Cortas">Cortas (1-3 días)</option>
-                                    <option value="Semanales">Semanales (4-7 días)</option>
-                                    <option value="Quincenales">Quincenales (8-15 días)</option>
-                                    <option value="Extendidas">Extendidas (16+ días)</option>
-                                    <option value="Anuales">Anuales</option>
-                                    <option value="Por enfermedad">Por enfermedad</option>
-                                    <option value="Por maternidad">Por maternidad</option>
-                                    <option value="Por paternidad">Por paternidad</option>
-                                    <option value="Personales">Personales</option>
-                                </select>
-                            </div>
+                            <!-- Campo Tipo eliminado - se calcula automáticamente según días -->
                             <div class="mb-3">
                                 <label for="edit_vacacionEstado" class="form-label">Estado</label>
                                 <select class="form-select" id="edit_vacacionEstado" name="estado">
