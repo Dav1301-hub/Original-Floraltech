@@ -686,6 +686,83 @@ class Minventario {
     }
     
     /**
+     * Editar proveedor existente
+     */
+    public function editarProveedor($data) {
+        try {
+            // Validar datos
+            if (empty($data['proveedor_id'])) {
+                return ['success' => false, 'message' => 'ID de proveedor requerido'];
+            }
+            
+            if (empty($data['nombre_proveedor']) || empty($data['categoria_proveedor'])) {
+                return ['success' => false, 'message' => 'Nombre y categoría son obligatorios'];
+            }
+            
+            // Actualizar proveedor
+            $sql_update = "UPDATE proveedores SET 
+                          nombre = :nombre,
+                          categoria = :categoria,
+                          telefono = :telefono,
+                          email = :email,
+                          direccion = :direccion,
+                          notas = :notas,
+                          estado = :estado
+                          WHERE id = :id";
+            
+            $stmt = $this->db->prepare($sql_update);
+            $stmt->bindParam(':nombre', $data['nombre_proveedor']);
+            $stmt->bindParam(':categoria', $data['categoria_proveedor']);
+            $stmt->bindParam(':telefono', $data['telefono_proveedor']);
+            $stmt->bindParam(':email', $data['email_proveedor']);
+            $stmt->bindParam(':direccion', $data['direccion_proveedor']);
+            $stmt->bindParam(':notas', $data['notas_proveedor']);
+            $stmt->bindParam(':estado', $data['estado_proveedor']);
+            $stmt->bindParam(':id', $data['proveedor_id'], PDO::PARAM_INT);
+            
+            if ($stmt->execute()) {
+                return ['success' => true, 'message' => 'Proveedor actualizado correctamente'];
+            } else {
+                return ['success' => false, 'message' => 'Error al actualizar el proveedor'];
+            }
+            
+        } catch (PDOException $e) {
+            error_log('Error al editar proveedor: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error de base de datos: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Eliminar proveedor
+     */
+    public function eliminarProveedor($id) {
+        try {
+            if (empty($id)) {
+                return ['success' => false, 'message' => 'ID de proveedor requerido'];
+            }
+            
+            // Eliminar el proveedor (las relaciones se eliminan automáticamente por ON DELETE CASCADE)
+            $sql = "DELETE FROM proveedores WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            
+            if ($stmt->execute()) {
+                if ($stmt->rowCount() > 0) {
+                    return ['success' => true, 'message' => 'Proveedor eliminado correctamente'];
+                } else {
+                    return ['success' => false, 'message' => 'Proveedor no encontrado'];
+                }
+            } else {
+                return ['success' => false, 'message' => 'Error al eliminar el proveedor'];
+            }
+            
+        } catch (PDOException $e) {
+            error_log('Error al eliminar proveedor: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error de base de datos: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
      * Actualizar parámetros de inventario
      */
     public function actualizarParametros($data) {

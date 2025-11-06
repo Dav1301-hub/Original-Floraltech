@@ -115,6 +115,30 @@ class Cinventario {
                         exit;
                         break;
                         
+                    case 'editar_proveedor':
+                        $resultado = $this->inventarioModel->editarProveedor($_POST);
+                        if ($resultado['success']) {
+                            $this->mensaje_exito = 'Proveedor actualizado exitosamente';
+                            header('Location: ?ctrl=Cinventario&success=proveedor_editado');
+                        } else {
+                            $this->mensaje_error = $resultado['message'];
+                            header('Location: ?ctrl=Cinventario&error=proveedor_editar_fallido');
+                        }
+                        exit;
+                        break;
+                        
+                    case 'eliminar_proveedor':
+                        $resultado = $this->inventarioModel->eliminarProveedor($_POST['proveedor_id']);
+                        if ($resultado['success']) {
+                            $this->mensaje_exito = 'Proveedor eliminado exitosamente';
+                            header('Location: ?ctrl=Cinventario&success=proveedor_eliminado');
+                        } else {
+                            $this->mensaje_error = $resultado['message'];
+                            header('Location: ?ctrl=Cinventario&error=proveedor_eliminar_fallido');
+                        }
+                        exit;
+                        break;
+                        
                     case 'editar_producto':
                         $resultado = $this->inventarioModel->editarProducto($_POST);
                         if ($resultado['success']) {

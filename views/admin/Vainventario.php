@@ -316,9 +316,32 @@
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <!-- Acciones: editar, eliminar, ver más -->
-                                        <button class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-sm btn-danger" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" 
+                                                    class="btn btn-warning btn-sm btn-modal-editar-proveedor" 
+                                                    data-proveedor-id="<?= $prov['id'] ?>" 
+                                                    data-proveedor-nombre="<?= htmlspecialchars($prov['nombre']) ?>"
+                                                    data-proveedor-categoria="<?= htmlspecialchars($prov['categoria']) ?>"
+                                                    data-proveedor-telefono="<?= htmlspecialchars($prov['telefono']) ?>"
+                                                    data-proveedor-email="<?= htmlspecialchars($prov['email']) ?>"
+                                                    data-proveedor-direccion="<?= htmlspecialchars($prov['direccion'] ?? '') ?>"
+                                                    data-proveedor-notas="<?= htmlspecialchars($prov['notas'] ?? '') ?>"
+                                                    data-proveedor-estado="<?= htmlspecialchars($prov['estado']) ?>"
+                                                    title="Editar proveedor" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#modal-editar-proveedor">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" 
+                                                    class="btn btn-danger btn-sm btn-modal-eliminar-proveedor" 
+                                                    data-proveedor-id="<?= $prov['id'] ?>" 
+                                                    data-proveedor-nombre="<?= htmlspecialchars($prov['nombre']) ?>" 
+                                                    title="Eliminar proveedor" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#modal-eliminar-proveedor">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -783,6 +806,127 @@
                 </button>
                 <button type="submit" form="form-agregar-stock" class="btn btn-info">
                     <i class="fas fa-plus me-1"></i>Agregar Stock
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Proveedor -->
+<div class="modal fade" id="modal-editar-proveedor" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Proveedor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="?ctrl=Cinventario" id="form-editar-proveedor">
+                    <input type="hidden" name="accion" value="editar_proveedor">
+                    <input type="hidden" name="proveedor_id" id="editar_proveedor_id">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-building me-1"></i>Nombre del Proveedor *</label>
+                            <input type="text" class="form-control" name="nombre_proveedor" id="editar_nombre_proveedor" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-tags me-1"></i>Categoría *</label>
+                            <select class="form-select" name="categoria_proveedor" id="editar_categoria_proveedor" required>
+                                <option value="">Seleccionar categoría...</option>
+                                <option value="flores_frescas">Flores Frescas</option>
+                                <option value="flores_artificiales">Flores Artificiales</option>
+                                <option value="plantas">Plantas y Arbustos</option>
+                                <option value="chocolates">Chocolates y Dulces</option>
+                                <option value="caramelos">Caramelos Gourmet</option>
+                                <option value="fotografias">Servicios de Fotografía</option>
+                                <option value="globos">Globos y Decoraciones</option>
+                                <option value="tarjetas">Tarjetas y Papelería</option>
+                                <option value="perfumes">Perfumes y Fragancias</option>
+                                <option value="velas">Velas Aromáticas</option>
+                                <option value="accesorios">Accesorios Florales</option>
+                                <option value="macetas">Macetas y Contenedores</option>
+                                <option value="fertilizantes">Fertilizantes y Nutrientes</option>
+                                <option value="herramientas">Herramientas de Jardinería</option>
+                                <option value="cestas">Cestas y Canastas</option>
+                                <option value="lazos">Lazos y Cintas</option>
+                                <option value="empaques">Materiales de Empaque</option>
+                                <option value="preservantes">Preservantes Florales</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-phone me-1"></i>Teléfono</label>
+                            <input type="tel" class="form-control" name="telefono_proveedor" id="editar_telefono_proveedor">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-envelope me-1"></i>Email</label>
+                            <input type="email" class="form-control" name="email_proveedor" id="editar_email_proveedor">
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-map-marker-alt me-1"></i>Dirección</label>
+                            <textarea class="form-control" name="direccion_proveedor" id="editar_direccion_proveedor" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-sticky-note me-1"></i>Notas / Comentarios</label>
+                            <textarea class="form-control" name="notas_proveedor" id="editar_notas_proveedor" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-toggle-on me-1"></i>Estado</label>
+                            <select class="form-select" name="estado_proveedor" id="editar_estado_proveedor">
+                                <option value="activo">Activo</option>
+                                <option value="inactivo">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="submit" form="form-editar-proveedor" class="btn btn-warning">
+                    <i class="fas fa-save me-1"></i>Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Proveedor -->
+<div class="modal fade" id="modal-eliminar-proveedor" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash me-2"></i>Eliminar Proveedor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="?ctrl=Cinventario" id="form-eliminar-proveedor">
+                    <input type="hidden" name="accion" value="eliminar_proveedor">
+                    <input type="hidden" name="proveedor_id" id="eliminar_proveedor_id">
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">¿Estás seguro?</h5>
+                        <p>¿Deseas eliminar el proveedor <span id="eliminar_nombre_proveedor" class="fw-bold text-danger"></span>?</p>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Esta acción no se puede deshacer.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="submit" form="form-eliminar-proveedor" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i>Eliminar Proveedor
                 </button>
             </div>
         </div>
