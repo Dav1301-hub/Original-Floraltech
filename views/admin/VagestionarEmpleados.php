@@ -1014,7 +1014,7 @@ foreach ($turnos as $turno) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/Original-Floraltech/assets/dgemp.js?v=<?= time() ?>"></script>
+    <script src="/Original-Floraltech/assets/dgemp_v2.js?v=<?= time() ?>"></script>
     <script src="/Original-Floraltech/assets/test_vacaciones.js?v=<?= time() ?>"></script>
     
     <script>
