@@ -14,13 +14,13 @@ unset($_SESSION['forgot_success']);
     <title>Recuperar Contraseña</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body style="background:#f8f9fa;">
+<body style="background: #f8f9fa url('assets/images/composicion-de-flores-y-conos-de-waffle.jpg') no-repeat center center fixed; background-size: cover;">
 <div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center">
     <div class="row w-75 shadow-lg rounded overflow-hidden">
         <!-- Sección del Logo -->
-        <div class="col-md-6 d-flex flex-column align-items-center justify-content-center" style="background:#f9d6df;">
-            <img src="/ProyectoFloralTechhh/assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:220px;">
-            <p class="text-center px-3" style="font-size:1.2rem;">"Recupera el acceso a tu cuenta de manera fácil y segura."</p>
+        <div class="col-md-6 d-flex flex-column align-items-center justify-content-center" style="background:rgba(249,214,223,0.65); padding: 40px 0;">
+            <img src="assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:220px;">
+            <p class="text-center px-3" style="font-size:1.2rem; color: #333;">"Recupera el acceso a tu cuenta de manera fácil y segura."</p>
         </div>
 
         <!-- Formulario -->

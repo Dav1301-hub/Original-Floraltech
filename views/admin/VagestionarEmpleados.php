@@ -224,13 +224,13 @@ foreach ($turnos as $turno) {
                                             </span>
                                         </td>
                                         <td class="actions-column">
-                                            <a href="#" class="btn btn-sm btn-outline-primary" onclick="cargarEmpleado(<?= $empleado['idusu'] ?>)">
+                                            <a href="#" class="btn btn-sm btn-outline-primary" onclick="cargarEmpleado(<?= $empleado['idusu'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarEmpleado(<?= $empleado['idusu'] ?>)">
+                                            <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarEmpleado(<?= $empleado['idusu'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar">
                                                 <i class="fas fa-trash"></i>
                                             </a>
-                                            <a href="#" class="btn btn-sm btn-outline-info" onclick="verEmpleado(<?= $empleado['idusu'] ?>)">
+                                            <a href="#" class="btn btn-sm btn-outline-info" onclick="verEmpleado(<?= $empleado['idusu'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver Detalles">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                         </td>
@@ -306,8 +306,8 @@ foreach ($turnos as $turno) {
                                         <span class="badge <?= $badge_class ?>"><?= htmlspecialchars($estado) ?></span>
                                     </td>
                                     <td class="actions-column">
-                                        <a href="#" class="btn btn-sm btn-outline-primary" onclick="editarPermiso(<?= $permiso['idpermiso'] ?>)"><i class="fas fa-edit"></i></a>
-                                        <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarPermiso(<?= $permiso['idpermiso'] ?>)"><i class="fas fa-trash"></i></a>
+                                        <a href="#" class="btn btn-sm btn-outline-primary" onclick="editarPermiso(<?= $permiso['idpermiso'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar Permiso"><i class="fas fa-edit"></i></a>
+                                        <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarPermiso(<?= $permiso['idpermiso'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar Permiso"><i class="fas fa-trash"></i></a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -347,10 +347,10 @@ foreach ($turnos as $turno) {
                                     <td><?= date('d/m/Y', strtotime($turno['fecha_fin'])) ?></td>
                                     <td><?= htmlspecialchars($turno['horario']) ?></td>
                                     <td class="actions-column">
-                                        <a href="#" class="btn btn-sm btn-outline-primary" onclick="editarTurno(<?= $turno['idturno'] ?>)">
+                                        <a href="#" class="btn btn-sm btn-outline-primary" onclick="editarTurno(<?= $turno['idturno'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar Turno">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarTurno(<?= $turno['idturno'] ?>)"><i class="fas fa-trash"></i></a>
+                                        <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarTurno(<?= $turno['idturno'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar Turno"><i class="fas fa-trash"></i></a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -436,8 +436,8 @@ foreach ($turnos as $turno) {
                                     </td>
                                     <td><?= htmlspecialchars($vacacion['motivo']) ?></td>
                                     <td class="actions-column">
-                                        <a href="#" class="btn btn-sm btn-outline-primary" onclick="editarVacacion(<?= $vacacion['id'] ?>)"><i class="fas fa-edit"></i></a>
-                                        <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarVacacion(<?= $vacacion['id'] ?>)"><i class="fas fa-trash"></i></a>
+                                        <a href="#" class="btn btn-sm btn-outline-primary" onclick="editarVacacion(<?= $vacacion['id'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar Vacación"><i class="fas fa-edit"></i></a>
+                                        <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarVacacion(<?= $vacacion['id'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar Vacación"><i class="fas fa-trash"></i></a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -534,32 +534,32 @@ foreach ($turnos as $turno) {
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="edit_nombre" class="form-label">Nombre</label>
-                                    <input type="text" class="form-control" id="edit_nombre" value="María" required>
+                                    <input type="text" class="form-control" id="edit_nombre" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="edit_apellido" class="form-label">Apellido</label>
-                                    <input type="text" class="form-control" id="edit_apellido" value="González" required>
+                                    <input type="text" class="form-control" id="edit_apellido" required>
                                 </div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="edit_documento" class="form-label">Documento</label>
-                                    <input type="text" class="form-control" id="edit_documento" value="12345678" required>
+                                    <input type="text" class="form-control" id="edit_documento" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="edit_cargo" class="form-label">Cargo</label>
-                                    <input type="text" class="form-control" id="edit_cargo" value="Florista Senior" required>
+                                    <input type="text" class="form-control" id="edit_cargo" required>
                                 </div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="edit_fecha_ingreso" class="form-label">Fecha de Ingreso</label>
-                                    <input type="date" class="form-control" id="edit_fecha_ingreso" value="2020-03-15" required>
+                                    <input type="date" class="form-control" id="edit_fecha_ingreso" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="edit_tipo_contrato" class="form-label">Tipo de Contrato</label>
                                     <select class="form-select" id="edit_tipo_contrato">
-                                        <option value="indefinido" selected>Indefinido</option>
+                                        <option value="indefinido">Indefinido</option>
                                         <option value="fijo">Fijo</option>
                                         <option value="obra">Obra</option>
                                         <option value="temporal">Temporal</option>
@@ -570,7 +570,7 @@ foreach ($turnos as $turno) {
                                 <div class="col-md-6">
                                     <label for="edit_estado" class="form-label">Estado</label>
                                     <select class="form-select" id="edit_estado">
-                                        <option value="activo" selected>Activo</option>
+                                        <option value="activo">Activo</option>
                                         <option value="inactivo">Inactivo</option>
                                         <option value="renuncia">Renuncia</option>
                                     </select>
@@ -578,7 +578,7 @@ foreach ($turnos as $turno) {
                                 <div class="col-md-6">
                                     <label for="edit_password" class="form-label">Nueva Contraseña</label>
                                     <input type="password" class="form-control" id="edit_password" name="password" 
-                                           placeholder="Dejar vacío para mantener contraseña actual">
+                                        placeholder="Dejar vacío para mantener contraseña actual">
                                     <small class="form-text text-muted">Solo llenar si desea cambiar la contraseña</small>
                                 </div>
                             </div>
@@ -587,6 +587,66 @@ foreach ($turnos as $turno) {
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                         <button type="button" class="btn btn-primary" onclick="actualizarEmpleado()">Actualizar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Ver Detalles Empleado -->
+        <div class="modal fade" id="verEmpleadoModal" tabindex="-1" aria-labelledby="verEmpleadoModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="verEmpleadoModalLabel">Detalles del Empleado</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <input type="hidden" id="ver_id">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nombre</label>
+                                    <input type="text" class="form-control" id="ver_nombre" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Apellido</label>
+                                    <input type="text" class="form-control" id="ver_apellido" readonly>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Documento</label>
+                                    <input type="text" class="form-control" id="ver_documento" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Cargo</label>
+                                    <input type="text" class="form-control" id="ver_cargo" readonly>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Fecha de Ingreso</label>
+                                    <input type="date" class="form-control" id="ver_fecha_ingreso" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Tipo de Contrato</label>
+                                    <input type="text" class="form-control" id="ver_tipo_contrato" readonly>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Estado</label>
+                                    <input type="text" class="form-control" id="ver_estado" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Tipo Usuario</label>
+                                    <input type="text" class="form-control" id="ver_tipo_usuario" readonly>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                     </div>
                 </div>
             </div>
@@ -987,4 +1047,23 @@ foreach ($turnos as $turno) {
     </script>
     <!-- Script de lógica de turnos, debe ir al final -->
 </body>
+<script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Solución: destruir tooltips antes de abrir cualquier modal
+            var modalTriggers = document.querySelectorAll('[data-bs-toggle="modal"]');
+            modalTriggers.forEach(function(trigger) {
+                trigger.addEventListener('click', function() {
+                    tooltipList.forEach(function(tooltip) {
+                        tooltip.hide && tooltip.hide();
+                        tooltip.dispose && tooltip.dispose();
+                    });
+                });
+            });
+        });
+</script>
 </html>

@@ -17,12 +17,12 @@ unset($_SESSION['register_success']);
     <!-- Cargar reCAPTCHA v2 -->
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
-<body style="background:#f8f9fa;">
+<body style="background: #f8f9fa url('assets/images/composicion-de-flores-y-conos-de-waffle.jpg') no-repeat center center fixed; background-size: cover;">
 <div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center py-4">
     <div class="row w-100 shadow-lg rounded overflow-hidden" style="max-width: 1000px;">
         <!-- Logo -->
-        <div class="col-lg-6 d-flex flex-column align-items-center justify-content-center" style="background:#f9d6df; padding: 40px 20px; min-height: 500px;">
-            <img src="/ProyectoFloralTechhh/assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:280px; max-width: 80%;">
+        <div class="col-lg-6 d-flex flex-column align-items-center justify-content-center" style="background:rgba(249,214,223,0.85); padding: 40px 20px; min-height: 500px;">
+            <img src="assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:280px; max-width: 80%;">
             <p class="text-center px-3" style="font-size: 1.1rem; color: #333;">"Regístrate y gestiona tu florería de manera fácil y eficiente, ¡haz que la tecnología trabaje para ti!"</p>
         </div>
 

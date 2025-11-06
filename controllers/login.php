@@ -67,6 +67,7 @@ class login {
                 // Login exitoso
                 $_SESSION['user'] = $foundUser;
                 $_SESSION['user_id'] = $foundUser['idusu'];
+                $_SESSION['usuario_id'] = $foundUser['idusu']; // Para compatibilidad AJAX
                 $_SESSION['user_type'] = $foundUser['tpusu_idtpusu'];
                 
                 // Limpiar variables de intentos fallidos de la sesión
