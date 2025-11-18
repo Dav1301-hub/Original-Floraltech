@@ -1,0 +1,13 @@
+# Denegar acceso directo a archivos de log
+<Files "*">
+    Require all denied
+</Files>
+
+# Prevenir listado de directorio
+Options -Indexes
+
+# Protección adicional
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^.*$ - [F,L]
+</IfModule>

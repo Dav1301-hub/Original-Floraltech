@@ -60,6 +60,20 @@ class login {
                 exit();
             }
 
+            // Validar entrada contra inyección SQL
+            require_once __DIR__ . '/../helpers/security_helper.php';
+            
+            $username_limpio = sanitizarCampoBusqueda($username, 'login_username');
+            
+            if ($username_limpio === false) {
+                $_SESSION['login_error'] = "Entrada inválida detectada. Por seguridad, tu solicitud fue bloqueada.";
+                header('Location: index.php?ctrl=login&action=index');
+                exit();
+            }
+            
+            // Usar el username limpio para el resto del proceso
+            $username = $username_limpio;
+
             // Usar el método validateLogin existente que ahora incluye el sistema de bloqueo
             $foundUser = $this->model->validateLogin($username, $password);
 
