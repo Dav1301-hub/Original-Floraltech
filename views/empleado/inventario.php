@@ -418,6 +418,15 @@ function construirUrlPaginacion($pagina) {
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 <?php endif; ?>
+                
+                <?php if (isset($_SESSION['error_seguridad'])): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        <strong>ALERTA DE SEGURIDAD:</strong> <?= htmlspecialchars($_SESSION['error_seguridad']) ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    <?php unset($_SESSION['error_seguridad']); ?>
+                <?php endif; ?>
 
                 <!-- Estadísticas del Inventario -->
                 <div class="stats-grid">

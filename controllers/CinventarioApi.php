@@ -37,8 +37,18 @@ class CinventarioApi {
             $params = [];
             
             if (!empty($_GET['buscar'])) {
+                // Validar entrada contra inyección SQL
+                require_once __DIR__ . '/../helpers/security_helper.php';
+                
+                $busqueda_limpia = sanitizarCampoBusqueda($_GET['buscar'], 'buscar_inventario_api');
+                
+                if ($busqueda_limpia === false) {
+                    echo json_encode(['success' => false, 'message' => 'Entrada inválida detectada']);
+                    exit();
+                }
+                
                 $where_conditions[] = "t.nombre LIKE ?";
-                $params[] = '%' . $_GET['buscar'] . '%';
+                $params[] = '%' . $busqueda_limpia . '%';
             }
             
             if (!empty($_GET['categoria']) && $_GET['categoria'] !== '') {
@@ -103,7 +113,8 @@ class CinventarioApi {
             $count_params = [];
             
             if (!empty($_GET['buscar'])) {
-                $count_params[] = '%' . $_GET['buscar'] . '%';
+                // Reutilizar la variable ya sanitizada
+                $count_params[] = '%' . $busqueda_limpia . '%';
             }
             
             if (!empty($_GET['categoria']) && $_GET['categoria'] !== '') {
