@@ -19,7 +19,7 @@ class AdminPagosController {
         // Aquí puedes agregar lógica de permisos si lo necesitas
         // Obtener estadísticas y pagos recientes desde el modelo
         $estadisticas = $this->model->obtenerEstadisticasPagos();
-        $pagosRecientes = $this->model->obtenerTodosLosPagos();
+        $pagosRecientes = array_slice($this->model->obtenerTodosLosPagos(), 0, 10);
         $resumenMetodosPago = $this->model->obtenerResumenMetodosPago();
         include 'views/admin/dashboard_pago.php';
     }

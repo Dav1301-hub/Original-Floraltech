@@ -44,6 +44,8 @@ class User {
             if ($user['intentos_fallidos'] > 0) {
                 $this->resetFailedAttempts($user['idusu']);
             }
+            // Marcar último acceso exitoso
+            $this->touchLastAccess($user['idusu']);
             return $user;
         } else {
             // Contraseña incorrecta - incrementar intentos fallidos
@@ -115,6 +117,19 @@ class User {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
         return $user && $user['activo'] == 0;
+    }
+
+    /**
+     * Actualiza la marca de último acceso exitoso
+     */
+    private function touchLastAccess($userId) {
+        try {
+            $stmt = $this->conn->prepare("UPDATE usu SET fecha_ultimo_acceso = NOW() WHERE idusu = :id");
+            $stmt->bindParam(':id', $userId, PDO::PARAM_INT);
+            $stmt->execute();
+        } catch (Exception $e) {
+            error_log("No se pudo actualizar fecha_ultimo_acceso: " . $e->getMessage());
+        }
     }
 
     /**

@@ -8,8 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/dashboard-cliente.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/dashboard-cliente.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/assets/dashboard-admin.css">
 </head>
@@ -73,6 +71,20 @@
                     }
                     $filePath = __DIR__ . '/' . $file;
                     if ($file && file_exists($filePath)) {
+                        switch ($file) {
+                            case 'auditoria_pago.php':
+                                require_once __DIR__ . '/../../controllers/AdminAuditoriaController.php';
+                                $auditoriaCtrl = new AdminAuditoriaController();
+                                $ctx = $auditoriaCtrl->obtenerContexto();
+                                extract($ctx);
+                                break;
+                            case 'reportes.php':
+                                require_once __DIR__ . '/../../controllers/ReportesController.php';
+                                $reportesCtrl = new ReportesController();
+                                $ctx = $reportesCtrl->obtenerContexto();
+                                extract($ctx);
+                                break;
+                        }
                         include $filePath;
                     } else {
                         echo '<div class="alert alert-warning">Página no encontrada.</div>';
