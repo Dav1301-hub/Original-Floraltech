@@ -65,7 +65,7 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
     </div>
 </div>
 <div class="container my-4">
-    <div class="row g-3">   <!-- Filtros adicionales mes/año antes de las cards -->
+    <div class="row g-3">   <!-- Filtros adicionales mes/a├▒o antes de las cards -->
         <form class="row mb-3 g-2 flex-wrap" onsubmit="return false;">
             <div class="col-12 col-md-4">
                 <input type="date" class="form-control" name="fecha_inicio" value="<?= htmlspecialchars($_GET['fecha_inicio'] ?? '') ?>">
@@ -88,9 +88,9 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
                 <th>Cliente</th>
                 <th>Pedido ID</th>
                 <th>Total</th>
-                <th>Método</th>
+                <th>M├®todo</th>
                 <th>Estado</th>
-                <th>Transacción</th>
+                <th>Transacci├│n</th>
             </tr>
         </thead>
         <tbody>
@@ -164,7 +164,7 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
                                     <input type="checkbox" id="selectAll" title="Seleccionar todo">
                                 </th>
                                 <th>ID</th>
-                                <th>Número Pedido</th>
+                                <th>N├║mero Pedido</th>
                                 <th>Fecha Pedido</th>
                                 <th>Monto Total</th>
                                 <th>Cliente</th>
@@ -253,7 +253,7 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
                                 <th>ID</th>
                                 <th>Usuario</th>
                                 <th>Nombre Completo</th>
-                                <th>Teléfono</th>
+                                <th>Tel├®fono</th>
                                 <th>Correo</th>
                                 <th>Estado</th>
                                 <th>Tipo Usuario</th>
@@ -272,7 +272,7 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
                                         <td><?= htmlspecialchars($u['nombre_completo']) ?></td>
                                         <td><?= htmlspecialchars($u['telefono']) ?></td>
                                         <td><?= htmlspecialchars($u['email']) ?></td>
-                                        <td><?= ($u['activo'] ? 'Sí' : 'No') ?></td>
+                                        <td><?= ($u['activo'] ? 'S├¡' : 'No') ?></td>
                                         <td><?= htmlspecialchars($u['tipo_usuario']) ?></td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -320,7 +320,7 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
                             </div>
                         </form>
 
-                        <!-- Botón para generar PDF -->
+                        <!-- Bot├│n para generar PDF -->
                         <div class="col-12 col-md-6">
                             <form id="formPdfFlores" action="controllers/repopdf.php" method="POST">
                                 <input type="hidden" name="accion" value="flores_pdf">
@@ -383,7 +383,7 @@ require_once(__DIR__ . '/../../controllers/creportes.php');?>
 </body>
     <!-- jQuery primero -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<!-- DataTables después -->
+<!-- DataTables despu├®s -->
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <!-- Tu JS al final -->
