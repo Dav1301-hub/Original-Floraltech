@@ -90,13 +90,13 @@
                     $filePath = __DIR__ . '/' . $file;
                     if ($file && file_exists($filePath)) {
                         switch ($file) {
-                            case 'auditoria_pago.php':
+                            case 'VaauditoriaPagos.php':
                                 require_once __DIR__ . '/../../controllers/AdminAuditoriaController.php';
                                 $auditoriaCtrl = new AdminAuditoriaController();
                                 $ctx = $auditoriaCtrl->obtenerContexto();
                                 extract($ctx);
                                 break;
-                            case 'reportes.php':
+                            case 'Vareportes.php':
                                 require_once __DIR__ . '/../../controllers/ReportesController.php';
                                 $reportesCtrl = new ReportesController();
                                 $ctx = $reportesCtrl->obtenerContexto();
@@ -123,3 +123,4 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+

@@ -6,39 +6,44 @@ use Mpdf\Mpdf;
 
 $mreportes = new Mreportes();
 
+// Estilos base para todos los reportes
+$baseCss = '
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; color: #2c3e50; font-size: 12px; }
+        h1 { text-align: center; color: #1a5276; border-bottom: 2px solid #1a5276; padding-bottom: 8px; margin-bottom: 18px; }
+        .meta { text-align: right; color: #555; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        thead { background-color: #2471a3; color: white; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        tr:nth-child(even) { background-color: #f8f9f9; }
+        tr:hover { background-color: #ebf5fb; }
+        .totales { font-weight: bold; background: #d6eaf8; }
+        .badge { padding: 2px 6px; border-radius: 4px; color: #fff; font-size: 11px; }
+        .success { background: #27ae60; }
+        .warning { background: #f1c40f; color: #1f2937; }
+        .secondary { background: #7f8c8d; }
+    </style>
+';
+
 // ---------------------- //
-//  📄 PDF DE USUARIOS
+//  PDF DE USUARIOS
 // ---------------------- //
 if (isset($_POST['accion']) && $_POST['accion'] === 'usuarios_pdf') {
-
-    $ids = isset($_POST['ids']) ? explode(',', $_POST['ids']) : [];
-    $ids = array_filter($ids);
-    $tipo = isset($_POST['tipo']) ? $_POST['tipo'] : null;
+    $ids = array_filter(explode(',', $_POST['ids'] ?? ''));
+    $tipo = $_POST['tipo'] ?? null;
 
     $usuarios = $mreportes->getAllusu($tipo);
+    $usuariosSeleccionados = array_filter($usuarios, fn($u) => in_array((string)$u['idusu'], $ids, true));
 
-    $usuariosSeleccionados = array_filter($usuarios, function($u) use ($ids) {
-        return in_array((string)$u['idusu'], $ids, true);
-    });
+    $totalActivos = count(array_filter($usuariosSeleccionados, fn($u) => $u['activo']));
 
-    $html = '
-    <style>
-        body { font-family: Arial, Helvetica, sans-serif; color: #2C3E50; font-size: 12px; }
-        h1 { text-align: center; color: #1A5276; border-bottom: 2px solid #1A5276; padding-bottom: 10px; margin-bottom: 30px; }
-        p { text-align: right; color: #555; font-size: 11px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
-        thead { background-color: #2471A3; color: white; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        tr:nth-child(even) { background-color: #f8f9f9; }
-        tr:hover { background-color: #EBF5FB; }
-    </style>
-
-    <h1>👥 Reporte de Usuarios Seleccionados</h1>
-    <p>Generado el ' . date("d/m/Y H:i") . '</p>';
-
+    $html = $baseCss;
+    $html .= '<h1>Reporte de Usuarios Seleccionados</h1>';
+    $html .= '<p class="meta">Generado el ' . date("d/m/Y H:i") . '</p>';
     if ($tipo) {
-        $html .= '<p>Filtro aplicado: <strong>' . htmlspecialchars($tipo) . '</strong></p>';
+        $html .= '<p class="meta">Filtro: ' . htmlspecialchars($tipo) . '</p>';
     }
+    $html .= '<p class="meta">Total seleccionados: ' . count($usuariosSeleccionados) . ' | Activos: ' . $totalActivos . '</p>';
 
     $html .= '
     <table>
@@ -48,7 +53,7 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'usuarios_pdf') {
                 <th>Usuario</th>
                 <th>Nombre completo</th>
                 <th>Tipo</th>
-                <th>Teléfono</th>
+                <th>Telefono</th>
                 <th>Email</th>
                 <th>Activo</th>
             </tr>
@@ -65,7 +70,7 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'usuarios_pdf') {
                 <td>' . htmlspecialchars($u['tipo_usuario']) . '</td>
                 <td>' . htmlspecialchars($u['telefono']) . '</td>
                 <td>' . htmlspecialchars($u['email']) . '</td>
-                <td>' . ($u['activo'] ? 'Sí' : 'No') . '</td>
+                <td>' . ($u['activo'] ? 'Si' : 'No') . '</td>
             </tr>';
         }
     } else {
@@ -75,43 +80,29 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'usuarios_pdf') {
     $html .= '</tbody></table>';
 
     ob_clean();
-    $mpdf = new \Mpdf\Mpdf();
+    $mpdf = new Mpdf();
     $mpdf->WriteHTML($html);
     $mpdf->Output('Usuarios_Seleccionados.pdf', \Mpdf\Output\Destination::DOWNLOAD);
     exit;
 }
 
-
 // ---------------------- //
-//  🌸 PDF DE INVENTARIO (Flores)
+//  PDF DE INVENTARIO (Flores)
 // ---------------------- //
 if (isset($_POST['accion']) && $_POST['accion'] === 'flores_pdf') {
-    $ids = isset($_POST['ids']) ? explode(',', $_POST['ids']) : [];
-    $ids = array_filter($ids);
-
+    $ids = array_filter(explode(',', $_POST['ids'] ?? ''));
     $flores = $mreportes->getAllInventario();
+    $floresSeleccionadas = array_filter($flores, fn($f) => in_array((string)$f['idtflor'], $ids, true));
 
-    $floresSeleccionadas = array_filter($flores, function($f) use ($ids) {
-        return in_array((string)$f['idtflor'], $ids, true);
-    });
+    $totalStock = array_sum(array_column($floresSeleccionadas, 'stock'));
+    $totalValor = array_sum(array_column($floresSeleccionadas, 'valor_total'));
 
-    $totalStock = 0;
-    $totalValor = 0;
+    $html = $baseCss;
+    $html .= '<h1>Reporte de Inventario de Flores</h1>';
+    $html .= '<p class="meta">Generado el ' . date("d/m/Y H:i") . '</p>';
+    $html .= '<p class="meta">Items: ' . count($floresSeleccionadas) . ' | Stock total: ' . $totalStock . ' | Valor: $' . number_format($totalValor, 2) . '</p>';
 
-    $html = '
-    <style>
-        body { font-family: Arial, Helvetica, sans-serif; color: #2C3E50; font-size: 12px; }
-        h1 { text-align: center; color: #145A32; border-bottom: 2px solid #145A32; padding-bottom: 10px; margin-bottom: 30px; }
-        p { text-align: right; color: #555; font-size: 11px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
-        thead { background-color: #229954; color: white; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        tr:nth-child(even) { background-color: #f8f9f9; }
-        tr:hover { background-color: #E9F7EF; }
-    </style>
-
-    <h1>🌸 Reporte de Inventario de Flores</h1>
-    <p>Generado el ' . date("d/m/Y H:i") . '</p>
+    $html .= '
     <table>
         <thead>
             <tr>
@@ -129,9 +120,6 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'flores_pdf') {
 
     if (!empty($floresSeleccionadas)) {
         foreach ($floresSeleccionadas as $f) {
-            $totalStock += (int)$f['stock'];
-            $totalValor += (float)$f['valor_total'];
-
             $html .= '
             <tr>
                 <td>' . htmlspecialchars($f['idtflor']) . '</td>
@@ -144,10 +132,8 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'flores_pdf') {
                 <td>' . htmlspecialchars($f['estado']) . '</td>
             </tr>';
         }
-
-        // Fila de totales
         $html .= '
-        <tr style="font-weight:bold; background-color:#D5F5E3;">
+        <tr class="totales">
             <td colspan="4" style="text-align:right;">Totales:</td>
             <td>' . $totalStock . '</td>
             <td></td>
@@ -161,55 +147,41 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'flores_pdf') {
     $html .= '</tbody></table>';
 
     ob_clean();
-    $mpdf = new \Mpdf\Mpdf();
+    $mpdf = new Mpdf();
     $mpdf->WriteHTML($html);
     $mpdf->Output('Inventario_Flores.pdf', \Mpdf\Output\Destination::DOWNLOAD);
     exit;
-
-    echo '<pre>';
-print_r($f);
-echo '</pre>';
-
 }
 
+// ---------------------- //
+//  PDF DE PAGOS
+// ---------------------- //
 if (isset($_POST['accion']) && $_POST['accion'] === 'pagos_pdf') {
-    $ids = isset($_POST['ids']) ? explode(',', $_POST['ids']) : [];
-    $ids = array_filter($ids);
-
-    // Obtener todos los pagos
+    $ids = array_filter(explode(',', $_POST['ids'] ?? ''));
     $pagos = $mreportes->getAllPagos();
+    $pagosSeleccionados = array_filter($pagos, fn($p) => in_array((string)$p['idpago'], $ids, true));
 
-    // Filtrar los pagos seleccionados
-    $pagosSeleccionados = array_filter($pagos, function($p) use ($ids) {
-        return in_array((string)$p['idpago'], $ids, true);
-    });
+    $totalMonto = array_sum(array_column($pagosSeleccionados, 'monto'));
+    $completados = count(array_filter($pagosSeleccionados, fn($p) => strtolower($p['estado_pag']) === 'completado'));
+    $pendientes = count(array_filter($pagosSeleccionados, fn($p) => strtolower($p['estado_pag']) === 'pendiente'));
 
-    // Variables para totales
-    $totalMonto = 0;
+    $html = $baseCss;
+    $html .= '<h1>Reporte de Pagos Seleccionados</h1>';
+    $html .= '<p class="meta">Generado el ' . date("d/m/Y H:i") . '</p>';
+    $html .= '<p class="meta">Pagos: ' . count($pagosSeleccionados) . ' | Completados: ' . $completados . ' | Pendientes: ' . $pendientes . ' | Monto total: $' . number_format($totalMonto, 2) . '</p>';
 
-    $html = '
-    <style>
-        body { font-family: Arial, Helvetica, sans-serif; color: #2C3E50; font-size: 12px; }
-        h1 { text-align: center; color: #1A5276; border-bottom: 2px solid #1A5276; padding-bottom: 10px; margin-bottom: 30px; }
-        p { text-align: right; color: #555; font-size: 11px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
-        thead { background-color: #2471A3; color: white; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-        tr:nth-child(even) { background-color: #f8f9f9; }
-        tr:hover { background-color: #EBF5FB; }
-    </style>
-
-    <h1>💰 Reporte de Pagos Seleccionados</h1>
-    <p>Generado el ' . date("d/m/Y H:i") . '</p>
+    $html .= '
     <table>
         <thead>
             <tr>
                 <th>ID Pago</th>
-                <th>Fecha de Pago</th>
-                <th>Método de Pago</th>
+                <th>Fecha</th>
+                <th>Metodo</th>
                 <th>Monto</th>
                 <th>Estado</th>
-                <th>ID Transacción</th>
+                <th>Pedido</th>
+                <th>Cliente</th>
+                <th>ID Transaccion</th>
                 <th>Comprobante</th>
             </tr>
         </thead>
@@ -217,91 +189,97 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'pagos_pdf') {
 
     if (!empty($pagosSeleccionados)) {
         foreach ($pagosSeleccionados as $pago) {
-            $monto = (float)$pago['monto'];
-            $totalMonto += $monto;
-
+            $estado = strtolower($pago['estado_pag']);
+            $badgeClass = $estado === 'completado' ? 'success' : ($estado === 'pendiente' ? 'warning' : 'secondary');
             $html .= '
             <tr>
                 <td>' . htmlspecialchars($pago['idpago']) . '</td>
                 <td>' . date('d/m/Y', strtotime($pago['fecha_pago'])) . '</td>
                 <td>' . htmlspecialchars($pago['metodo_pago']) . '</td>
-                <td>$' . number_format($monto, 2) . '</td>
-                <td>' . htmlspecialchars($pago['estado_pag']) . '</td>
+                <td>$' . number_format((float)$pago['monto'], 2) . '</td>
+                <td><span class="badge ' . $badgeClass . '">' . htmlspecialchars($pago['estado_pag']) . '</span></td>
+                <td>' . htmlspecialchars($pago['numped'] ?? '-') . '</td>
+                <td>' . htmlspecialchars($pago['cliente'] ?? '-') . '</td>
                 <td>' . htmlspecialchars($pago['transaccion_id']) . '</td>
-                <td>' . htmlspecialchars($pago['comprobante_transferencia']) . '</td>
+                <td>' . (!empty($pago['comprobante_transferencia']) ? htmlspecialchars($pago['comprobante_transferencia']) : 'Sin comprobante') . '</td>
             </tr>';
         }
-
-        // Fila de total general
         $html .= '
-        <tr style="font-weight:bold; background-color:#D6EAF8;">
-            <td colspan="3" style="text-align:right;">Total General:</td>
+        <tr class="totales">
+            <td colspan="3" style="text-align:right;">Total general:</td>
             <td>$' . number_format($totalMonto, 2) . '</td>
-            <td colspan="3"></td>
+            <td colspan="5"></td>
         </tr>';
     } else {
-        $html .= '<tr><td colspan="7">No se encontraron pagos seleccionados</td></tr>';
+        $html .= '<tr><td colspan="9">No se encontraron pagos seleccionados</td></tr>';
     }
 
     $html .= '</tbody></table>';
 
-    // Generar PDF
     ob_clean();
-    $mpdf = new \Mpdf\Mpdf();
+    $mpdf = new Mpdf();
     $mpdf->WriteHTML($html);
     $mpdf->Output('Pagos_Seleccionados.pdf', \Mpdf\Output\Destination::DOWNLOAD);
     exit;
 }
 
-
 // ---------------------- //
-//  📦 PDF DE PEDIDOS
+//  PDF DE PEDIDOS (default)
 // ---------------------- //
-
-$ids = isset($_POST['ids']) ? explode(',', $_POST['ids']) : [];
+$ids = array_filter(explode(',', $_POST['ids'] ?? ''));
 $pedidos = $mreportes->getAll();
-$pedidosSeleccionados = array_filter($pedidos, function($p) use ($ids) {
-    return in_array((string)$p['idped'], $ids);
-});
+$pedidosSeleccionados = array_filter($pedidos, fn($p) => in_array((string)$p['idped'], $ids, true));
 
-$html = '
-<style>
-    body { font-family: Arial, Helvetica, sans-serif; color: #2C3E50; font-size: 12px; }
-    h1 { text-align: center; color: #1A5276; border-bottom: 2px solid #1A5276; padding-bottom: 10px; margin-bottom: 30px; }
-    p { text-align: right; color: #555; font-size: 11px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
-    thead { background-color: #2471A3; color: white; }
-    th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
-    tr:nth-child(even) { background-color: #f8f9f9; }
-    tr:hover { background-color: #EBF5FB; }
-</style>
+$totalPedidos = count($pedidosSeleccionados);
+$montoTotal = array_sum(array_column($pedidosSeleccionados, 'monto_total'));
+$completados = count(array_filter($pedidosSeleccionados, fn($p) => strtolower($p['estado']) === 'completado'));
+$pendientes = count(array_filter($pedidosSeleccionados, fn($p) => strtolower($p['estado']) === 'pendiente'));
 
-<h1>📄 Reporte de Pedidos Seleccionados</h1>
-<p>Generado el ' . date("d/m/Y H:i") . '</p>
+$html = $baseCss;
+$html .= '<h1>Reporte de Pedidos Seleccionados</h1>';
+$html .= '<p class="meta">Generado el ' . date("d/m/Y H:i") . '</p>';
+$html .= '<p class="meta">Pedidos: ' . $totalPedidos . ' | Completados: ' . $completados . ' | Pendientes: ' . $pendientes . ' | Monto total: $' . number_format($montoTotal, 2) . '</p>';
+
+$html .= '
 <table>
     <thead>
         <tr>
             <th>ID</th>
-            <th>Número Pedido</th>
+            <th>Numero</th>
             <th>Fecha Pedido</th>
+            <th>Entrega solicitada</th>
             <th>Monto Total</th>
             <th>Cliente</th>
             <th>Estado</th>
+            <th>Empleado</th>
         </tr>
     </thead>
     <tbody>';
 
-foreach ($pedidosSeleccionados as $pedido) {
+if (!empty($pedidosSeleccionados)) {
+    foreach ($pedidosSeleccionados as $pedido) {
+        $html .= '
+        <tr>
+            <td>' . htmlspecialchars($pedido['idped']) . '</td>
+            <td>' . htmlspecialchars($pedido['numped']) . '</td>
+            <td>' . date('d/m/Y', strtotime($pedido['fecha_pedido'])) . '</td>
+            <td>' . (!empty($pedido['fecha_entrega_solicitada']) ? date('d/m/Y', strtotime($pedido['fecha_entrega_solicitada'])) : 'Sin fecha') . '</td>
+            <td>$' . number_format($pedido['monto_total'], 2) . '</td>
+            <td>' . htmlspecialchars($pedido['cli_idcli']) . '</td>
+            <td>' . htmlspecialchars($pedido['estado']) . '</td>
+            <td>' . htmlspecialchars($pedido['empleado_id']) . '</td>
+        </tr>';
+    }
     $html .= '
-    <tr>
-        <td>' . htmlspecialchars($pedido['idped']) . '</td>
-        <td>' . htmlspecialchars($pedido['numped']) . '</td>
-        <td>' . date('d/m/Y', strtotime($pedido['fecha_pedido'])) . '</td>
-        <td>$' . number_format($pedido['monto_total'], 2) . '</td>
-        <td>' . htmlspecialchars($pedido['cli_idcli']) . '</td>
-        <td>' . htmlspecialchars($pedido['estado']) . '</td>
+    <tr class="totales">
+        <td colspan="4" style="text-align:right;">Total:</td>
+        <td>$' . number_format($montoTotal, 2) . '</td>
+        <td colspan="3"></td>
     </tr>';
+} else {
+    $html .= '<tr><td colspan="8">No se encontraron pedidos seleccionados</td></tr>';
 }
+
 $html .= '</tbody></table>';
 
 ob_clean();
@@ -309,8 +287,3 @@ $mpdf = new Mpdf();
 $mpdf->WriteHTML($html);
 $mpdf->Output('Pedidos_Seleccionados.pdf', \Mpdf\Output\Destination::DOWNLOAD);
 exit;
-
-
-
-
-?>

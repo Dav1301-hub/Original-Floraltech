@@ -34,152 +34,6 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                     <div class="px-3 py-2 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-25">
                         <div class="small text-white-50">Pagos del mes</div>
                         <div class="h5 mb-0">$<?= number_format($pagosMes['monto'] ?? 0, 2) ?> · <?= intval($pagosMes['conteo'] ?? 0) ?> ops</div>
-    <!-- Filtros funcionales -->
-    <div class="card mb-4">
-        <div class="card-body pb-2">
-            <div class="fw-bold fs-5 mb-2"><i class="fas fa-filter me-2"></i>Filtros de Auditoría</div>
-            <form method="GET">
-                <div class="row justify-content-center g-2 align-items-end">
-                    <div class="col-md-2">
-                        <label class="form-label">Fecha Inicio</label>
-                        <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" value="<?= htmlspecialchars($_GET['fecha_inicio'] ?? '') ?>">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Fecha Fin</label>
-                        <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" value="<?= htmlspecialchars($_GET['fecha_fin'] ?? '') ?>">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Estado</label>
-                        <select class="form-select" id="estado" name="estado">
-                            <option value="">Todos</option>
-                            <option value="Aprobado">Aprobado</option>
-                            <option value="Pendiente">Pendiente</option>
-                            <option value="Fallido">Fallido</option>
-                            <option value="Reembolsado">Reembolsado</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Tipo de Cuenta</label>
-                        <select class="form-select" id="tipo_cuenta" name="tipo_cuenta">
-                            <option value="">Todas</option>
-                            <option value="Ventas">Ventas</option>
-                            <option value="Costos">Costos</option>
-                            <option value="Existencias">Existencias</option>
-                            <option value="Cuentas por cobrar">Cuentas por cobrar</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Método de Pago</label>
-                        <select class="form-select" id="metodo_pago" name="metodo_pago">
-                            <option value="">Todos</option>
-                            <option value="Efectivo">Efectivo</option>
-                            <option value="Tarjeta">Tarjeta</option>
-                            <option value="Transferencia">Transferencia</option>
-                            <option value="PayPal">PayPal</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2 d-flex gap-2 align-items-end">
-                        <button type="submit" class="btn btn-primary px-4">Filtrar</button>
-                        <a href="?" class="btn btn-link text-secondary">Limpiar Filtros</a>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Resumen y gráfico -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card text-center shadow-sm mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">Total de Transacciones Auditadas</h5>
-                    <p class="display-6 fw-bold text-primary mb-0"><?= $totalPagos ?></p>
-                </div>
-            </div>
-            <div class="card text-center shadow-sm mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">Monto Total Movido</h5>
-                    <p class="display-6 fw-bold text-success mb-0">$<?= number_format($totalMonto, 2) ?></p>
-                </div>
-            </div>
-            <div class="card text-center shadow-sm mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">% Errores/Inconsistencias</h5>
-                    <p class="display-6 fw-bold text-danger mb-0">
-                        <?= $totalPagos > 0 ? round((($totalFallidos + $totalPendientes) / $totalPagos) * 100, 1) : 0 ?>%
-                    </p>
-                </div>
-            </div>
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Existencias Valorizadas</h5>
-                    <p class="display-6 fw-bold text-info mb-0">$<?= number_format(5000, 2) // Simulado ?></p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-8 d-flex align-items-center">
-            <div class="w-100">
-                <canvas id="graficoEstados" height="120"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tabla de registros -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-secondary text-white">Registros de Auditoría</div>
-        <div class="card-body p-0">
-            <?php if (empty($registros)): ?>
-                <div class="alert alert-info m-4">
-                    No se encontraron registros de pagos con los filtros seleccionados.
-                </div>
-            <?php else: ?>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>📅 Fecha</th>
-                                <th>💲 Monto</th>
-                                <th>🛒 Tipo de Cuenta</th>
-                                <th>📌 Método de Pago</th>
-                                <th>📊 Estado</th>
-                                <th>👤 Cliente/Proveedor</th>
-                                <th>🏷️ ID Transacción</th>
-                                <th>📝 Responsable</th>
-                                <th>🔍 Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($registros as $r): ?>
-                            <tr class="<?php echo ($r['estado'] === 'Fallido') ? 'table-danger' : (($r['estado'] === 'Reembolsado') ? 'table-warning' : (($r['estado'] === 'Pendiente') ? 'table-info' : '')); ?>">
-                                <td><?= $r['fecha'] ?></td>
-                                <td>$<?= number_format($r['monto'], 2) ?></td>
-                                <td><span class="badge bg-info">Ventas</span></td>
-                                <td><span class="badge bg-dark"><?= $r['metodo'] ?></span></td>
-                                <td><span class="badge bg-<?= $r['estado'] === 'Aprobado' ? 'success' : ($r['estado'] === 'Pendiente' ? 'info' : ($r['estado'] === 'Fallido' ? 'danger' : 'warning')) ?>"><?= $r['estado'] ?></span></td>
-                                <td><?= htmlspecialchars($r['cliente']) ?></td>
-                                <td><?= $r['transaccion'] ?></td>
-                                <td><?= htmlspecialchars($r['responsable']) ?></td>
-                                <td>
-                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#detalleModal<?= $r['transaccion'] ?>">Ver Detalle</button>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
-
-        <!-- Modales de detalle -->
-        <?php foreach ($registros as $r): ?>
-        <div class="modal fade" id="detalleModal<?= $r['transaccion'] ?>" tabindex="-1" aria-labelledby="detalleModalLabel<?= $r['transaccion'] ?>" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="detalleModalLabel<?= $r['transaccion'] ?>">Detalle de Transacción <?= $r['transaccion'] ?></h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-
                     </div>
                     <div class="px-3 py-2 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-25">
                         <div class="small text-white-50">Usuarios activos hoy</div>
@@ -544,12 +398,6 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                                 </table>
                             </div>
                         </div>
-                        <div class="card shadow-sm h-100 rounded-4">
-                            <div class="card-header bg-light fw-bold">Nota</div>
-                            <div class="card-body">
-                                <p class="text-muted mb-0">Las metas ahora se guardan en base de datos (`proyecciones_pagos`). Usa los rangos de inicio y fin para evaluar períodos específicos y comparar los pagos completados en ese intervalo.</p>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -557,8 +405,7 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
     </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script id="auditoria-data" type="application/json"></script>
-
+<script id="auditoria-data" type="application/json">
 <?= json_encode([
     'acciones' => $accionesPorTipo,
     'actividad' => [
@@ -566,46 +413,5 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
         'data' => array_values($actividadSemanal)
     ]
 ], JSON_UNESCAPED_UNICODE) ?>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var ctx = document.getElementById('graficoEstados').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Aprobados', 'Pendientes', 'Fallidos', 'Reembolsados'],
-            datasets: [{
-                label: 'Cantidad',
-                data: [<?= $totalAprobados ?>, <?= $totalPendientes ?>, <?= $totalFallidos ?>, <?= $totalReembolsados ?>],
-                backgroundColor: ['#198754', '#0dcaf0', '#dc3545', '#ffc107'],
-                borderRadius: 8,
-                maxBarThickness: 50
-            }]
-        },
-        options: {
-            plugins: {
-                legend: { display: false },
-                title: {
-                    display: true,
-                    text: 'Estados de Pagos',
-                    font: { size: 18 }
-                }
-            },
-            responsive: true,
-            scales: {
-                x: {
-                    grid: { display: false },
-                    title: { display: false }
-                },
-                y: {
-                    beginAtZero: true,
-                    grid: { color: '#eee' },
-                    title: { display: true, text: 'Cantidad' },
-                    ticks: { precision:0 }
-                }
-            }
-        }
-    });
-});
 </script>
 <script src="assets/js/auditoria.js"></script>
