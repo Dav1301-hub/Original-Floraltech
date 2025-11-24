@@ -338,7 +338,7 @@ INSERT INTO `pagos` (`idpago`, `fecha_pago`, `metodo_pago`, `estado_pag`, `monto
 
 -- --------------------------------------------------------
 
---
+---
 -- Estructura de tabla para la tabla `ped`
 --
 
