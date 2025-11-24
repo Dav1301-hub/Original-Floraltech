@@ -85,34 +85,26 @@
                         }
                     } else {
                         $file = isset($pages[$page]) ? $pages[$page] : $pages['general'];
-
-                    }
-                    $filePath = __DIR__ . '/' . $file;
-                    if ($file && file_exists($filePath)) {
-                        switch ($file) {
-                            case 'VaauditoriaPagos.php':
-                                require_once __DIR__ . '/../../controllers/AdminAuditoriaController.php';
-                                $auditoriaCtrl = new AdminAuditoriaController();
-                                $ctx = $auditoriaCtrl->obtenerContexto();
-                                extract($ctx);
-                                break;
-                            case 'Vareportes.php':
-                                require_once __DIR__ . '/../../controllers/ReportesController.php';
-                                $reportesCtrl = new ReportesController();
-                                $ctx = $reportesCtrl->obtenerContexto();
-                                extract($ctx);
-                                break;
-                        }
-                        include $filePath;
-                    } else {
-                        echo '<div class="alert alert-warning">P├ígina no encontrada.</div>';
-
                         $filePath = __DIR__ . '/' . $file;
                         
                         if ($file && file_exists($filePath)) {
+                            switch ($file) {
+                                case 'VaauditoriaPagos.php':
+                                    require_once __DIR__ . '/../../controllers/AdminAuditoriaController.php';
+                                    $auditoriaCtrl = new AdminAuditoriaController();
+                                    $ctx = $auditoriaCtrl->obtenerContexto();
+                                    extract($ctx);
+                                    break;
+                                case 'Vareportes.php':
+                                    require_once __DIR__ . '/../../controllers/ReportesController.php';
+                                    $reportesCtrl = new ReportesController();
+                                    $ctx = $reportesCtrl->obtenerContexto();
+                                    extract($ctx);
+                                    break;
+                            }
                             include $filePath;
                         } else {
-                            echo '<div class="alert alert-warning">P├ígina no encontrada.</div>';
+                            echo '<div class="alert alert-warning">Página no encontrada: ' . htmlspecialchars($page) . '</div>';
                         }
                     }
                     ?>
