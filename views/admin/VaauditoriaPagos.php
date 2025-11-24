@@ -1,5 +1,5 @@
 <?php
-// Vista de auditoría: espera variables preparadas por AdminAuditoriaController::obtenerContexto()
+// Vista de auditor├¡a: espera variables preparadas por AdminAuditoriaController::obtenerContexto()
 $resumenAuditoria = $resumenAuditoria ?? ['acciones' => 0, 'usuarios' => 0, 'incidencias' => 0, 'ultima' => null];
 $accionesPorTipo = $accionesPorTipo ?? [];
 $actividadSemanal = $actividadSemanal ?? [];
@@ -10,7 +10,7 @@ $usuariosRecientes = $usuariosRecientes ?? [];
 $productosActivos = $productosActivos ?? 0;
 $productosActivosDetalle = $productosActivosDetalle ?? [];
 $pagosMes = $pagosMes ?? ['monto' => 0, 'conteo' => 0];
-$proyeccionActiva = $proyeccionActiva ?? ['titulo' => 'Sin proyección', 'monto_objetivo' => 0, 'fecha_inicio' => date('Y-m-01'), 'fecha_fin' => date('Y-m-t'), 'notas' => ''];
+$proyeccionActiva = $proyeccionActiva ?? ['titulo' => 'Sin proyecci├│n', 'monto_objetivo' => 0, 'fecha_inicio' => date('Y-m-01'), 'fecha_fin' => date('Y-m-t'), 'notas' => ''];
 $avanceProy = $avanceProy ?? ['monto' => 0, 'conteo' => 0];
 $avanceActual = $avanceActual ?? 0;
 $porcentajeAvance = $porcentajeAvance ?? 0;
@@ -33,7 +33,7 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                 <div class="d-flex gap-3 flex-wrap">
                     <div class="px-3 py-2 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-25">
                         <div class="small text-white-50">Pagos del mes</div>
-                        <div class="h5 mb-0">$<?= number_format($pagosMes['monto'] ?? 0, 2) ?> · <?= intval($pagosMes['conteo'] ?? 0) ?> ops</div>
+                        <div class="h5 mb-0">$<?= number_format($pagosMes['monto'] ?? 0, 2) ?> ┬À <?= intval($pagosMes['conteo'] ?? 0) ?> ops</div>
                     </div>
                     <div class="px-3 py-2 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-25">
                         <div class="small text-white-50">Usuarios activos hoy</div>
@@ -156,7 +156,7 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                                             <th>Nombre</th>
                                             <th>Usuario</th>
                                             <th>Rol</th>
-                                            <th>Último acceso</th>
+                                            <th>├Ültimo acceso</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -257,7 +257,7 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                                             <th>Responsable</th>
                                             <th>Estado</th>
                                             <th>Fecha</th>
-                                            <th>Método</th>
+                                            <th>M├®todo</th>
                                             <th>Detalle</th>
                                         </tr>
                                     </thead>
@@ -274,7 +274,7 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                                                         <?php
                                                             $pedido = $row['numped'] ?? 'S/N';
                                                             $cliente = $row['cliente'] ?? 'Sin cliente';
-                                                            $detalle = sprintf('Pedido %s • Cliente: %s • $%s',
+                                                            $detalle = sprintf('Pedido %s ÔÇó Cliente: %s ÔÇó $%s',
                                                                 $pedido,
                                                                 $cliente,
                                                                 number_format($row['monto'], 2)
@@ -305,7 +305,7 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                             <div class="card-body">
                                 <form method="POST" class="row g-3">
                                     <div class="col-12">
-                                        <label class="form-label">Título</label>
+                                        <label class="form-label">T├¡tulo</label>
                                         <input type="text" class="form-control" name="objetivo_titulo" placeholder="Ej: Meta Q4" value="<?= htmlspecialchars($proyeccionActiva['titulo'] ?? 'Meta de pagos') ?>">
                                     </div>
                                     <div class="col-12 col-md-6">
@@ -373,7 +373,7 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                                             <th>Fecha</th>
                                             <th>Cliente</th>
                                             <th>Pedido</th>
-                                            <th>Método</th>
+                                            <th>M├®todo</th>
                                             <th class="text-end">Monto</th>
                                             <th>Estado</th>
                                         </tr>

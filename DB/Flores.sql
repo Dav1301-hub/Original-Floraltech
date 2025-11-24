@@ -32,6 +32,7 @@ SET time_zone = "+00:00";
 CREATE TABLE `cfg_sis` (
   `id_cfg` int(11) NOT NULL AUTO_INCREMENT,
   `idusu` int(11) NOT NULL,
+  `moneda` varchar(10) NOT NULL DEFAULT 'COP',
   `idioma` varchar(50) NOT NULL DEFAULT 'Español',
   `zona_hor` varchar(100) NOT NULL DEFAULT 'America/Bogota',
   `fmt_fecha` varchar(50) NOT NULL DEFAULT 'dd/mm/yyyy',
@@ -209,22 +210,22 @@ CREATE TABLE `inv` (
 -- Volcado de datos para la tabla `inv`
 --
 
-INSERT INTO `inv` (`idinv`, `alimentacion`, `tflor_idtflor`, `stock`, `precio`, `fecha_actualizacion`, `empleado_id`, `motivo`, `cantidad_disponible`) VALUES
-(1, 'Agua y nutrientes', 1, 150, 5.99, '2025-07-28 22:13:32', NULL, NULL, 150),
-(2, 'Agua y nutrientes', 2, 80, 7.50, '2025-07-28 22:13:32', NULL, NULL, 80),
-(3, 'Agua y luz solar', 3, 59, 4.75, '2025-07-28 22:13:32', NULL, NULL, 59),
-(4, 'Humedad controlada', 4, 40, 12.99, '2025-07-28 22:13:32', NULL, NULL, 40),
-(5, 'Agua y nutrientes', 5, 70, 6.25, '2025-07-28 22:13:32', NULL, NULL, 70),
-(6, 'N/A', 6, 18, 3.50, '2025-08-11 15:57:37', NULL, NULL, 199),
-(7, 'Luz indirecta', 7, 90, 8.99, '2025-07-28 22:13:32', NULL, NULL, 90),
-(8, 'Poca agua', 8, 120, 2.99, '2025-07-28 22:13:32', NULL, NULL, 120),
-(9, 'Agua diaria', 1, 50, 25.99, '2025-07-28 22:13:32', NULL, NULL, 50),
-(10, 'Agua cada 2 días', 2, 30, 18.50, '2025-07-28 22:13:32', NULL, NULL, 30),
-(11, 'Agua semanal', 3, 25, 35.00, '2025-07-28 22:13:32', NULL, NULL, 25),
-(12, 'Agua diaria', 4, 40, 22.75, '2025-07-28 22:13:32', NULL, NULL, 40),
-(13, 'Agua semanal', 5, 15, 85.00, '2025-07-28 22:13:32', NULL, NULL, 15),
-(14, 'Agua diaria', 20, 22, 16.55, '2025-08-05 13:28:10', NULL, NULL, 0),
-(15, 'Agua diaria', 21, 16, 15.96, '2025-08-05 13:28:10', NULL, NULL, 0);
+INSERT INTO `inv` (`idinv`, `idproducto`, `producto`, `color`, `estado`, `alimentacion`, `tflor_idtflor`, `stock`, `precio`, `fecha_actualizacion`, `empleado_id`, `motivo`, `cantidad_disponible`) VALUES
+(1, 1, 'Rosas', 'Multicolor', 'disponible', 'Agua y nutrientes', 1, 150, 5.99, '2025-07-28 22:13:32', NULL, NULL, 150),
+(2, 2, 'Tulipanes', 'Multicolor', 'disponible', 'Agua y nutrientes', 2, 80, 7.50, '2025-07-28 22:13:32', NULL, NULL, 80),
+(3, 3, 'Girasoles', 'Multicolor', 'disponible', 'Agua y luz solar', 3, 59, 4.75, '2025-07-28 22:13:32', NULL, NULL, 59),
+(4, 4, 'Orquídeas', 'Multicolor', 'disponible', 'Humedad controlada', 4, 40, 12.99, '2025-07-28 22:13:32', NULL, NULL, 40),
+(5, 5, 'Lirios', 'Multicolor', 'disponible', 'Agua y nutrientes', 5, 70, 6.25, '2025-07-28 22:13:32', NULL, NULL, 70),
+(6, 6, 'Flores Artificiales', 'Multicolor', 'disponible', 'N/A', 6, 18, 3.50, '2025-08-11 15:57:37', NULL, NULL, 199),
+(7, 7, 'Plantas de Interior', 'Multicolor', 'disponible', 'Luz indirecta', 7, 90, 8.99, '2025-07-28 22:13:32', NULL, NULL, 90),
+(8, 8, 'Suculentas', 'Multicolor', 'disponible', 'Poca agua', 8, 120, 2.99, '2025-07-28 22:13:32', NULL, NULL, 120),
+(9, 9, 'Rosas Premium', 'Multicolor', 'disponible', 'Agua diaria', 1, 50, 25.99, '2025-07-28 22:13:32', NULL, NULL, 50),
+(10, 10, 'Tulipanes Premium', 'Multicolor', 'disponible', 'Agua cada 2 días', 2, 30, 18.50, '2025-07-28 22:13:32', NULL, NULL, 30),
+(11, 11, 'Girasoles Premium', 'Multicolor', 'disponible', 'Agua semanal', 3, 25, 35.00, '2025-07-28 22:13:32', NULL, NULL, 25),
+(12, 12, 'Orquídeas Premium', 'Multicolor', 'disponible', 'Agua diaria', 4, 40, 22.75, '2025-07-28 22:13:32', NULL, NULL, 40),
+(13, 13, 'Lirios Premium', 'Multicolor', 'disponible', 'Agua semanal', 5, 15, 85.00, '2025-07-28 22:13:32', NULL, NULL, 15),
+(14, 14, 'Producto Especial', 'Sin especificar', 'agotado', 'Agua diaria', 20, 22, 16.55, '2025-08-05 13:28:10', NULL, NULL, 0),
+(15, 15, 'Producto Extra', 'Sin especificar', 'agotado', 'Agua diaria', 21, 16, 15.96, '2025-08-05 13:28:10', NULL, NULL, 0);
 
 -- --------------------------------------------------------
 
@@ -755,6 +756,51 @@ CREATE TABLE `proyecciones_pagos` (
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `empresa`
+--
+
+CREATE TABLE `empresa` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(255) NOT NULL DEFAULT '',
+  `direccion` varchar(255) DEFAULT '',
+  `telefono` varchar(100) DEFAULT '',
+  `email` varchar(255) DEFAULT '',
+  `horario` varchar(255) DEFAULT '',
+  `fecha_creacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `fecha_actualizacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `empresa`
+--
+
+INSERT INTO `empresa` (`nombre`, `direccion`, `telefono`, `email`, `horario`) VALUES
+('FloralTech', 'Dirección de la empresa', '555-0123', 'info@floraltech.com', 'Lunes a Viernes 8:00 AM - 6:00 PM');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `vacaciones`
+--
+
+CREATE TABLE `vacaciones` (
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `id_empleado` int(11) NOT NULL,
+    `fecha_inicio` date NOT NULL,
+    `fecha_fin` date NOT NULL,
+    `motivo` varchar(255) NOT NULL,
+    `estado` enum('Programadas','Aprobadas','Denegadas','Finalizadas') DEFAULT 'Programadas',
+    `fecha_solicitud` timestamp DEFAULT CURRENT_TIMESTAMP,
+    `fecha_actualizacion` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `fk_vacaciones_empleado` (`id_empleado`),
+    CONSTRAINT `fk_vacaciones_empleado` FOREIGN KEY (`id_empleado`) REFERENCES `usu` (`idusu`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `vacaciones`
 --
 
@@ -1084,6 +1130,18 @@ ALTER TABLE `vacaciones`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
 
 --
+-- AUTO_INCREMENT de la tabla `empresa`
+--
+ALTER TABLE `empresa`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT de la tabla `vacaciones`
+--
+ALTER TABLE `vacaciones`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+
+--
 -- Restricciones para tablas volcadas
 --
 
@@ -1193,25 +1251,11 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 
 -- --------------------------------------------------------
 --
--- Estructura de la tabla `vacaciones`
---
-CREATE TABLE `vacaciones` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `id_empleado` INT NOT NULL,
-  `fecha_inicio` DATE NOT NULL,
-  `fecha_fin` DATE NOT NULL,
-  `estado` VARCHAR(20) DEFAULT 'En curso',
-  `motivo` VARCHAR(255),
-  `fecha_creacion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`id_empleado`) REFERENCES `usu`(`idusu`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
---
--- Agregar columna de vacaciones a la tabla usuALTER TABLE usu ADD COLUMN vacaciones INT DEFAULT 0;
+-- Agregar columna de vacaciones a la tabla usu
 --
 ALTER TABLE usu ADD COLUMN vacaciones INT DEFAULT 0;
--- --------------------------------------------------------
+

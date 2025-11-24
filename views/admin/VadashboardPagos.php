@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_pago'], $_POST['nu
         $estadosPermitidos = ['Completado', 'Pendiente', 'Cancelado', 'Rechazado'];
 
         if (!$idPago || !in_array($nuevoEstado, $estadosPermitidos, true)) {
-            throw new Exception('Datos de estado no válidos.');
+            throw new Exception('Datos de estado no v├ílidos.');
         }
 
         if ($pagoModel->actualizarEstadoPago($idPago, $nuevoEstado)) {
@@ -91,7 +91,7 @@ $resumenMetodosPago = $resumenMetodosPago ?? [];
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <h2 class="fw-bold mb-1">Dashboard de Pagos</h2>
-            <p class="text-muted mb-0">Visualiza el desempeño financiero con datos reales</p>
+            <p class="text-muted mb-0">Visualiza el desempe├▒o financiero con datos reales</p>
         </div>
         <a href="index.php?ctrl=dashboard&action=admin&page=reportes" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-2"></i>Volver a reportes
@@ -136,19 +136,19 @@ $resumenMetodosPago = $resumenMetodosPago ?? [];
     <div class="row g-4 mb-4">
         <div class="col-lg-6">
             <div class="card h-100 shadow-sm">
-                <div class="card-header bg-white fw-bold">Distribución por método de pago</div>
+                <div class="card-header bg-white fw-bold">Distribuci├│n por m├®todo de pago</div>
                 <div class="card-body">
                     <?php if (!empty($estadisticas['metodos_pago'])): ?>
                         <canvas id="metodosPagoChart" height="300"></canvas>
                     <?php else: ?>
-                        <p class="text-center text-muted mb-0">Aún no hay pagos completados para graficar.</p>
+                        <p class="text-center text-muted mb-0">A├║n no hay pagos completados para graficar.</p>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
         <div class="col-lg-6">
             <div class="card h-100 shadow-sm">
-                <div class="card-header bg-white fw-bold">Detalle por método</div>
+                <div class="card-header bg-white fw-bold">Detalle por m├®todo</div>
                 <div class="card-body">
                     <?php if (!empty($resumenMetodosPago)): ?>
                         <div class="list-group list-group-flush">
@@ -166,7 +166,7 @@ $resumenMetodosPago = $resumenMetodosPago ?? [];
                             <?php endforeach; ?>
                         </div>
                     <?php else: ?>
-                        <p class="text-center text-muted mb-0">No hay datos para los métodos de pago.</p>
+                        <p class="text-center text-muted mb-0">No hay datos para los m├®todos de pago.</p>
                     <?php endif; ?>
                 </div>
 
@@ -182,7 +182,7 @@ $resumenMetodosPago = $resumenMetodosPago ?? [];
 
     <div class="card shadow-sm">
         <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-            <span>Pagos más recientes</span>
+            <span>Pagos m├ís recientes</span>
             <span class="badge bg-secondary"><?= count($pagosRecientes) ?> registros</span>
         </div>
         <div class="card-body p-0">
@@ -195,7 +195,7 @@ $resumenMetodosPago = $resumenMetodosPago ?? [];
                                 <th>Fecha</th>
                                 <th>Cliente</th>
                                 <th>Pedido</th>
-                                <th>Método</th>
+                                <th>M├®todo</th>
                                 <th class="text-end">Monto</th>
                                 <th>Estado</th>
                                 <th class="text-center">Actualizar</th>
@@ -247,7 +247,7 @@ $resumenMetodosPago = $resumenMetodosPago ?? [];
                     </table>
                 </div>
             <?php else: ?>
-                <p class="text-center text-muted py-4 mb-0">Todavía no se han registrado pagos.</p>
+                <p class="text-center text-muted py-4 mb-0">Todav├¡a no se han registrado pagos.</p>
             <?php endif; ?>
         </div>
     </div>
