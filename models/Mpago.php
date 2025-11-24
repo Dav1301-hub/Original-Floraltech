@@ -35,21 +35,24 @@ class Mpago {
 
     // Resumen de Inventario
     public function getResumenInventario() {
-        $query = "SELECT SUM(stock) as stock_total,
-                          COUNT(*) as productos,
-                          SUM(CASE WHEN stock < 10 THEN 1 ELSE 0 END) as stock_bajo,
-                          SUM(CASE WHEN stock < 3 THEN 1 ELSE 0 END) as stock_critico
-                   FROM inventario";
+        $query = "SELECT 
+                        COUNT(i.idinv) as productos,
+                        COALESCE(SUM(i.stock), 0) as stock_total,
+                        SUM(CASE WHEN i.stock < 10 THEN 1 ELSE 0 END) as stock_bajo,
+                        SUM(CASE WHEN i.stock < 3 THEN 1 ELSE 0 END) as stock_critico
+                   FROM inv i";
         return $this->db->query($query)->fetch(PDO::FETCH_ASSOC);
     }
 
-    // Resumen de Cuentas
+    // Resumen de Cuentas (derivado de pagos reales)
     public function getResumenCuentas() {
-        $query = "SELECT SUM(CASE WHEN tipo = 'por_cobrar' THEN monto ELSE 0 END) as por_cobrar,
-                          SUM(CASE WHEN tipo = 'por_pagar' THEN monto ELSE 0 END) as por_pagar,
-                          SUM(monto) as saldo_neto,
-                          COUNT(*) as movimientos
-                   FROM cuentas";
+        $query = "SELECT 
+                        COALESCE(SUM(CASE WHEN estado_pag = 'Pendiente' THEN monto ELSE 0 END), 0) as por_cobrar,
+                        COALESCE(SUM(CASE WHEN estado_pag = 'Completado' THEN monto ELSE 0 END), 0) as por_pagar,
+                        COALESCE(SUM(CASE WHEN estado_pag = 'Completado' THEN monto ELSE 0 END), 0) 
+                            - COALESCE(SUM(CASE WHEN estado_pag = 'Pendiente' THEN monto ELSE 0 END), 0) as saldo_neto,
+                        COUNT(*) as movimientos
+                   FROM pagos";
         return $this->db->query($query)->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -63,23 +66,31 @@ class Mpago {
         return $this->db->query($query)->fetch(PDO::FETCH_ASSOC);
     }
 
-    // Resumen de Proyecciones
+    // Resumen de Proyecciones (último período agregado desde pagos)
     public function getResumenProyecciones() {
-        $query = "SELECT SUM(ventas) as ventas,
-                          SUM(ganancias) as ganancias,
-                          SUM(costos) as costos,
-                          MAX(periodo) as periodo
-                   FROM proyecciones";
+        $query = "SELECT 
+                        DATE_FORMAT(fecha_pago, '%Y-%m') as periodo,
+                        COALESCE(SUM(CASE WHEN estado_pag = 'Completado' THEN monto ELSE 0 END), 0) as ventas,
+                        COALESCE(SUM(CASE WHEN estado_pag IN ('Pendiente','Rechazado','Reembolsado','Cancelado') THEN monto ELSE 0 END), 0) as costos,
+                        COALESCE(SUM(CASE WHEN estado_pag = 'Completado' THEN monto ELSE 0 END), 0)
+                          - COALESCE(SUM(CASE WHEN estado_pag IN ('Pendiente','Rechazado','Reembolsado','Cancelado') THEN monto ELSE 0 END), 0) as ganancias
+                   FROM pagos
+                   WHERE fecha_pago >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+                   GROUP BY DATE_FORMAT(fecha_pago, '%Y-%m')
+                   ORDER BY periodo DESC
+                   LIMIT 1";
         return $this->db->query($query)->fetch(PDO::FETCH_ASSOC);
     }
 
-    // Resumen de Auditoría
+    // Resumen de Auditoría de pagos basado en información real
     public function getResumenAuditoria() {
-        $query = "SELECT COUNT(*) as acciones,
-                          COUNT(DISTINCT usuario_id) as usuarios,
-                          MAX(fecha) as ultima,
-                          SUM(CASE WHEN tipo = 'incidencia' THEN 1 ELSE 0 END) as incidencias
-                   FROM auditoria";
+        $query = "SELECT 
+                        COUNT(*) as acciones,
+                        COUNT(DISTINCT ped.empleado_id) as usuarios,
+                        MAX(p.fecha_pago) as ultima,
+                        SUM(CASE WHEN p.estado_pag IN ('Rechazado','Reembolsado','Cancelado') THEN 1 ELSE 0 END) as incidencias
+                   FROM pagos p
+                   LEFT JOIN ped ON ped.idped = p.ped_idped";
         return $this->db->query($query)->fetch(PDO::FETCH_ASSOC);
     }
     private $db;
@@ -160,14 +171,23 @@ class Mpago {
     // Obtener estadísticas de pagos (para dashboard admin)
     public function obtenerEstadisticasPagos() {
         $query = "SELECT 
-                    COUNT(*) as total_pagos,
-                    SUM(CASE WHEN estado_pag = 'Completado' THEN monto ELSE 0 END) as ingresos_totales,
-                    SUM(CASE WHEN estado_pag = 'Completado' THEN 1 ELSE 0 END) as pagos_completados,
-                    SUM(CASE WHEN estado_pag = 'Pendiente' THEN 1 ELSE 0 END) as pagos_pendientes,
-                    metodo_pago, COUNT(*) as cantidad
-                FROM pagos
-                GROUP BY metodo_pago";
-        return $this->db->query($query)->fetchAll(PDO::FETCH_ASSOC);
+                        COUNT(*) as total_pagos,
+                        COALESCE(SUM(CASE WHEN estado_pag = 'Completado' THEN monto ELSE 0 END), 0) as ingresos_totales,
+                        COALESCE(SUM(CASE WHEN estado_pag = 'Completado' THEN 1 ELSE 0 END), 0) as pagos_completados,
+                        COALESCE(SUM(CASE WHEN estado_pag = 'Pendiente' THEN 1 ELSE 0 END), 0) as pagos_pendientes,
+                        COALESCE(SUM(CASE WHEN estado_pag IN ('Rechazado','Reembolsado','Cancelado') THEN 1 ELSE 0 END), 0) as pagos_rechazados
+                   FROM pagos";
+        $resumen = $this->db->query($query)->fetch(PDO::FETCH_ASSOC) ?: [
+            'total_pagos' => 0,
+            'ingresos_totales' => 0,
+            'pagos_completados' => 0,
+            'pagos_pendientes' => 0,
+            'pagos_rechazados' => 0
+        ];
+
+        $resumen['metodos_pago'] = $this->obtenerResumenMetodosPago();
+
+        return $resumen;
     }
 
     // Obtener detalles de un pedido para pago
