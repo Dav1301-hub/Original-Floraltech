@@ -29,5 +29,5 @@ if ($idUsuario) {
 }
 
 // Redirigir de nuevo a la gestión de usuarios
-header("Location: manageusers.php");
+header("Location: index.php?ctrl=ManageUsersController&action=index");
 exit();

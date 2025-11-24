@@ -13,7 +13,7 @@ $db = (new Database())->connect();
 // Obtener ID del usuario por GET
 $idUsuario = $_GET['id'] ?? null;
 if (!$idUsuario) {
-    header("Location: manageusers.php");
+    header("Location: index.php?ctrl=ManageUsersController&action=index");
     exit();
 }
 
@@ -48,7 +48,7 @@ $stmt->execute();
 $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$usuario) {
-    header("Location: manageusers.php");
+    header("Location: index.php?ctrl=ManageUsersController&action=index");
     exit();
 }
 
@@ -92,7 +92,7 @@ $roles = $db->query("SELECT * FROM tipousuario")->fetchAll(PDO::FETCH_ASSOC);
             </select>
         </div>
         <button type="submit" class="btn btn-primary">Guardar cambios</button>
-        <a href="manageusers.php" class="btn btn-secondary ms-2">Cancelar</a>
+        <a href="index.php?ctrl=ManageUsersController&action=index" class="btn btn-secondary ms-2">Cancelar</a>
     </form>
 </div>
 </body>

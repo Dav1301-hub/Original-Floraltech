@@ -16,9 +16,6 @@ class dashboard {
         }
     }
 
-    /**
-     * Dashboard principal - redirige según el tipo de usuario
-     */
     public function index() {
         $userType = $_SESSION['user']['tpusu_idtpusu'];
         
@@ -51,7 +48,7 @@ class dashboard {
     $user = $_SESSION['user'];
     $pageTitle = "Dashboard - Administrador";
     $totalUsuarios = $this->userModel->getTotalUsuarios();
-    require_once 'views/admin/dashboard.php';
+    require_once 'views/admin/VadashboardPrincipal.php';
     }
 
     /**

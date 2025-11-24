@@ -34,9 +34,77 @@ class empleado {
     }
     
     public function gestion_pedidos() {
-        $user = $_SESSION['user'];
-        $pedidos = $this->obtenerTodosPedidos();
-        include 'views/empleado/gestion_pedidos.php';
+        try {
+            if (session_status() == PHP_SESSION_NONE) {
+                session_start();
+            }
+            
+            // Debug: Simple database test first
+            $testQuery = "SELECT COUNT(*) as total FROM ped";
+            $stmt = $this->db->prepare($testQuery);
+            $stmt->execute();
+            $testResult = $stmt->fetch(PDO::FETCH_ASSOC);
+            error_log("DEBUG - Total pedidos in database: " . $testResult['total']);
+            
+            // Debug: Log incoming parameters
+            error_log("DEBUG gestion_pedidos - GET parameters: " . print_r($_GET, true));
+            
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                // Procesar actualización de estado
+                if (isset($_POST['accion']) && $_POST['accion'] === 'actualizar_estado') {
+                    $idped = $_POST['idped'];
+                    $nuevo_estado = $_POST['estado'];
+                    
+                    if ($this->actualizarEstadoPedido($idped, $nuevo_estado)) {
+                        $_SESSION['success'] = "Estado del pedido actualizado correctamente";
+                    } else {
+                        $_SESSION['error'] = "Error al actualizar el estado del pedido";
+                    }
+                    
+                    // Redirigir para evitar reenvío del formulario
+                    $redirect_url = "index.php?ctrl=empleado&action=gestion_pedidos";
+                    
+                    // Mantener parámetros de paginación y filtros
+                    $params = [];
+                    if (isset($_GET['pagina'])) $params['pagina'] = $_GET['pagina'];
+                    if (isset($_GET['estado_pedido']) && !empty($_GET['estado_pedido'])) $params['estado_pedido'] = $_GET['estado_pedido'];
+                    if (isset($_GET['estado_pago']) && !empty($_GET['estado_pago'])) $params['estado_pago'] = $_GET['estado_pago'];
+                    if (isset($_GET['fecha_desde']) && !empty($_GET['fecha_desde'])) $params['fecha_desde'] = $_GET['fecha_desde'];
+                    if (isset($_GET['fecha_hasta']) && !empty($_GET['fecha_hasta'])) $params['fecha_hasta'] = $_GET['fecha_hasta'];
+                    
+                    if (!empty($params)) {
+                        $redirect_url .= "&" . http_build_query($params);
+                    }
+                    
+                    header("Location: " . $redirect_url);
+                    exit;
+                }
+            }
+            
+            // Obtener pedidos con filtros aplicados
+            $pedidos = $this->obtenerTodosPedidos();
+            error_log("DEBUG gestion_pedidos - Pedidos count: " . count($pedidos));
+            
+            // Configuración de paginación
+            $pedidosPorPagina = 5;
+            $paginaActual = isset($_GET['pagina']) ? max(1, intval($_GET['pagina'])) : 1;
+            $totalPedidos = count($pedidos);
+            $totalPaginas = ceil($totalPedidos / $pedidosPorPagina);
+            $offset = ($paginaActual - 1) * $pedidosPorPagina;
+            
+            // Aplicar paginación
+            $pedidosPaginados = array_slice($pedidos, $offset, $pedidosPorPagina);
+            error_log("DEBUG gestion_pedidos - Paginated pedidos count: " . count($pedidosPaginados));
+            
+            // Incluir la vista
+            include __DIR__ . '/../views/empleado/gestion_pedidos.php';
+            
+        } catch (Exception $e) {
+            error_log("Error en gestion_pedidos: " . $e->getMessage());
+            $_SESSION['error'] = "Error al cargar la gestión de pedidos";
+            header("Location: dashboard.php");
+            exit;
+        }
     }
     
     public function procesar_pagos() {
@@ -402,12 +470,13 @@ class empleado {
         try {
             $stmt = $this->db->prepare("
                 SELECT 
-                    COUNT(*) as total_productos,
-                    COUNT(CASE WHEN inv.cantidad_disponible < 5 AND inv.cantidad_disponible > 0 THEN 1 END) as stock_bajo,
-                    COUNT(CASE WHEN inv.cantidad_disponible = 0 THEN 1 END) as sin_stock,
-                    SUM(tflor.precio * inv.cantidad_disponible) as valor_total
+                    COUNT(DISTINCT tflor.idtflor) as total_productos,
+                    COUNT(CASE WHEN COALESCE(inv.cantidad_disponible, 0) < 5 AND COALESCE(inv.cantidad_disponible, 0) > 0 THEN 1 END) as stock_bajo,
+                    COUNT(CASE WHEN COALESCE(inv.cantidad_disponible, 0) = 0 THEN 1 END) as sin_stock,
+                    COALESCE(SUM(tflor.precio * COALESCE(inv.cantidad_disponible, 0)), 0) as valor_total
                 FROM tflor
                 LEFT JOIN inv ON tflor.idtflor = inv.tflor_idtflor
+                WHERE tflor.activo = 1
             ");
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_ASSOC) ?: [
@@ -417,6 +486,7 @@ class empleado {
                 'valor_total' => 0
             ];
         } catch (Exception $e) {
+            error_log("Error en obtenerEstadisticasInventario: " . $e->getMessage());
             return [
                 'total_productos' => 0,
                 'stock_bajo' => 0,
@@ -433,7 +503,7 @@ class empleado {
             
             // Filtros de búsqueda
             if (isset($_GET['categoria']) && !empty($_GET['categoria'])) {
-                $where_conditions[] = "tflor.nombre LIKE ?";
+                $where_conditions[] = "tflor.naturaleza LIKE ?";
                 $params[] = '%' . $_GET['categoria'] . '%';
             }
             
@@ -455,13 +525,25 @@ class empleado {
             }
             
             if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
-                $where_conditions[] = "tflor.nombre LIKE ?";
-                $params[] = '%' . $_GET['buscar'] . '%';
+                // Validar entrada contra inyección SQL
+                require_once __DIR__ . '/../helpers/security_helper.php';
+                
+                $busqueda_limpia = sanitizarCampoBusqueda($_GET['buscar'], 'buscar_inventario');
+                
+                if ($busqueda_limpia === false) {
+                    $_SESSION['error_seguridad'] = "Entrada inválida detectada. Por seguridad, tu búsqueda fue bloqueada.";
+                    header('Location: index.php?ctrl=empleado&action=inventario');
+                    exit();
+                }
+                
+                $where_conditions[] = "(tflor.nombre LIKE ? OR tflor.naturaleza LIKE ?)";
+                $params[] = '%' . $busqueda_limpia . '%';
+                $params[] = '%' . $busqueda_limpia . '%';
             }
             
-            $where_clause = '';
+            $where_clause = 'WHERE tflor.activo = 1';
             if (!empty($where_conditions)) {
-                $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
+                $where_clause .= ' AND ' . implode(' AND ', $where_conditions);
             }
             
             $stmt = $this->db->prepare("
@@ -470,8 +552,9 @@ class empleado {
                     tflor.nombre,
                     tflor.naturaleza,
                     tflor.precio,
-                    tflor.imagen,
-                    COALESCE(inv.cantidad_disponible, 0) as cantidad_disponible
+                    tflor.color,
+                    COALESCE(inv.cantidad_disponible, 0) as cantidad_disponible,
+                    inv.fecha_actualizacion
                 FROM tflor
                 LEFT JOIN inv ON tflor.idtflor = inv.tflor_idtflor
                 $where_clause
@@ -481,34 +564,48 @@ class empleado {
             $stmt->execute($params);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
+            error_log("Error en obtenerProductosInventario: " . $e->getMessage());
             return [];
         }
     }
     
     private function obtenerTodosPedidos() {
         try {
+            error_log("=== DEBUG obtenerTodosPedidos ===");
+            
             $where_conditions = [];
             $params = [];
+            
+            // Debug: mostrar parámetros GET
+            error_log("Parámetros GET: " . print_r($_GET, true));
             
             // Filtros de búsqueda
             if (isset($_GET['estado_pedido']) && !empty($_GET['estado_pedido'])) {
                 $where_conditions[] = "p.estado = ?";
                 $params[] = $_GET['estado_pedido'];
+                error_log("Filtro estado_pedido: " . $_GET['estado_pedido']);
             }
             
             if (isset($_GET['estado_pago']) && !empty($_GET['estado_pago'])) {
-                $where_conditions[] = "pg.estado_pag = ?";
-                $params[] = $_GET['estado_pago'];
+                if ($_GET['estado_pago'] === 'Sin pago') {
+                    $where_conditions[] = "pg.estado_pag IS NULL";
+                } else {
+                    $where_conditions[] = "pg.estado_pag = ?";
+                    $params[] = $_GET['estado_pago'];
+                }
+                error_log("Filtro estado_pago: " . $_GET['estado_pago']);
             }
             
             if (isset($_GET['fecha_desde']) && !empty($_GET['fecha_desde'])) {
                 $where_conditions[] = "DATE(p.fecha_pedido) >= ?";
                 $params[] = $_GET['fecha_desde'];
+                error_log("Filtro fecha_desde: " . $_GET['fecha_desde']);
             }
             
             if (isset($_GET['fecha_hasta']) && !empty($_GET['fecha_hasta'])) {
                 $where_conditions[] = "DATE(p.fecha_pedido) <= ?";
                 $params[] = $_GET['fecha_hasta'];
+                error_log("Filtro fecha_hasta: " . $_GET['fecha_hasta']);
             }
             
             $where_clause = '';
@@ -516,29 +613,41 @@ class empleado {
                 $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
             }
             
-            $stmt = $this->db->prepare("
+            // Consulta con LEFT JOIN para incluir información de pagos
+            $sql = "
                 SELECT 
                     p.idped,
                     p.numped,
                     p.fecha_pedido,
                     p.monto_total,
                     p.estado,
-                    p.cantidad,
                     c.nombre as cliente_nombre,
                     c.email as cliente_email,
-                    pg.estado_pag,
-                    1 as total_productos
+                    COALESCE(pg.estado_pag, 'Sin pago') as estado_pag
                 FROM ped p
                 INNER JOIN cli c ON p.cli_idcli = c.idcli
                 LEFT JOIN pagos pg ON p.idped = pg.ped_idped
                 $where_clause
                 ORDER BY p.fecha_pedido DESC
                 LIMIT 100
-            ");
+            ";
             
+            error_log("=== UPDATED SQL Query with JOIN ===");
+            error_log("SQL Query: " . $sql);
+            error_log("Params: " . print_r($params, true));
+            
+            $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            error_log("Resultados encontrados: " . count($result));
+            if (count($result) > 0) {
+                error_log("Primer resultado: " . print_r($result[0], true));
+            }
+            
+            return $result;
         } catch (Exception $e) {
+            error_log("Error en obtenerTodosPedidos: " . $e->getMessage());
             return [];
         }
     }
@@ -563,8 +672,10 @@ class empleado {
     
     private function actualizarStockProducto($producto_id, $nuevo_stock, $motivo, $observaciones) {
         try {
+            $this->db->beginTransaction();
+            
             // Primero verificar si existe registro en inventario
-            $stmt = $this->db->prepare("SELECT cantidad_disponible FROM inv WHERE tflor_idtflor = ?");
+            $stmt = $this->db->prepare("SELECT idinv, cantidad_disponible FROM inv WHERE tflor_idtflor = ?");
             $stmt->execute([$producto_id]);
             $inventario_actual = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -573,21 +684,58 @@ class empleado {
                 $stmt = $this->db->prepare("
                     UPDATE inv 
                     SET cantidad_disponible = ?, 
+                        stock = ?,
+                        empleado_id = ?,
+                        motivo = ?,
                         fecha_actualizacion = NOW()
                     WHERE tflor_idtflor = ?
                 ");
-                $result = $stmt->execute([$nuevo_stock, $producto_id]);
+                $result = $stmt->execute([$nuevo_stock, $nuevo_stock, $this->empleado_id, $motivo, $producto_id]);
+                
+                // Registrar en historial si existe la tabla
+                if ($result) {
+                    try {
+                        $stmt_hist = $this->db->prepare("
+                            INSERT INTO inv_historial 
+                            (inv_idinv, stock_anterior, stock_nuevo, motivo, empleado_id, fecha_movimiento, observaciones) 
+                            VALUES (?, ?, ?, ?, ?, NOW(), ?)
+                        ");
+                        $stmt_hist->execute([
+                            $inventario_actual['idinv'], 
+                            $inventario_actual['cantidad_disponible'], 
+                            $nuevo_stock, 
+                            $motivo, 
+                            $this->empleado_id, 
+                            $observaciones
+                        ]);
+                    } catch (Exception $e) {
+                        // Si falla el historial, continuar (no es crítico)
+                        error_log("Error registrando historial: " . $e->getMessage());
+                    }
+                }
             } else {
+                // Obtener información del producto
+                $stmt = $this->db->prepare("SELECT precio FROM tflor WHERE idtflor = ?");
+                $stmt->execute([$producto_id]);
+                $producto = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$producto) {
+                    throw new Exception("Producto no encontrado");
+                }
+                
                 // Crear nuevo registro de inventario
                 $stmt = $this->db->prepare("
-                    INSERT INTO inv (tflor_idtflor, cantidad_disponible, fecha_actualizacion) 
-                    VALUES (?, ?, NOW())
+                    INSERT INTO inv (tflor_idtflor, cantidad_disponible, stock, precio, empleado_id, motivo, fecha_actualizacion) 
+                    VALUES (?, ?, ?, ?, ?, ?, NOW())
                 ");
-                $result = $stmt->execute([$producto_id, $nuevo_stock]);
+                $result = $stmt->execute([$producto_id, $nuevo_stock, $nuevo_stock, $producto['precio'], $this->empleado_id, $motivo]);
             }
             
+            $this->db->commit();
             return $result;
         } catch (Exception $e) {
+            $this->db->rollback();
+            error_log("Error en actualizarStockProducto: " . $e->getMessage());
             return false;
         }
     }
@@ -598,11 +746,12 @@ class empleado {
                 UPDATE ped 
                 SET estado = ?, 
                     fecha_actualizacion = NOW(),
-                    empleado_actualiza = ?
+                    empleado_actualizacion = ?
                 WHERE idped = ?
             ");
             return $stmt->execute([$nuevo_estado, $this->empleado_id, $id_pedido]);
         } catch (Exception $e) {
+            error_log("Error actualizando estado pedido: " . $e->getMessage());
             return false;
         }
     }

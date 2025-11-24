@@ -17,6 +17,8 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+
 --
 -- Base de datos: `flores`
 --
@@ -28,8 +30,8 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `cfg_sis` (
-  `id_cfg` int(11) NOT NULL,
-  `moneda` varchar(50) NOT NULL DEFAULT 'COP',
+  `id_cfg` int(11) NOT NULL AUTO_INCREMENT,
+  `idusu` int(11) NOT NULL,
   `idioma` varchar(50) NOT NULL DEFAULT 'Español',
   `zona_hor` varchar(100) NOT NULL DEFAULT 'America/Bogota',
   `fmt_fecha` varchar(50) NOT NULL DEFAULT 'dd/mm/yyyy',
@@ -43,15 +45,16 @@ CREATE TABLE `cfg_sis` (
   `log_cambios` tinyint(1) NOT NULL DEFAULT 1,
   `retencion_log` int(11) NOT NULL DEFAULT 365,
   `id_usu_mod` int(11) DEFAULT NULL,
-  `fch_ult_mod` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `fch_ult_mod` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id_cfg`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `cfg_sis`
 --
 
-INSERT INTO `cfg_sis` (`id_cfg`, `moneda`, `idioma`, `zona_hor`, `fmt_fecha`, `estilo_ui`, `act_auto`, `notif_act`, `act_prog`, `auth_2fa`, `intentos_max`, `bloqueo_min`, `log_cambios`, `retencion_log`, `id_usu_mod`, `fch_ult_mod`) VALUES
-(1, 'USD', 'Inglés', 'America/New_York', 'dd/mm/yyyy', 'Oscuro', 0, 0, '', 0, 3, 30, 1, 365, NULL, '2025-07-07 20:28:26');
+INSERT INTO `cfg_sis` (`id_cfg`, `idusu`, `moneda`, `idioma`, `zona_hor`, `fmt_fecha`, `estilo_ui`, `act_auto`, `notif_act`, `act_prog`, `auth_2fa`, `intentos_max`, `bloqueo_min`, `log_cambios`, `retencion_log`, `id_usu_mod`, `fch_ult_mod`) VALUES
+(1, 4, 'USD', 'Inglés', 'America/New_York', 'dd/mm/yyyy', 'Oscuro', 0, 0, '', 0, 3, 30, 1, 365, NULL, '2025-07-07 20:28:26');
 
 -- --------------------------------------------------------
 
@@ -188,6 +191,10 @@ INSERT INTO `ent` (`ident`, `fecha_ent`, `hora_ent`, `direccion`, `estado_ent`, 
 
 CREATE TABLE `inv` (
   `idinv` int(11) NOT NULL,
+  `idproducto` int(11) NOT NULL UNIQUE COMMENT 'ID único del producto para compatibilidad',
+  `producto` varchar(255) DEFAULT NULL COMMENT 'Nombre del producto',
+  `color` varchar(100) DEFAULT 'Sin especificar' COMMENT 'Color del producto',
+  `estado` varchar(50) DEFAULT 'disponible' COMMENT 'Estado del producto (disponible, agotado, descontinuado)',
   `alimentacion` varchar(255) DEFAULT NULL,
   `tflor_idtflor` int(11) NOT NULL,
   `stock` int(11) NOT NULL DEFAULT 0,
@@ -211,6 +218,11 @@ INSERT INTO `inv` (`idinv`, `alimentacion`, `tflor_idtflor`, `stock`, `precio`, 
 (6, 'N/A', 6, 18, 3.50, '2025-08-11 15:57:37', NULL, NULL, 199),
 (7, 'Luz indirecta', 7, 90, 8.99, '2025-07-28 22:13:32', NULL, NULL, 90),
 (8, 'Poca agua', 8, 120, 2.99, '2025-07-28 22:13:32', NULL, NULL, 120),
+(9, 'Agua diaria', 1, 50, 25.99, '2025-07-28 22:13:32', NULL, NULL, 50),
+(10, 'Agua cada 2 días', 2, 30, 18.50, '2025-07-28 22:13:32', NULL, NULL, 30),
+(11, 'Agua semanal', 3, 25, 35.00, '2025-07-28 22:13:32', NULL, NULL, 25),
+(12, 'Agua diaria', 4, 40, 22.75, '2025-07-28 22:13:32', NULL, NULL, 40),
+(13, 'Agua semanal', 5, 15, 85.00, '2025-07-28 22:13:32', NULL, NULL, 15),
 (14, 'Agua diaria', 20, 22, 16.55, '2025-08-05 13:28:10', NULL, NULL, 0),
 (15, 'Agua diaria', 21, 16, 15.96, '2025-08-05 13:28:10', NULL, NULL, 0);
 
@@ -738,12 +750,7 @@ CREATE TABLE `proyecciones_pagos` (
   `fecha_cierre` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `proyecciones_pagos`
---
-
-INSERT INTO `proyecciones_pagos` (`idproy`, `titulo`, `monto_objetivo`, `fecha_inicio`, `fecha_fin`, `creado_por`, `estado`, `notas`, `fecha_creacion`, `fecha_cierre`) VALUES
-(1, 'Meta mensual inicial', 1000000.00, '2025-10-01', '2025-10-31', NULL, 'Activa', 'Objetivo base cargado desde el script', '2025-10-01 00:00:00', NULL);
+-- Puedes agregar más campos si lo necesitas (tipo_turno, temporada, observaciones)
 
 -- --------------------------------------------------------
 
@@ -779,8 +786,8 @@ INSERT INTO `vacaciones` (`id`, `id_empleado`, `fecha_inicio`, `fecha_fin`, `est
 -- Indices de la tabla `cfg_sis`
 --
 ALTER TABLE `cfg_sis`
-  ADD PRIMARY KEY (`id_cfg`),
-  ADD KEY `fk_cfg_usu` (`id_usu_mod`);
+  ADD KEY `fk_cfg_usu` (`id_usu_mod`),
+  ADD KEY `fk_cfg_usu_idusu` (`idusu`);
 
 --
 -- Indices de la tabla `cli`
@@ -811,8 +818,11 @@ ALTER TABLE `ent`
 --
 ALTER TABLE `inv`
   ADD PRIMARY KEY (`idinv`),
+  ADD UNIQUE KEY `idx_idproducto` (`idproducto`),
   ADD KEY `fk_inv_tflor` (`tflor_idtflor`),
-  ADD KEY `idx_inv_empleado` (`empleado_id`);
+  ADD KEY `idx_inv_empleado` (`empleado_id`),
+  ADD KEY `idx_producto_estado` (`estado`),
+  ADD KEY `idx_producto_stock` (`stock`);
 
 --
 -- Indices de la tabla `inv_historial`
@@ -923,7 +933,6 @@ ALTER TABLE `turnos`
 -- Indices de la tabla `usu`
 --
 ALTER TABLE `usu`
-  ADD PRIMARY KEY (`idusu`),
   ADD UNIQUE KEY `username` (`username`),
   ADD UNIQUE KEY `email` (`email`),
   ADD KEY `fk_usu_tpusu` (`tpusu_idtpusu`),
@@ -1063,6 +1072,18 @@ ALTER TABLE `vacaciones`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
+-- AUTO_INCREMENT de la tabla `empresa`
+--
+ALTER TABLE `empresa`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT de la tabla `vacaciones`
+--
+ALTER TABLE `vacaciones`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+
+--
 -- Restricciones para tablas volcadas
 --
 
@@ -1070,7 +1091,8 @@ ALTER TABLE `vacaciones`
 -- Filtros para la tabla `cfg_sis`
 --
 ALTER TABLE `cfg_sis`
-  ADD CONSTRAINT `cfg_sis_ibfk_1` FOREIGN KEY (`id_usu_mod`) REFERENCES `usu` (`idusu`);
+  ADD CONSTRAINT `cfg_sis_ibfk_1` FOREIGN KEY (`id_usu_mod`) REFERENCES `usu` (`idusu`),
+  ADD CONSTRAINT `cfg_sis_ibfk_2` FOREIGN KEY (`idusu`) REFERENCES `usu` (`idusu`);
 
 --
 -- Filtros para la tabla `detped`
@@ -1171,3 +1193,25 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+-- --------------------------------------------------------
+--
+-- Estructura de la tabla `vacaciones`
+--
+CREATE TABLE `vacaciones` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `id_empleado` INT NOT NULL,
+  `fecha_inicio` DATE NOT NULL,
+  `fecha_fin` DATE NOT NULL,
+  `estado` VARCHAR(20) DEFAULT 'En curso',
+  `motivo` VARCHAR(255),
+  `fecha_creacion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`id_empleado`) REFERENCES `usu`(`idusu`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+--
+-- Agregar columna de vacaciones a la tabla usuALTER TABLE usu ADD COLUMN vacaciones INT DEFAULT 0;
+--
+ALTER TABLE usu ADD COLUMN vacaciones INT DEFAULT 0;
+-- --------------------------------------------------------

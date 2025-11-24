@@ -297,3 +297,118 @@ class User {
         return $stmt->execute();
     }
 }
+
+    public function getAllEmpleados() {
+        $stmt = $this->conn->prepare("
+            SELECT idusu, nombre_completo, username, email, telefono, 
+                   tpusu_idtpusu, activo, naturaleza, fecha_registro 
+            FROM usu
+        ");
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+
+    public function crearEmpleado($datos) {
+        $nombre_completo = trim($datos['nombre']) . ' ' . trim($datos['apellido']);
+        $username = trim($datos['documento']);
+        $cargo = trim($datos['cargo']);
+        $fecha_ingreso = $datos['fecha_ingreso'] ?? date('Y-m-d');
+        $password = trim($datos['password'] ?? '123456');
+        $email = $username . '@floraltech.local';
+        $telefono = '';
+        $tpusu_idtpusu = 2; // Tipo usuario empleado por defecto
+        $activo = ($datos['estado'] ?? 'activo') === 'activo' ? 1 : 0;
+        $clave = password_hash($password, PASSWORD_DEFAULT);
+
+        // Verificar si el usuario ya existe
+        if ($this->existeUsername($username)) {
+            throw new Exception('El documento/usuario ya existe.');
+        }
+
+        $stmt = $this->conn->prepare("
+            INSERT INTO usu (username, nombre_completo, naturaleza, telefono, email, clave, tpusu_idtpusu, fecha_registro, activo) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        
+        return $stmt->execute([
+            $username, $nombre_completo, $cargo, $telefono, $email, 
+            $clave, $tpusu_idtpusu, $fecha_ingreso, $activo
+        ]);
+    }
+
+    /**
+     * Verificar si existe un username
+     */
+    public function existeUsername($username) {
+        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM usu WHERE username = ?");
+        $stmt->execute([$username]);
+        return $stmt->fetchColumn() > 0;
+    }
+
+    /**
+     * Obtener empleados activos
+     */
+    public function getEmpleadosActivos() {
+        $stmt = $this->conn->prepare("SELECT COUNT(*) as total FROM usu WHERE activo = 1");
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? intval($row['total']) : 0;
+    }
+
+    /**
+     * Obtener mapeo de tipos de usuario
+     */
+    public function getTiposUsuario() {
+        return [
+            1 => 'Administrador',
+            2 => 'Vendedor', 
+            3 => 'Inventario',
+            4 => 'Repartidor',
+            5 => 'Cliente'
+        ];
+    }
+
+    /**
+     * Obtener empleado por ID
+     */
+    public function getEmpleadoById($id) {
+        $stmt = $this->conn->prepare("
+            SELECT idusu, nombre_completo, username, email, telefono, 
+                   tpusu_idtpusu, activo, naturaleza, fecha_registro 
+            FROM usu WHERE idusu = ?
+        ");
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Actualizar empleado
+     */
+    public function actualizarEmpleado($id, $datos) {
+        $stmt = $this->conn->prepare("
+            UPDATE usu 
+            SET nombre_completo = ?, email = ?, telefono = ?, 
+                naturaleza = ?, tpusu_idtpusu = ?, activo = ?
+            WHERE idusu = ?
+        ");
+        
+        return $stmt->execute([
+            $datos['nombre_completo'],
+            $datos['email'],
+            $datos['telefono'],
+            $datos['naturaleza'],
+            $datos['tpusu_idtpusu'],
+            $datos['activo'],
+            $id
+        ]);
+    }
+
+    /**
+     * Eliminar empleado (marcar como inactivo)
+     */
+    public function eliminarEmpleado($id) {
+        $stmt = $this->conn->prepare("UPDATE usu SET activo = 0 WHERE idusu = ?");
+        return $stmt->execute([$id]);
+    }
+}

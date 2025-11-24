@@ -1,5 +1,22 @@
 <?php
 // ajax_vacacion.php
+// Forzar header JSON SIEMPRE
+header('Content-Type: application/json; charset=utf-8');
+
+// Limpiar cualquier salida previa
+if (ob_get_level()) ob_end_clean();
+ob_start();
+
+// Manejo global de errores
+set_exception_handler(function($e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Excepción: ' . $e->getMessage()
+    ]);
+    exit;
+});
+
 require_once __DIR__ . '/../../models/conexion.php';
 $conn = new conexion();
 $db = $conn->get_conexion();
@@ -22,10 +39,20 @@ if ($action === 'update') {
     $fecha_inicio = $_POST['fecha_inicio'] ?? date('Y-m-d');
     $fecha_fin = $_POST['fecha_fin'] ?? date('Y-m-d');
     $motivo = $_POST['motivo'] ?? '';
-    $estado = $_POST['estado'] ?? 'En curso';
-    $stmt = $db->prepare('UPDATE vacaciones SET id_empleado=?, fecha_inicio=?, fecha_fin=?, motivo=?, estado=? WHERE id=?');
-    $ok = $stmt->execute([$id_empleado, $fecha_inicio, $fecha_fin, $motivo, $estado, $id]);
-    $response['success'] = $ok;
+    $estado = $_POST['estado'] ?? 'Programadas';
+    
+    try {
+        $stmt = $db->prepare('UPDATE vacaciones SET id_empleado=?, fecha_inicio=?, fecha_fin=?, motivo=?, estado=? WHERE id=?');
+        $ok = $stmt->execute([$id_empleado, $fecha_inicio, $fecha_fin, $motivo, $estado, $id]);
+        $response['success'] = $ok;
+        
+        if (!$ok) {
+            $response['error'] = 'Error al actualizar en la base de datos';
+        }
+    } catch (Exception $e) {
+        $response['error'] = 'Error: ' . $e->getMessage();
+    }
+    
     echo json_encode($response);
     exit;
 }
@@ -51,10 +78,40 @@ if ($action === 'create') {
     $fecha_inicio = $_POST['fecha_inicio'] ?? date('Y-m-d');
     $fecha_fin = $_POST['fecha_fin'] ?? date('Y-m-d');
     $motivo = $_POST['motivo'] ?? '';
-    $estado = $_POST['estado'] ?? 'En curso';
-    $stmt = $db->prepare('INSERT INTO vacaciones (id_empleado, fecha_inicio, fecha_fin, motivo, estado) VALUES (?, ?, ?, ?, ?)');
-    $ok = $stmt->execute([$id_empleado, $fecha_inicio, $fecha_fin, $motivo, $estado]);
-    $response['success'] = $ok;
+    $estado = $_POST['estado'] ?? 'Programadas';
+    
+    // Validación básica
+    if ($id_empleado === 0) {
+        $response['error'] = 'ID de empleado no válido';
+        echo json_encode($response);
+        exit;
+    }
+    
+    if (empty($motivo)) {
+        $response['error'] = 'El motivo es obligatorio';
+        echo json_encode($response);
+        exit;
+    }
+    
+    try {
+        $stmt = $db->prepare('INSERT INTO vacaciones (id_empleado, fecha_inicio, fecha_fin, motivo, estado) VALUES (?, ?, ?, ?, ?)');
+        $ok = $stmt->execute([$id_empleado, $fecha_inicio, $fecha_fin, $motivo, $estado]);
+        $response['success'] = $ok;
+        
+        if (!$ok) {
+            $response['error'] = 'Error al insertar en la base de datos';
+        }
+    } catch (Exception $e) {
+        $response['error'] = 'Error: ' . $e->getMessage();
+    }
+    
     echo json_encode($response);
     exit;
 }
+
+// Si ninguna acción fue reconocida
+echo json_encode([
+    'success' => false,
+    'error' => 'Acción no reconocida: ' . $action
+]);
+exit;

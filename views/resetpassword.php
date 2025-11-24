@@ -21,7 +21,7 @@ $token = $_GET['token'] ?? '';
     <div class="row w-75 shadow-lg rounded overflow-hidden">
         <!-- Sección del Logo -->
         <div class="col-md-6 d-flex flex-column align-items-center justify-content-center" style="background:#e8f4f8;">
-            <img src="/ProyectoFloralTechhh/assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:220px;">
+            <img src="/Original-Floraltech/assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:220px;">
             <p class="text-center px-3" style="font-size:1.2rem;">"Crea una nueva contraseña segura para tu cuenta."</p>
         </div>
 

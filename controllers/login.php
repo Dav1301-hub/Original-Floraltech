@@ -1,9 +1,9 @@
 <?php
 // controllers/login.php
-require_once 'models/conexion.php';
-require_once 'models/user.php';
+require_once __DIR__ . '/../models/conexion.php';
+require_once __DIR__ . '/../models/user.php';
 // Incluir helper de sesión
-require_once 'helpers/session_helper.php';
+require_once __DIR__ . '/../helpers/session_helper.php';
 
 class login {
     private $model;
@@ -60,6 +60,20 @@ class login {
                 exit();
             }
 
+            // Validar entrada contra inyección SQL
+            require_once __DIR__ . '/../helpers/security_helper.php';
+            
+            $username_limpio = sanitizarCampoBusqueda($username, 'login_username');
+            
+            if ($username_limpio === false) {
+                $_SESSION['login_error'] = "Entrada inválida detectada. Por seguridad, tu solicitud fue bloqueada.";
+                header('Location: index.php?ctrl=login&action=index');
+                exit();
+            }
+            
+            // Usar el username limpio para el resto del proceso
+            $username = $username_limpio;
+
             // Usar el método validateLogin existente que ahora incluye el sistema de bloqueo
             $foundUser = $this->model->validateLogin($username, $password);
 
@@ -67,6 +81,7 @@ class login {
                 // Login exitoso
                 $_SESSION['user'] = $foundUser;
                 $_SESSION['user_id'] = $foundUser['idusu'];
+                $_SESSION['usuario_id'] = $foundUser['idusu']; // Para compatibilidad AJAX
                 $_SESSION['user_type'] = $foundUser['tpusu_idtpusu'];
                 
                 // Limpiar variables de intentos fallidos de la sesión

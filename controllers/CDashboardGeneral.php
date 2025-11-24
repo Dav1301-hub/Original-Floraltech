@@ -19,4 +19,23 @@ class CDashboardGeneral {
             'resumenPedidosMes' => $resumenPedidosMes
         ]);
     }
+
+    // Nuevo método público para AJAX
+    public function getActividadReciente() {
+        return $this->modelo->getActividadReciente();
+    }
+
+}
+
+// Endpoint para AJAX: ?action=actividadReciente
+if (isset($_GET['action']) && $_GET['action'] === 'actividadReciente') {
+    header('Content-Type: application/json');
+    try {
+        $controller = new CDashboardGeneral();
+        $actividad = $controller->getActividadReciente();
+        echo json_encode($actividad);
+    } catch (Exception $e) {
+        echo json_encode([]);
+    }
+    exit;
 }
