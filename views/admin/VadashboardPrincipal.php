@@ -28,7 +28,7 @@
             </div>
             <div class="d-flex align-items-center">
                 <span class="fw-bold text-white me-3">Bienvenido, <?= isset($usu['nombre_completo']) ? htmlspecialchars($usu['nombre_completo']) : 'Administrador' ?></span>
-                <a href="index.php?ctrl=login&action=logout" class="btn btn-light fw-bold"><i class="fa-solid fa-sign-out-alt me-1"></i> Cerrar Sesi├│n</a>
+                <a href="index.php?ctrl=login&action=logout" class="btn btn-light fw-bold"><i class="fa-solid fa-sign-out-alt me-1"></i> Cerrar Sesión</a>
             </div>
         </div>
         <div class="d-flex flex-row flex-grow-1" style="width: 100%;">
@@ -36,11 +36,11 @@
             <aside class="bg-white border-end shadow-sm" style="width: 250px; min-width: 220px; border-radius: 16px; margin: 24px 0 24px 24px; height: calc(100vh - 120px);">
                 <ul class="nav flex-column p-3">
                     <li class="nav-item mb-2"><a class="nav-link" href="?page=general"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a></li>
-                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=empleados"><i class="fas fa-users me-2"></i> Gesti├│n de Empleados</a></li>
+                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=empleados"><i class="fas fa-users me-2"></i> Gestión de Empleados</a></li>
                     <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=inventarios"><i class="fa-solid fa-server me-2"></i> Inventario</a></li>
-                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=pedidos"><i class="fas fa-shopping-cart me-2"></i> Gesti├│n de Pedidos</a></li>
-                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=configuracion"><i class="fas fa-cogs me-2"></i> Configuraci├│n</a></li>
-                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=auditoria"><i class="fas fa-clipboard-list me-2"></i> Auditor├¡a</a></li>
+                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=pedidos"><i class="fas fa-shopping-cart me-2"></i> Gestión de Pedidos</a></li>
+                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=configuracion"><i class="fas fa-cogs me-2"></i> Configuración</a></li>
+                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=auditoria"><i class="fas fa-clipboard-list me-2"></i> Auditoría</a></li>
                     <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=reportes"><i class="fas fa-chart-bar me-2"></i> Reportes</a></li>
                 </ul>
             </aside>
