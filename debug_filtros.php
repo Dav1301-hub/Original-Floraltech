@@ -3,7 +3,6 @@
  * Script de diagnóstico para revisar los filtros del inventario
  * Ejecuta este archivo directamente en el navegador: http://localhost/Original-Floraltech/debug_filtros.php
  */
-
 require_once 'models/conexion.php';
 
 echo "<h1>🔍 Diagnóstico de Filtros de Inventario</h1>";
