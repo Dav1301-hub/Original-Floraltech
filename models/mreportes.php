@@ -297,10 +297,13 @@ public function getAllInventario() {
             f.nombre AS producto,
             f.naturaleza,
             f.color,
-            COALESCE(i.stock, 0) AS stock,
-            f.estado,
+            COALESCE(i.cantidad_disponible, i.stock, 0) AS stock,
+            CASE 
+                WHEN COALESCE(i.cantidad_disponible, i.stock, 0) > 0 THEN 'Disponible'
+                ELSE 'Agotado'
+            END AS estado,
             f.precio AS precio_unitario,
-            COALESCE(i.stock, 0) * f.precio AS valor_total
+            COALESCE(i.cantidad_disponible, i.stock, 0) * f.precio AS valor_total
         FROM tflor f
         LEFT JOIN inv i ON f.idtflor = i.tflor_idtflor
         ";
