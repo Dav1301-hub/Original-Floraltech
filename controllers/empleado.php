@@ -525,9 +525,20 @@ class empleado {
             }
             
             if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
+                // Validar entrada contra inyección SQL
+                require_once __DIR__ . '/../helpers/security_helper.php';
+                
+                $busqueda_limpia = sanitizarCampoBusqueda($_GET['buscar'], 'buscar_inventario');
+                
+                if ($busqueda_limpia === false) {
+                    $_SESSION['error_seguridad'] = "Entrada inválida detectada. Por seguridad, tu búsqueda fue bloqueada.";
+                    header('Location: index.php?ctrl=empleado&action=inventario');
+                    exit();
+                }
+                
                 $where_conditions[] = "(tflor.nombre LIKE ? OR tflor.naturaleza LIKE ?)";
-                $params[] = '%' . $_GET['buscar'] . '%';
-                $params[] = '%' . $_GET['buscar'] . '%';
+                $params[] = '%' . $busqueda_limpia . '%';
+                $params[] = '%' . $busqueda_limpia . '%';
             }
             
             $where_clause = 'WHERE tflor.activo = 1';

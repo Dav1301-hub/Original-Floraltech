@@ -1,5 +1,22 @@
 <?php
 // ajax_permiso.php
+// Forzar header JSON SIEMPRE
+header('Content-Type: application/json; charset=utf-8');
+
+// Limpiar cualquier salida previa
+if (ob_get_level()) ob_end_clean();
+ob_start();
+
+// Manejo global de errores
+set_exception_handler(function($e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Excepción: ' . $e->getMessage()
+    ]);
+    exit;
+});
+
 require_once __DIR__ . '/../../models/conexion.php';
 $conn = new Conexion();
 $db = $conn->get_conexion();
@@ -52,6 +69,14 @@ if ($action === 'create') {
     $fecha_inicio = $_POST['fecha_inicio'] ?? date('Y-m-d');
     $fecha_fin = $_POST['fecha_fin'] ?? date('Y-m-d');
     $estado = $_POST['estado'] ?? 'Pendiente';
+    
+    // Validación
+    if ($idempleado == 0 || empty($tipo)) {
+        $response['error'] = 'Empleado y tipo son obligatorios';
+        echo json_encode($response);
+        exit;
+    }
+    
     try {
         $stmt = $db->prepare('INSERT INTO permisos (idempleado, tipo, fecha_inicio, fecha_fin, estado) VALUES (?, ?, ?, ?, ?)');
         $ok = $stmt->execute([$idempleado, $tipo, $fecha_inicio, $fecha_fin, $estado]);
@@ -66,38 +91,10 @@ if ($action === 'create') {
     echo json_encode($response);
     exit;
 }
-    // Validación extra para depuración
-    if ($action === 'create') {
-        $idempleado = intval($_POST['empleado'] ?? 0);
-        $tipo = trim($_POST['tipo'] ?? '');
-        $fecha_inicio = $_POST['fecha_inicio'] ?? date('Y-m-d');
-        $fecha_fin = $_POST['fecha_fin'] ?? date('Y-m-d');
-        $estado = $_POST['estado'] ?? 'Pendiente';
-        $response['debug'] = [
-            'idempleado' => $idempleado,
-            'tipo' => $tipo,
-            'fecha_inicio' => $fecha_inicio,
-            'fecha_fin' => $fecha_fin,
-            'estado' => $estado
-        ];
-        if ($idempleado == 0 || $tipo == '' || $fecha_inicio == '' || $fecha_fin == '' || $estado == '') {
-            $response['success'] = false;
-            $response['error'] = 'Campos obligatorios vacíos o empleado inválido.';
-            echo json_encode($response);
-            exit;
-        }
-        try {
-            $stmt = $db->prepare('INSERT INTO permisos (idempleado, tipo, fecha_inicio, fecha_fin, estado) VALUES (?, ?, ?, ?, ?)');
-            $ok = $stmt->execute([$idempleado, $tipo, $fecha_inicio, $fecha_fin, $estado]);
-            $response['success'] = $ok;
-            if (!$ok) {
-                $response['error'] = $stmt->errorInfo();
-            }
-        } catch (Exception $e) {
-            $response['success'] = false;
-            $response['error'] = $e->getMessage();
-        }
-        echo json_encode($response);
-        exit;
-    }
-// Puedes agregar acciones para turnos y vacaciones aquí
+
+// Si ninguna acción fue reconocida
+echo json_encode([
+    'success' => false,
+    'error' => 'Acción no reconocida: ' . $action
+]);
+exit;

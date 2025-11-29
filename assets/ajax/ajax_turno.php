@@ -1,5 +1,22 @@
 <?php
 // ajax_turno.php
+// Forzar header JSON SIEMPRE
+header('Content-Type: application/json; charset=utf-8');
+
+// Limpiar cualquier salida previa
+if (ob_get_level()) ob_end_clean();
+ob_start();
+
+// Manejo global de errores
+set_exception_handler(function($e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Excepción: ' . $e->getMessage()
+    ]);
+    exit;
+});
+
 require_once __DIR__ . '/../../models/conexion.php';
 $conn = new conexion();
 $db = $conn->get_conexion();
@@ -56,4 +73,10 @@ if ($action === 'create') {
     echo json_encode($response);
     exit;
 }
-// Puedes agregar acciones para vacaciones aquí
+
+// Si ninguna acción fue reconocida
+echo json_encode([
+    'success' => false,
+    'error' => 'Acción no reconocida: ' . $action
+]);
+exit;

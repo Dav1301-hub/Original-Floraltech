@@ -114,10 +114,32 @@ class Register {
             $email = trim($_POST["email"] ?? '');
             $password = $_POST["password"] ?? '';
             $password_confirm = $_POST["password_confirm"] ?? '';
-            $tpusu_idtpusu = intval($_POST["tpusu_idtpusu"] ?? 5); // Por defecto cliente (ID = 5)
             $direccion = trim($_POST["direccion"] ?? '');
+            
+            // ✅ PSE2 PROTECCIÓN: NUNCA confiar en el valor del formulario para rol
+            // SIEMPRE forzar rol Cliente (5), ignorar completamente $_POST['tpusu_idtpusu']
+            $tpusu_idtpusu = 5; // SIEMPRE Cliente
+            
+            // ✅ PSE2: Detectar intentos de manipulación del DOM
+            if (isset($_POST['tpusu_idtpusu']) && intval($_POST['tpusu_idtpusu']) !== 5) {
+                require_once __DIR__ . '/../helpers/security_helper.php';
+                
+                $datos_manipulacion = [
+                    'campo' => 'tpusu_idtpusu',
+                    'valor_recibido' => $_POST['tpusu_idtpusu'],
+                    'valor_esperado' => 5,
+                    'intento' => 'escalacion_privilegios'
+                ];
+                
+                registrarIntentoManipulacion($datos_manipulacion, 'dom_manipulation_register');
+                
+                $_SESSION['register_error'] = "Manipulación detectada. Registro bloqueado por seguridad.";
+                error_log("SECURITY ALERT: Intento de manipular rol en registro - Valor recibido: " . $_POST['tpusu_idtpusu']);
+                header('Location: index.php?ctrl=register&action=index');
+                exit();
+            }
 
-            error_log("Datos procesados: username=$username, email=$email, telefono=$telefono");
+            error_log("Datos procesados: username=$username, email=$email, telefono=$telefono, rol=5 (forzado)");
 
             // Validaciones
             if (empty($username) || empty($nombre_completo) || empty($telefono) || empty($email) || empty($password) || empty($direccion)) {

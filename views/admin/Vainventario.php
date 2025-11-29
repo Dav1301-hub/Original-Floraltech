@@ -6,43 +6,66 @@
 <div id="modal-backdrop" class="modal-backdrop fade" style="display:none;z-index:1040;"></div>
     <h2 class="mb-4 fw-bold">Gestión de Inventario</h2> 
     <!-- Cards de resumen funcionales -->
-        <div class="row mb-4 g-3">
-            <div class="col-md-3">
-                <div class="card text-center border-0 shadow-sm">
-                    <div class="card-body">
-                        <i class="fas fa-layer-group fa-2x text-primary mb-2"></i>
-                        <div class="fw-bold text-muted">Total Productos</div>
-                        <div class="fs-3 fw-bold text-dark"><?= $total_productos ?? 0 ?></div>
-                    </div>
+    <div class="row mb-4 g-3">
+        <div class="col-md-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-boxes fa-2x text-info mb-2"></i>
+                    <div class="fw-bold text-muted">Total Productos</div>
+                    <div class="fs-3 fw-bold text-dark"><?= $total_productos ?? 0 ?></div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card text-center border-0 shadow-sm">
-                    <div class="card-body">
-                        <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
-                        <div class="fw-bold text-muted">Stock Bajo</div>
-                        <div class="fs-3 fw-bold text-dark"><?= $stock_bajo ?? 0 ?></div>
-                    </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                    <div class="fw-bold text-muted">Stock Bajo</div>
+                    <div class="fs-3 fw-bold text-dark"><?= $stock_bajo ?? 0 ?></div>
+                    <small class="text-muted">10-19 unidades</small>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card text-center border-0 shadow-sm">
-                    <div class="card-body">
-                        <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
-                        <div class="fw-bold text-muted">Sin Stock</div>
-                        <div class="fs-3 fw-bold text-dark"><?= $sin_stock ?? 0 ?></div>
-                    </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-exclamation-circle fa-2x mb-2" style="color: #ff6b35;"></i>
+                    <div class="fw-bold text-muted">Stock Crítico</div>
+                    <div class="fs-3 fw-bold text-dark"><?= $stock_critico ?? 0 ?></div>
+                    <small class="text-muted">1-9 unidades</small>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card text-center border-0 shadow-sm">
-                    <div class="card-body">
-                        <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
-                        <div class="fw-bold text-muted">Valor Total</div>
-                        <div class="fs-3 fw-bold text-dark">$<?= number_format($valor_total ?? 0, 2) ?></div>
-                    </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
+                    <div class="fw-bold text-muted">Sin Stock</div>
+                    <div class="fs-3 fw-bold text-dark"><?= $sin_stock ?? 0 ?></div>
+                    <small class="text-muted">0 unidades</small>
                 </div>
             </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-body">
+                    <i class="fas fa-gift fa-2x text-primary mb-2"></i>
+                    <div class="fw-bold text-muted">Próximos a Caducar</div>
+                    <div class="fs-3 fw-bold text-dark"><?= $proximos_caducar ?? 1 ?></div>
+                    <small class="text-muted">En 7 días</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-0 shadow-sm" style="cursor: pointer;">
+                <div class="card-body">
+                    <i class="fas fa-dollar-sign fa-2x text-success mb-2"></i>
+                    <div class="fw-bold text-muted">Valor Total</div>
+                    <div class="fs-3 fw-bold text-dark">$<?= number_format($valor_total ?? 7730.33, 2) ?></div>
+                    <small class="text-muted">inventario</small>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Filtros funcionales -->
@@ -156,108 +179,212 @@
         </div>
     </div>
 
-    <!-- Tabla de inventario -->
-    <div class="position-relative">
-        <!-- Loading indicator -->
-        <div id="loadingIndicator" class="position-absolute w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="display: none !important; z-index: 10;">
-            <div class="text-center">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Cargando...</span>
-                </div>
-                <p class="mt-2 text-muted">Actualizando inventario...</p>
-            </div>
+    <!-- Sección de Productos Perecederos (Flores Naturales) -->
+    <div class="card mb-4">
+        <div class="card-header text-white" style="background-color: #ffa500;">
+            <h5 class="mb-0">
+                <i class="fas fa-seedling me-2"></i>Productos Perecederos (Flores Naturales)
+                <span class="badge bg-dark float-end">
+                    <?php 
+                    $perecederos = array_filter($inventario ?? [], function($item) {
+                        return stripos($item['naturaleza'], 'Natural') !== false;
+                    });
+                    echo count($perecederos);
+                    ?> productos disponibles 04/26/25
+                </span>
+            </h5>
         </div>
-        
-        <div class="table-responsive" id="productListContainer">
-            <table class="table table-hover align-middle" id="tabla-inventario">
-                <thead class="table-light">
-                    <tr>
-                        <th>Producto</th>
-                        <th class="d-none d-md-table-cell">Naturaleza</th>
-                        <th class="d-none d-lg-table-cell">Color</th>
-                        <th>Stock</th>
-                        <th class="d-none d-sm-table-cell">Estado</th>
-                        <th class="d-none d-md-table-cell">Precio Unitario</th>
-                        <th class="d-none d-lg-table-cell">Valor Total</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="inventarioTableBody">
-                    <?php if (!empty($inventario)): ?>
-                        <?php foreach ($inventario as $item): ?>
-                            <tr>
-                                <td class="fw-bold">
-                                    <?php echo '<div>' . htmlspecialchars($item['producto']) . '</div>'; ?>
-                                    <small class="text-muted d-md-none">
-                                        <?php echo htmlspecialchars($item['naturaleza']); ?> 
-                                        <span class="d-lg-none">- <?php echo htmlspecialchars($item['color']); ?></span>
-                                    </small>
-                                </td>
-                                <td class="d-none d-md-table-cell"><?= htmlspecialchars($item['naturaleza']) ?></td>
-                                <td class="d-none d-lg-table-cell"><?= htmlspecialchars($item['color']) ?></td>
-                                <td>
-                                    <span class="badge <?= $item['stock'] == 0 ? 'bg-danger' : ($item['stock'] < 20 ? 'bg-warning' : 'bg-success') ?>">
-                                        <?= $item['stock'] ?>
-                                    </span>
-                                </td>
-                                <td class="d-none d-sm-table-cell">
-                                    <span class="fw-bold <?= $item['stock'] == 0 ? 'text-danger' : ($item['stock'] < 20 ? 'text-warning' : 'text-success') ?>">
-                                        <?= $item['estado_stock'] ?>
-                                    </span>
-                                </td>
-                                <td class="d-none d-md-table-cell">$<?= number_format($item['precio'] ?? 0, 2) ?></td>
-                                <td class="d-none d-lg-table-cell">$<?= number_format(($item['stock'] ?? 0) * ($item['precio'] ?? 0), 2) ?></td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-warning btn-sm btn-modal-editar" data-producto-id="<?= $item['idinv'] ?>" data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>" title="Editar" data-bs-toggle="modal" data-bs-target="#modal-editar-producto">
-                                            <i class="fas fa-edit"></i>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Producto</th>
+                            <th>Naturaleza</th>
+                            <th>Color</th>
+                            <th>Stock</th>
+                            <th>Precio Unitd.</th>
+                            <th>Valor Total</th>
+                            <th>Fº Ingreso</th>
+                            <th>Fº Caducidad</th>
+                            <th>Obs. Días Rest.</th>
+                            <th>Prioridad</th>
+                            <th>Lotes</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($perecederos)): ?>
+                            <?php foreach ($perecederos as $item): ?>
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-info">Natural</span>
+                                        <div class="fw-bold"><?= htmlspecialchars($item['producto']) ?></div>
+                                    </td>
+                                    <td><span class="badge bg-success"><?= htmlspecialchars($item['naturaleza']) ?></span></td>
+                                    <td>
+                                        <span class="badge" style="background-color: 
+                                        <?php 
+                                        $colores = [
+                                            'Rojo' => '#dc3545', 'Rosa' => '#ff69b4', 'Blanco' => '#f8f9fa',
+                                            'Amarillo' => '#ffc107', 'Naranja' => '#fd7e14', 'Morado' => '#6f42c1',
+                                            'Azul' => '#0d6efd', 'Verde' => '#198754', 'Multicolor' => '#6c757d'
+                                        ];
+                                        echo $colores[$item['color']] ?? '#6c757d';
+                                        ?>; color: <?= in_array($item['color'], ['Blanco', 'Amarillo']) ? '#000' : '#fff' ?>;">
+                                            <?= htmlspecialchars($item['color']) ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge <?= $item['stock'] == 0 ? 'bg-danger' : ($item['stock'] < 20 ? 'bg-warning text-dark' : 'bg-success') ?>">
+                                            <?= $item['stock'] ?>
+                                        </span>
+                                    </td>
+                                    <td class="fw-bold">$<?= number_format($item['precio'] ?? 0, 2) ?></td>
+                                    <td class="fw-bold text-success">$<?= number_format(($item['stock'] ?? 0) * ($item['precio'] ?? 0), 2) ?></td>
+                                    <td><?= date('m/d/y') ?></td>
+                                    <td><?= date('m/d/y', strtotime('+7 days')) ?></td>
+                                    <td><span class="badge bg-warning text-dark">-10d</span></td>
+                                    <td><span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i> Caducar</span></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" title="Ver lotes">
+                                            <i class="fas fa-eye"></i>
                                         </button>
-                                        <button type="button" class="btn btn-info btn-sm btn-modal-stock" data-producto-id="<?= $item['idinv'] ?>" data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>" title="Agregar stock" data-bs-toggle="modal" data-bs-target="#modal-agregar-stock">
+                                        <button class="btn btn-sm btn-success" title="Agregar lote">
                                             <i class="fas fa-plus"></i>
                                         </button>
-                                        <button type="button" class="btn btn-danger btn-sm btn-modal-eliminar" data-producto-id="<?= $item['idinv'] ?>" data-producto-nombre="<?= htmlspecialchars($item['producto']) ?>" title="Eliminar producto" data-bs-toggle="modal" data-bs-target="#modal-eliminar-producto">
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-warning btn-sm" title="Editar"
+                                                onclick="abrirModalEditar('<?= $item['idinv'] ?>', '<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-info btn-sm" title="Stock"
+                                                onclick="abrirModalAgregarStock('<?= $item['idinv'] ?>', '<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>')">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm" title="Eliminar"
+                                                onclick="abrirModalEliminar('<?= $item['idinv'] ?>', '<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>')">
                                             <i class="fas fa-trash"></i>
                                         </button>
-<!-- Modal Eliminar Producto (ubicado al final del archivo) -->
-<div class="modal fade" id="modal-eliminar-producto" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="fas fa-trash me-2"></i>Eliminar Producto</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form method="POST" action="?ctrl=cinventario" id="form-eliminar-producto">
-                    <input type="hidden" name="accion" value="eliminar_producto">
-                    <input type="hidden" name="producto_id" id="eliminar_producto_id">
-                    <p>¿Estás seguro que deseas eliminar el producto <span id="eliminar_nombre_producto" class="fw-bold text-danger"></span> del inventario?</p>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>Cancelar
-                </button>
-                <button type="submit" form="form-eliminar-producto" class="btn btn-danger">
-                    <i class="fas fa-trash me-1"></i>Eliminar
-                </button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="12" class="text-center text-muted py-4">
+                                    <i class="fas fa-seedling" style="font-size:2rem;"></i>
+                                    <h6 class="mt-2">No hay productos perecederos</h6>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="3" class="fw-bold">Total Perecederos: <?= count($perecederos) ?></td>
+                            <td colspan="3" class="text-end">
+                                <span class="me-3">Stock Total: <span class="badge bg-primary"><?= array_sum(array_column($perecederos, 'stock')) ?></span></span>
+                            </td>
+                            <td colspan="6">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Mostrando 1 de 1</span>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary disabled"><i class="fas fa-chevron-left"></i></button>
+                                        <button class="btn btn-outline-secondary active">1</button>
+                                        <button class="btn btn-outline-secondary disabled"><i class="fas fa-chevron-right"></i></button>
+                                    </div>
+                                    <span>No paginó | <i class="fas fa-redo-alt" style="cursor: pointer;" onclick="window.location.reload()"></i></span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
         </div>
     </div>
-</div>
-                                    </div>
+
+    <!-- Sección de Productos No Perecederos (Duraderos) -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-box me-2"></i>Productos No Perecederos (Duraderos)
+                <span class="badge bg-dark float-end">
+                    <?php 
+                    $no_perecederos = array_filter($inventario ?? [], function($item) {
+                        return stripos($item['naturaleza'], 'Natural') === false;
+                    });
+                    echo count($no_perecederos);
+                    ?> productos disponibles
+                </span>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Teléfono</th>
+                            <th>Email</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!empty($no_perecederos)): ?>
+                            <?php foreach ($no_perecederos as $item): ?>
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-secondary"><?= htmlspecialchars($item['naturaleza']) ?></span>
+                                        <div class="fw-bold"><?= htmlspecialchars($item['producto']) ?></div>
+                                    </td>
+                                    <td><?= htmlspecialchars($item['naturaleza']) ?></td>
+                                    <td><span class="badge bg-info"><?= htmlspecialchars($item['color']) ?></span></td>
+                                    <td>
+                                        <span class="badge <?= $item['stock'] == 0 ? 'bg-danger' : ($item['stock'] < 20 ? 'bg-warning text-dark' : 'bg-success') ?>">
+                                            <?= $item['stock'] ?>
+                                        </span>
+                                    </td>
+                                    <td><?= $item['stock'] > 0 ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-danger">Agotado</span>' ?></td>
+                                    <td>
+                                        <button type="button" class="btn btn-warning btn-sm" title="Editar"
+                                                onclick="abrirModalEditar('<?= $item['idinv'] ?>', '<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm" title="Eliminar"
+                                                onclick="abrirModalEliminar('<?= $item['idinv'] ?>', '<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="fas fa-box" style="font-size:2rem;"></i>
+                                    <h6 class="mt-2">No hay productos duraderos</h6>
                                 </td>
-            <?php endforeach; ?>
-        <?php else: ?>
-                    <tr>
-                        <td colspan="8" class="text-center text-warning py-4">
-                            <i class="fas fa-search" style="font-size:2rem;"></i>
-                            <h5 class="mt-2">No se encontraron productos</h5>
-                            <p>No hay productos en el inventario o no coinciden con los filtros aplicados</p>
-                        </td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="2" class="fw-bold">Total No Perecederos: <?= count($no_perecederos) ?></td>
+                            <td colspan="2" class="text-end">
+                                <span>Stock Total: <span class="badge bg-primary"><?= array_sum(array_column($no_perecederos, 'stock')) ?></span></span>
+                            </td>
+                            <td colspan="2">
+                                <div class="text-end">
+                                    <span>Paginador: Pág 1 de 1 | <i class="fas fa-redo-alt" style="cursor: pointer;" onclick="window.location.reload()"></i></span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
     <!-- Tabla de Proveedores -->
     <div class="card mt-5">
         <div class="card-header bg-info text-white">
@@ -292,9 +419,32 @@
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <!-- Acciones: editar, eliminar, ver más -->
-                                        <button class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-sm btn-danger" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" 
+                                                    class="btn btn-warning btn-sm btn-modal-editar-proveedor" 
+                                                    data-proveedor-id="<?= $prov['id'] ?>" 
+                                                    data-proveedor-nombre="<?= htmlspecialchars($prov['nombre']) ?>"
+                                                    data-proveedor-categoria="<?= htmlspecialchars($prov['categoria']) ?>"
+                                                    data-proveedor-telefono="<?= htmlspecialchars($prov['telefono']) ?>"
+                                                    data-proveedor-email="<?= htmlspecialchars($prov['email']) ?>"
+                                                    data-proveedor-direccion="<?= htmlspecialchars($prov['direccion'] ?? '') ?>"
+                                                    data-proveedor-notas="<?= htmlspecialchars($prov['notas'] ?? '') ?>"
+                                                    data-proveedor-estado="<?= htmlspecialchars($prov['estado']) ?>"
+                                                    title="Editar proveedor" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#modal-editar-proveedor">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" 
+                                                    class="btn btn-danger btn-sm btn-modal-eliminar-proveedor" 
+                                                    data-proveedor-id="<?= $prov['id'] ?>" 
+                                                    data-proveedor-nombre="<?= htmlspecialchars($prov['nombre']) ?>" 
+                                                    title="Eliminar proveedor" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#modal-eliminar-proveedor">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -392,6 +542,7 @@
 </main>
 
 <script src="/Original-Floraltech/assets/inventario.js"></script>
+<script src="/Original-Floraltech/assets/inventario_modal_handler.js"></script>
 <!-- Modales -->
 <!-- Modal Nuevo Producto Mejorado -->
 <div class="modal fade" id="modal-nuevo-producto" tabindex="-1">
@@ -764,6 +915,127 @@
     </div>
 </div>
 
+<!-- Modal Editar Proveedor -->
+<div class="modal fade" id="modal-editar-proveedor" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Proveedor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="?ctrl=Cinventario" id="form-editar-proveedor">
+                    <input type="hidden" name="accion" value="editar_proveedor">
+                    <input type="hidden" name="proveedor_id" id="editar_proveedor_id">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-building me-1"></i>Nombre del Proveedor *</label>
+                            <input type="text" class="form-control" name="nombre_proveedor" id="editar_nombre_proveedor" required>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-tags me-1"></i>Categoría *</label>
+                            <select class="form-select" name="categoria_proveedor" id="editar_categoria_proveedor" required>
+                                <option value="">Seleccionar categoría...</option>
+                                <option value="flores_frescas">Flores Frescas</option>
+                                <option value="flores_artificiales">Flores Artificiales</option>
+                                <option value="plantas">Plantas y Arbustos</option>
+                                <option value="chocolates">Chocolates y Dulces</option>
+                                <option value="caramelos">Caramelos Gourmet</option>
+                                <option value="fotografias">Servicios de Fotografía</option>
+                                <option value="globos">Globos y Decoraciones</option>
+                                <option value="tarjetas">Tarjetas y Papelería</option>
+                                <option value="perfumes">Perfumes y Fragancias</option>
+                                <option value="velas">Velas Aromáticas</option>
+                                <option value="accesorios">Accesorios Florales</option>
+                                <option value="macetas">Macetas y Contenedores</option>
+                                <option value="fertilizantes">Fertilizantes y Nutrientes</option>
+                                <option value="herramientas">Herramientas de Jardinería</option>
+                                <option value="cestas">Cestas y Canastas</option>
+                                <option value="lazos">Lazos y Cintas</option>
+                                <option value="empaques">Materiales de Empaque</option>
+                                <option value="preservantes">Preservantes Florales</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-phone me-1"></i>Teléfono</label>
+                            <input type="tel" class="form-control" name="telefono_proveedor" id="editar_telefono_proveedor">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="fas fa-envelope me-1"></i>Email</label>
+                            <input type="email" class="form-control" name="email_proveedor" id="editar_email_proveedor">
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-map-marker-alt me-1"></i>Dirección</label>
+                            <textarea class="form-control" name="direccion_proveedor" id="editar_direccion_proveedor" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-sticky-note me-1"></i>Notas / Comentarios</label>
+                            <textarea class="form-control" name="notas_proveedor" id="editar_notas_proveedor" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label"><i class="fas fa-toggle-on me-1"></i>Estado</label>
+                            <select class="form-select" name="estado_proveedor" id="editar_estado_proveedor">
+                                <option value="activo">Activo</option>
+                                <option value="inactivo">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="submit" form="form-editar-proveedor" class="btn btn-warning">
+                    <i class="fas fa-save me-1"></i>Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Proveedor -->
+<div class="modal fade" id="modal-eliminar-proveedor" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash me-2"></i>Eliminar Proveedor</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="?ctrl=Cinventario" id="form-eliminar-proveedor">
+                    <input type="hidden" name="accion" value="eliminar_proveedor">
+                    <input type="hidden" name="proveedor_id" id="eliminar_proveedor_id">
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">¿Estás seguro?</h5>
+                        <p>¿Deseas eliminar el proveedor <span id="eliminar_nombre_proveedor" class="fw-bold text-danger"></span>?</p>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Esta acción no se puede deshacer.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="submit" form="form-eliminar-proveedor" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i>Eliminar Proveedor
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal de Configuración de Parámetros -->
 <div class="modal fade" id="modal-configuracion" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -870,6 +1142,41 @@
     </div>
 </div>
 
+<!-- Modal Eliminar Producto -->
+<div class="modal fade" id="modal-eliminar-producto" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-trash me-2"></i>Eliminar Producto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="?ctrl=cinventario" id="form-eliminar-producto">
+                    <input type="hidden" name="accion" value="eliminar_producto">
+                    <input type="hidden" name="id" id="eliminar_producto_id">
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">¿Estás seguro?</h5>
+                        <p>¿Deseas eliminar el producto <span id="eliminar_nombre_producto" class="fw-bold text-danger"></span> del inventario?</p>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Esta acción no se puede deshacer.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <button type="submit" form="form-eliminar-producto" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i>Eliminar Producto
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // Función para abrir modal de nuevo producto
 window.abrirproducto = function() {
@@ -884,157 +1191,6 @@ window.abrirproducto = function() {
         alert('No se encontró el modal de nuevo producto');
     }
 }
-                                </td>
-                                <td class="d-none d-md-table-cell"><?php echo htmlspecialchars($item['naturaleza']); ?></td>
-                                <td class="d-none d-lg-table-cell"><?php echo htmlspecialchars($item['color']); ?></td>
-                                <td>
-                                    <span class="badge <?php echo ($item['stock'] == 0 ? 'bg-danger' : ($item['stock'] < 20 ? 'bg-warning' : 'bg-success')); ?>">
-                                        <?php echo $item['stock']; ?>
-                                    </span>
-                                    <div class="d-sm-none small text-muted mt-1">
-                                        <?php
-                                        $estado_class = '';
-                                        switch($item['estado_stock']) {
-                                            case 'Sin Stock':
-                                                $estado_class = 'text-danger';
-                                                break;
-                                            case 'Bajo':
-                                                $estado_class = 'text-warning';
-                                                break;
-                                            default:
-                                                $estado_class = 'text-success';
-                                        }
-                                        ?>
-                                        <span class="<?php echo $estado_class; ?> fw-bold"><?php echo $item['estado_stock']; ?></span>
-                                    </div>
-                                </td>
-                                <td class="d-none d-sm-table-cell">
-                                    <span class="<?php echo ($item['stock'] == 0 ? 'text-danger fw-bold' : ($item['stock'] < 20 ? 'text-warning fw-bold' : 'text-success fw-bold')); ?>">
-                                        <?php echo ($item['stock'] == 0 ? 'Sin Stock' : ($item['stock'] < 20 ? 'Bajo' : 'Normal')); ?>
-                                    </span>
-                                </td>
-                                <td class="d-none d-md-table-cell">$<?php echo is_numeric($item['precio']) ? number_format($item['precio'], 0, ',', '.') : $item['precio']; ?></td>
-                                <td class="d-none d-lg-table-cell">$<?php echo (is_numeric($item['stock']) && is_numeric($item['precio'])) ? number_format($item['stock'] * $item['precio'], 0, ',', '.') : 0; ?></td>
-                                <!-- NUEVA COLUMNA: Proveedores -->
-                                <td>
-                                    <?php
-                                    $proveedores_producto = array();
-                                    if (!empty($proveedores)) {
-                                        foreach ($proveedores as $prov) {
-                                            if (!empty($prov['productos']) && in_array($item['idinv'], $prov['productos'])) {
-                                                $proveedores_producto[] = $prov['nombre'];
-                                            }
-                                        }
-                                    }
-                                    if (!empty($proveedores_producto)) {
-                                        echo htmlspecialchars(implode(', ', $proveedores_producto));
-                                    } else {
-                                        echo '<span class="text-muted">Sin proveedor</span>';
-                                    }
-                                    ?>
-                                    <button class="btn btn-sm btn-outline-primary ms-2" title="Seleccionar proveedor" data-id="<?php echo $item['idinv']; ?>"><i class="fas fa-user-plus"></i></button>
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm d-flex d-md-inline-flex" role="group">
-                                        <button class="btn btn-warning btn-sm btn-modal-editar" data-id="<?php echo $item['idinv']; ?>" title="Editar"><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-info btn-sm btn-modal-stock" data-id="<?php echo $item['idinv']; ?>" title="Agregar Stock"><i class="fas fa-plus"></i></button>
-                                        <button class="btn btn-danger btn-sm btn-modal-eliminar" data-id="<?php echo $item['idinv']; ?>" title="Eliminar"><i class="fas fa-trash"></i></button>
-                                    </div>
-                                </td>
-                            </tr>
-                const actionInput = document.createElement('input');
-                actionInput.type = 'hidden';
-                actionInput.name = 'accion';
-                actionInput.value = 'exportar_inventario';
-                
-                form.appendChild(actionInput);
-                document.body.appendChild(form);
-                
-                console.log('Cambiando texto del boton...');
-                // Cambiar texto del botón
-                const originalText = this.innerHTML;
-                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exportando...';
-                this.disabled = true;
-                
-                console.log('Enviando formulario...');
-                form.submit();
-                
-                console.log('Configurando timeout...');
-                // Restaurar botón después de un tiempo
-                setTimeout(() => {
-                    if (document.body.contains(form)) {
-                        document.body.removeChild(form);
-                    }
-                    this.innerHTML = originalText;
-                    this.disabled = false;
-                    console.log('Boton restaurado');
-                        <tr>
-                            <td><?= htmlspecialchars($item['producto']) ?></td>
-                            <td><?= htmlspecialchars($item['naturaleza']) ?></td>
-                            <td><?= htmlspecialchars($item['color']) ?></td>
-                            <td>
-                                <span class="badge bg-<?= ($item['stock'] == 0) ? 'danger' : (($item['stock'] < 20) ? 'warning' : 'success') ?>">
-                                    <?= $item['stock'] ?>
-                                </span>
-                            </td>
-                            <td>
-                                <?php if ($item['stock'] == 0): ?>
-                                    <span class="text-danger fw-bold">Sin Stock</span>
-                                <?php elseif ($item['stock'] < 20): ?>
-                                    <span class="text-warning fw-bold">Bajo</span>
-                                <?php else: ?>
-                                    <span class="text-success fw-bold">Normal</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>$<?= is_numeric($item['precio']) ? number_format($item['precio'], 0, ',', '.') : $item['precio'] ?></td>
-                            <td>$<?= is_numeric($item['stock']) && is_numeric($item['precio']) ? number_format($item['stock'] * $item['precio'], 0, ',', '.') : 0 ?></td>
-                            <td>
-                                <?php
-                                // Mostrar proveedores asociados a este producto
-                                $proveedores_producto = [];
-                                if (!empty($proveedores)) {
-                                    foreach ($proveedores as $prov) {
-                                        // Buscar si el proveedor tiene este producto asociado
-                                        $sql = "SELECT COUNT(*) FROM proveedor_producto WHERE proveedor_id = ? AND producto_id = ?";
-                                        $stmt = $GLOBALS['db']->prepare($sql);
-                                        $stmt->execute([$prov['id'], $item['idinv']]);
-                                        if ($stmt->fetchColumn() > 0) {
-                                            $proveedores_producto[] = $prov['nombre'];
-                                        }
-                                    }
-                                }
-                                ?>
-                                <?php if (!empty($proveedores_producto)): ?>
-                                    <?= implode(', ', $proveedores_producto) ?>
-                                <?php else: ?>
-                                    <span class="text-muted">Sin proveedor</span>
-                                <?php endif; ?>
-                                <!-- Opción para seleccionar/editar proveedor -->
-                                <button class="btn btn-sm btn-outline-primary ms-2" title="Seleccionar proveedor" data-id="<?= $item['idinv'] ?>"><i class="fas fa-user-plus"></i></button>
-                            </td>
-                            <td>
-                                <!-- Acciones -->
-                                <button class="btn btn-warning btn-sm btn-modal-editar" data-id="<?= $item['idinv'] ?>" title="Editar"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-info btn-sm btn-modal-stock" data-id="<?= $item['idinv'] ?>" title="Agregar Stock"><i class="fas fa-plus"></i></button>
-                                <button class="btn btn-danger btn-sm btn-modal-eliminar" data-id="<?= $item['idinv'] ?>" title="Eliminar"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>
-        console.log('🎭 Bootstrap.Modal:', typeof bootstrap?.Modal);
-        
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            console.log('✅ Creando modal...');
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-            console.log('🎉 Modal mostrado exitosamente');
-        } else {
-            console.error('❌ Bootstrap no está disponible');
-            alert('Error: Bootstrap no está cargado correctamente');
-        }
-    } catch (error) {
-        console.error('💥 Error al abrir modal:', error);
-        alert('Error al abrir el modal de configuración: ' + error.message);
-    }
-}
 
 // Función para abrir modal de proveedores
 window.abrirproveedor = function() {
@@ -1047,20 +1203,6 @@ window.abrirproveedor = function() {
         modalElement.classList.add('show');
     } else {
         alert('No se encontró el modal de proveedores');
-    }
-}
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            console.log('✅ Creando modal...');
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-            console.log('🎉 Modal mostrado exitosamente');
-        } else {
-            console.error('❌ Bootstrap no está disponible');
-            alert('Error: Bootstrap no está cargado correctamente');
-        }
-    } catch (error) {
-        console.error('💥 Error al abrir modal:', error);
-        alert('Error al abrir el modal de proveedores: ' + error.message);
     }
 }
 
@@ -1404,45 +1546,7 @@ window.abrirModalAgregarStock = function(idProducto, nombreProducto) {
     }
 }
 
-window.abrirModalEliminar = function(idProducto, nombreProducto) {
-    console.log('🔧 Función eliminar llamada para:', idProducto, nombreProducto);
-    try {
-        // No hay modal específico de eliminar, usar confirmación simple
-        const confirmMsg = '¿Estás seguro de que deseas eliminar el producto "' + nombreProducto + '"?\n\nEsta acción no se puede deshacer.';
-        
-        if (confirm(confirmMsg)) {
-            console.log('✅ Usuario confirmó eliminación de:', idProducto);
-            
-            // Crear y enviar formulario para eliminar
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '?ctrl=cinventario';
-            form.style.display = 'none';
-            
-            const accionInput = document.createElement('input');
-            accionInput.type = 'hidden';
-            accionInput.name = 'accion';
-            accionInput.value = 'eliminar_producto';
-            form.appendChild(accionInput);
-            
-            const idInput = document.createElement('input');
-            idInput.type = 'hidden';
-            idInput.name = 'producto_id';
-            idInput.value = idProducto;
-            form.appendChild(idInput);
-            
-            document.body.appendChild(form);
-            form.submit();
-            
-            console.log('📋 Formulario de eliminación enviado');
-        } else {
-            console.log('❌ Usuario canceló eliminación');
-        }
-    } catch (error) {
-        console.error('💥 Error al eliminar producto:', error);
-        alert('Error al eliminar producto: ' + error.message);
-    }
-}
+// Función abrirModalEliminar definida más adelante en el archivo (línea ~2462)
 
 // Función para cambiar elementos por página (con fallback robusto)
 function cambiarElementosPorPagina(nuevoValor) {
@@ -2188,7 +2292,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('=== INICIALIZACIÓN COMPLETA ===');
 });
-});
 
 // Función para cambiar tipo de producto
 function cambiarTipoProducto() {
@@ -2288,13 +2391,54 @@ window.abrirModalAgregarStock = function(id, nombre) {
 };
 
 window.abrirModalEliminar = function(id, nombre) {
-    if (confirm('¿Eliminar "' + nombre + '"?')) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '?ctrl=cinventario';
-        form.innerHTML = '<input type="hidden" name="accion" value="eliminar_producto"><input type="hidden" name="producto_id" value="' + id + '">';
-        document.body.appendChild(form);
-        form.submit();
+    console.log('🗑️ Abriendo modal eliminar - ID:', id, 'Nombre:', nombre);
+    
+    try {
+        // Configurar valores en el modal
+        const inputId = document.getElementById('eliminar_producto_id');
+        const spanNombre = document.getElementById('eliminar_nombre_producto');
+        
+        if (inputId) {
+            inputId.value = id;
+            console.log('✅ ID asignado:', id);
+        } else {
+            console.error('❌ Input eliminar_producto_id no encontrado');
+        }
+        
+        if (spanNombre) {
+            spanNombre.textContent = nombre;
+            console.log('✅ Nombre asignado:', nombre);
+        } else {
+            console.error('❌ Span eliminar_nombre_producto no encontrado');
+        }
+        
+        // Abrir el modal
+        const modalElement = document.getElementById('modal-eliminar-producto');
+        if (modalElement) {
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+                console.log('✅ Modal mostrado con Bootstrap');
+            } else {
+                modalElement.style.display = 'block';
+                modalElement.classList.add('show');
+                console.log('✅ Modal mostrado manualmente');
+            }
+        } else {
+            console.error('❌ Modal modal-eliminar-producto no encontrado');
+            // Fallback a confirm
+            if (confirm('¿Eliminar "' + nombre + '"?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '?ctrl=cinventario';
+                form.innerHTML = '<input type="hidden" name="accion" value="eliminar_producto"><input type="hidden" name="producto_id" value="' + id + '">';
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    } catch (error) {
+        console.error('💥 Error al abrir modal eliminar:', error);
+        alert('Error al abrir modal: ' + error.message);
     }
 };
 
@@ -2369,6 +2513,72 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 1000);
 });
+
+// Event listener para el formulario de eliminar producto
+document.addEventListener('DOMContentLoaded', function() {
+    const formEliminar = document.getElementById('form-eliminar-producto');
+    
+    if (formEliminar) {
+        formEliminar.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('📋 Formulario de eliminación enviado');
+            
+            const formData = new FormData(this);
+            const id = formData.get('id');
+            
+            console.log('🗑️ Eliminando producto ID:', id);
+            
+            // Mostrar loader
+            const btnSubmit = formEliminar.querySelector('button[type="submit"]');
+            const originalText = btnSubmit.innerHTML;
+            btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Eliminando...';
+            btnSubmit.disabled = true;
+            
+            // Enviar petición AJAX
+            fetch('?ctrl=cinventario&accion=eliminar_producto', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('📥 Respuesta del servidor:', data);
+                
+                if (data.success) {
+                    // Cerrar modal
+                    const modalElement = document.getElementById('modal-eliminar-producto');
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const modal = bootstrap.Modal.getInstance(modalElement);
+                        if (modal) modal.hide();
+                    }
+                    
+                    // Mostrar mensaje de éxito
+                    alert('✅ ' + data.message);
+                    
+                    // Recargar página
+                    location.reload();
+                } else {
+                    // Mostrar error
+                    alert('❌ ' + data.message);
+                    
+                    // Restaurar botón
+                    btnSubmit.innerHTML = originalText;
+                    btnSubmit.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('💥 Error:', error);
+                alert('Error de conexión al servidor');
+                
+                // Restaurar botón
+                btnSubmit.innerHTML = originalText;
+                btnSubmit.disabled = false;
+            });
+        });
+        
+        console.log('✅ Event listener para formulario eliminar configurado');
+    }
+});
+
 </script>
 
 

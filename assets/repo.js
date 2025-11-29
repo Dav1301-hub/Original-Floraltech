@@ -1,125 +1,121 @@
-// 🔹 FILTRO Y PDF DE PEDIDOS
+﻿// JS simple para filtros en modales de reportes
+function filtrarTabla(selector, predicate) {
+    document.querySelectorAll(`${selector} tbody tr`).forEach(row => {
+        row.style.display = predicate(row) ? '' : 'none';
+    });
+}
 
-document.getElementById('btnFiltrarModal')?.addEventListener('click', function() {
-    const fechaInicio = document.getElementById('modal_fecha_inicio')?.value;
-    const fechaFin = document.getElementById('modal_fecha_fin')?.value;
+document.getElementById('btnFiltrarModal')?.addEventListener('click', () => {
+    const inicio = document.getElementById('modal_fecha_inicio')?.value;
+    const fin = document.getElementById('modal_fecha_fin')?.value;
     const estado = document.getElementById('modal_estado')?.value?.toLowerCase();
-
-    const rows = document.querySelectorAll('#tablaPedidosModal tbody tr');
-    if (rows.length === 0) return; // si no es el modal de pedidos, no hace nada
-
-    rows.forEach(row => {
-        const fechaPedidoTexto = row.querySelector('td:nth-child(4)')?.textContent.trim();
-        const partes = fechaPedidoTexto?.split('/');
-        const fechaPedido = partes ? `${partes[2]}-${partes[1]}-${partes[0]}` : '';
-        const estadoPedido = row.querySelector('td:nth-child(7)')?.textContent.trim().toLowerCase();
-
-        let mostrar = true;
-        if (fechaInicio && fechaPedido < fechaInicio) mostrar = false;
-        if (fechaFin && fechaPedido > fechaFin) mostrar = false;
-        if (estado && estadoPedido !== estado) mostrar = false;
-
-        row.style.display = mostrar ? '' : 'none';
+    filtrarTabla('#tablaPedidosModal', row => {
+        const fecha = row.dataset.fecha || '';
+        const estadoRow = (row.dataset.estado || '').toLowerCase();
+        if (inicio && (!fecha || fecha < inicio)) return false;
+        if (fin && (!fecha || fecha > fin)) return false;
+        if (estado && estadoRow !== estado) return false;
+        return true;
     });
 });
 
-// Selección general de checkboxes en pedidos
-document.getElementById('selectAll')?.addEventListener('change', function() {
-    const checkboxes = document.querySelectorAll('.select-row');
-    checkboxes.forEach(cb => cb.checked = this.checked);
+// Seleccionar todo en pedidos
+document.getElementById('selectAll')?.addEventListener('change', function () {
+    document.querySelectorAll('#tablaPedidosModal .select-row').forEach(cb => cb.checked = this.checked);
 });
 
-// Envío del PDF de pedidos
-document.getElementById('formPdfPedidos')?.addEventListener('submit', function(e) {
+document.getElementById('formPdfPedidos')?.addEventListener('submit', function (e) {
     const seleccionados = Array.from(document.querySelectorAll('#tablaPedidosModal tbody tr'))
-        .filter(row => $(row).is(':visible'))
+        .filter(row => row.style.display !== 'none')
         .map(row => row.querySelector('.select-row'))
         .filter(cb => cb && cb.checked)
         .map(cb => cb.value);
-
     document.getElementById('pdf_ids').value = seleccionados.join(',');
     if (seleccionados.length === 0) {
         e.preventDefault();
         alert('Selecciona al menos un pedido para generar el PDF.');
     }
-    console.log('Pedidos seleccionados:', seleccionados);
 });
 
-// 🔹 FILTRO Y PDF DE USUARIOS
-
-document.getElementById('btnFiltrarModalUsuarios')?.addEventListener('click', function() {
-    const tipoSeleccionado = document.getElementById('modal_estado_usuarios')?.value.toLowerCase();
-    const filas = document.querySelectorAll('#tablaUsuariosModal tbody tr');
-    if (filas.length === 0) return;
-
-    filas.forEach(fila => {
-        const tipoUsuario = fila.querySelector('td:nth-child(8)')?.textContent.trim().toLowerCase();
-        fila.style.display = (!tipoSeleccionado || tipoUsuario === tipoSeleccionado) ? '' : 'none';
+document.getElementById('btnFiltrarModalUsuarios')?.addEventListener('click', () => {
+    const tipo = document.getElementById('modal_rol_usuarios')?.value?.toLowerCase();
+    filtrarTabla('#tablaUsuariosModal', row => {
+        const tipoRow = (row.dataset.tipo || '').toLowerCase();
+        return !tipo || tipoRow === tipo;
     });
 });
 
-// Selección general de checkboxes en usuarios
-document.getElementById('selectAllUsuarios')?.addEventListener('change', function() {
-    const checkboxes = document.querySelectorAll('#tablaUsuariosModal .select-row');
-    checkboxes.forEach(cb => cb.checked = this.checked);
+document.getElementById('selectAllUsuarios')?.addEventListener('change', function () {
+    document.querySelectorAll('#tablaUsuariosModal .select-row').forEach(cb => cb.checked = this.checked);
 });
 
-// Envío del PDF de usuarios
-document.getElementById('formPdfUsuarios')?.addEventListener('submit', function(e) {
+document.getElementById('formPdfUsuarios')?.addEventListener('submit', function (e) {
     const seleccionados = Array.from(document.querySelectorAll('#tablaUsuariosModal tbody tr'))
-        .filter(fila => $(fila).is(':visible')) // usa jQuery igual que en pedidos
-        .map(fila => fila.querySelector('.select-row'))
+        .filter(row => row.style.display !== 'none')
+        .map(row => row.querySelector('.select-row'))
         .filter(cb => cb && cb.checked)
         .map(cb => cb.value);
-
     document.getElementById('pdf_ids_usuarios').value = seleccionados.join(',');
-    document.getElementById('tipoSeleccionado').value = document.getElementById('modal_estado_usuarios').value;
-
+    document.getElementById('tipoSeleccionado').value = document.getElementById('modal_rol_usuarios').value;
     if (seleccionados.length === 0) {
         e.preventDefault();
         alert('Selecciona al menos un usuario para generar el PDF.');
     }
-
-    console.log('Usuarios seleccionados:', seleccionados);
 });
 
-
-
-// ===============================
-// 🌸 FILTRO Y PDF DE FLORES / INVENTARIO
-// ===============================
-document.getElementById('btnFiltrarModalFlores')?.addEventListener('click', function() {
+document.getElementById('btnFiltrarModalFlores')?.addEventListener('click', () => {
     const estado = document.getElementById('modal_estado_flores')?.value?.toLowerCase();
-    const filas = document.querySelectorAll('#tablaFloresModal tbody tr');
-    if (filas.length === 0) return;
-
-    filas.forEach(fila => {
-        const estadoFlor = fila.querySelector('td:nth-child(8)')?.textContent.trim().toLowerCase();;
-        fila.style.display = (!estado || estadoFlor === estado) ? '' : 'none';
+    filtrarTabla('#tablaFloresModal', row => {
+        const estadoRow = (row.dataset.estado || '').toLowerCase();
+        return !estado || estadoRow === estado;
     });
 });
 
-// Selección general de checkboxes en flores
-document.getElementById('selectAllFlores')?.addEventListener('change', function() {
-    const checkboxes = document.querySelectorAll('#tablaFloresModal .select-row');
-    checkboxes.forEach(cb => cb.checked = this.checked);
+document.getElementById('selectAllFlores')?.addEventListener('change', function () {
+    document.querySelectorAll('#tablaFloresModal .select-row').forEach(cb => cb.checked = this.checked);
 });
 
-// Envío del PDF de flores
-document.getElementById('formPdfFlores')?.addEventListener('submit', function(e) {
-    const filas = document.querySelectorAll('#tablaFloresModal tbody tr');
-    const seleccionados = Array.from(filas)
-        .filter(fila => fila.style.display !== 'none') // solo visibles (filtrados)
-        .map(fila => fila.querySelector('.select-row'))
+document.getElementById('formPdfFlores')?.addEventListener('submit', function (e) {
+    const seleccionados = Array.from(document.querySelectorAll('#tablaFloresModal tbody tr'))
+        .filter(row => row.style.display !== 'none')
+        .map(row => row.querySelector('.select-row'))
         .filter(cb => cb && cb.checked)
         .map(cb => cb.value);
-
     if (seleccionados.length === 0) {
         e.preventDefault();
-        alert('⚠️ Debes seleccionar al menos una flor para generar el PDF.');
+        alert('Debes seleccionar al menos una flor para generar el PDF.');
         return;
     }
-
     document.getElementById('pdf_ids_flores').value = seleccionados.join(',');
-    console.log('Flores seleccionadas:', seleccionados);
+});
+
+document.getElementById('btnFiltrarPagos')?.addEventListener('click', () => {
+    const inicio = document.getElementById('modal_fecha_inicio_pagos')?.value;
+    const fin = document.getElementById('modal_fecha_fin_pagos')?.value;
+    const estado = document.getElementById('modal_estado_pagos')?.value?.toLowerCase();
+    filtrarTabla('#tablaPagosModal', row => {
+        const fecha = row.dataset.fecha || '';
+        const estadoRow = (row.dataset.estado || '').toLowerCase();
+        if (inicio && (!fecha || fecha < inicio)) return false;
+        if (fin && (!fecha || fecha > fin)) return false;
+        if (estado && estadoRow !== estado) return false;
+        return true;
+    });
+});
+
+document.getElementById('selectAllPagos')?.addEventListener('change', function () {
+    document.querySelectorAll('#tablaPagosModal .select-row').forEach(cb => cb.checked = this.checked);
+});
+
+document.getElementById('formPdfPagos')?.addEventListener('submit', function (e) {
+    const seleccionados = Array.from(document.querySelectorAll('#tablaPagosModal tbody tr'))
+        .filter(row => row.style.display !== 'none')
+        .map(row => row.querySelector('.select-row'))
+        .filter(cb => cb && cb.checked)
+        .map(cb => cb.value);
+    document.getElementById('pdf_ids_pagos').value = seleccionados.join(',');
+    if (seleccionados.length === 0) {
+        e.preventDefault();
+        alert('Selecciona al menos un pago para generar el PDF.');
+    }
 });

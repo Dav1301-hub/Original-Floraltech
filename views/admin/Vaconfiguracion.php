@@ -192,13 +192,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('La contraseña debe tener al menos 6 caracteres');
             }
             
-            $hash = hash('sha256', $pass1);
-            $sql_update = "UPDATE usu SET clave=:hash WHERE idusu=:id_admin";
+            // Usar password_hash como en resetPassword en lugar de hash sha256
+            $hash = password_hash($pass1, PASSWORD_DEFAULT);
+            $sql_update = "UPDATE usu SET clave = ? WHERE idusu = ?";
             $stmt_update = $conexion->prepare($sql_update);
-            $stmt_update->bindParam(':hash', $hash);
-            $stmt_update->bindParam(':id_admin', $id_admin, PDO::PARAM_INT);
             
-            if ($stmt_update->execute()) {
+            if ($stmt_update->execute([$hash, $id_admin])) {
                 $mensaje_exito = 'Contraseña actualizada correctamente';
             } else {
                 throw new Exception('Error al actualizar la contraseña');

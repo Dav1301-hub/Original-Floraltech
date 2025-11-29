@@ -106,98 +106,84 @@ function cerrarproveedor(){
 
 // Funciones para gestión de inventario
 // Funciones para abrir y llenar los modales
-window.abrirModalEditar = function(id, nombre) {
-    // Cargar los datos del producto por AJAX
-    fetch(`?ctrl=Cinventario&accion=obtener_producto&id=${id}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const producto = data.producto;
-                document.getElementById('editar_producto_id').value = id;
-                document.getElementById('editar_nombre_producto').value = producto.producto || '';
-                document.getElementById('editar_tipo_producto').value = producto.tipo || '';
-                document.getElementById('editar_stock').value = producto.stock || 0;
-                document.getElementById('editar_precio').value = producto.precio || 0;
-                document.getElementById('editar_color').value = producto.color || '';
-                document.getElementById('editar_naturaleza').value = producto.naturaleza || '';
-                document.getElementById('editar_estado').value = producto.estado || 'Disponible';
-            } else {
-                document.getElementById('editar_producto_id').value = id;
-                document.getElementById('editar_nombre_producto').value = nombre;
-            }
-            const modalElement = document.getElementById('modal-editar-producto');
-            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                const modal = new bootstrap.Modal(modalElement);
-                modal.show();
-            } else if (typeof $ !== 'undefined') {
-                $(modalElement).modal('show');
-            } else {
-                modalElement.style.display = 'block';
-                modalElement.classList.add('show');
-            }
-        })
-        .catch(error => {
-            document.getElementById('editar_producto_id').value = id;
-            document.getElementById('editar_nombre_producto').value = nombre;
-            const modalElement = document.getElementById('modal-editar-producto');
-            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                const modal = new bootstrap.Modal(modalElement);
-                modal.show();
-            } else if (typeof $ !== 'undefined') {
-                $(modalElement).modal('show');
-            } else {
-                modalElement.style.display = 'block';
-                modalElement.classList.add('show');
-            }
-        });
+window.abrirModalEditar = function(productoData) {
+    console.log('📝 Abriendo modal de edición con datos:', productoData);
+    
+    // Llenar los campos del modal con los datos del producto
+    document.getElementById('editar_producto_id').value = productoData.id || '';
+    document.getElementById('editar_nombre_producto').value = productoData.nombre || '';
+    document.getElementById('editar_tipo_producto').value = productoData.tipo || '';
+    document.getElementById('editar_stock').value = productoData.stock || 0;
+    document.getElementById('editar_precio').value = productoData.precio || 0;
+    document.getElementById('editar_color').value = productoData.color || '';
+    document.getElementById('editar_naturaleza').value = productoData.naturaleza || '';
+    
+    // Determinar el estado basado en el estado_stock o usar 'Disponible' por defecto
+    let estado = 'Disponible';
+    if (productoData.estado) {
+        estado = productoData.estado;
+    } else if (productoData.stock == 0) {
+        estado = 'Agotado';
+    }
+    document.getElementById('editar_estado').value = estado;
+    
+    console.log('✅ Campos del modal llenados correctamente');
+    
+    // Abrir el modal
+    const modalElement = document.getElementById('modal-editar-producto');
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else if (typeof $ !== 'undefined') {
+        $(modalElement).modal('show');
+    } else {
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+    }
 };
 
-window.abrirModalAgregarStock = function(id, nombre) {
-    // Cargar los datos del producto por AJAX
-    fetch(`?ctrl=Cinventario&accion=obtener_producto&id=${id}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const producto = data.producto;
-                document.getElementById('stock_producto_id').value = id;
-                document.getElementById('stock_nombre_producto').textContent = producto.producto || nombre;
-                document.getElementById('stock_actual').textContent = producto.stock || 0;
-            } else {
-                document.getElementById('stock_producto_id').value = id;
-                document.getElementById('stock_nombre_producto').textContent = nombre;
-                document.getElementById('stock_actual').textContent = 'N/A';
-            }
-            const modalElement = document.getElementById('modal-agregar-stock');
-            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                const modal = new bootstrap.Modal(modalElement);
-                modal.show();
-            } else if (typeof $ !== 'undefined') {
-                $(modalElement).modal('show');
-            } else {
-                modalElement.style.display = 'block';
-                modalElement.classList.add('show');
-            }
-        })
-        .catch(error => {
-            document.getElementById('stock_producto_id').value = id;
-            document.getElementById('stock_nombre_producto').textContent = nombre;
-            document.getElementById('stock_actual').textContent = 'N/A';
-            const modalElement = document.getElementById('modal-agregar-stock');
-            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                const modal = new bootstrap.Modal(modalElement);
-                modal.show();
-            } else if (typeof $ !== 'undefined') {
-                $(modalElement).modal('show');
-            } else {
-                modalElement.style.display = 'block';
-                modalElement.classList.add('show');
-            }
-        });
+window.abrirModalAgregarStock = function(productoData) {
+    console.log('📦 Abriendo modal de stock con datos:', productoData);
+    
+    // Llenar los campos del modal con los datos del producto
+    document.getElementById('stock_producto_id').value = productoData.id || '';
+    document.getElementById('stock_nombre_producto').textContent = productoData.nombre || 'Producto';
+    document.getElementById('stock_actual').textContent = productoData.stock || 0;
+    
+    // Limpiar el campo de cantidad
+    document.getElementById('cantidad_agregar').value = '';
+    
+    console.log('✅ Campos del modal de stock llenados correctamente');
+    
+    // Abrir el modal
+    const modalElement = document.getElementById('modal-agregar-stock');
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    } else if (typeof $ !== 'undefined') {
+        $(modalElement).modal('show');
+    } else {
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+    }
+    
+    // Enfocar el campo de cantidad
+    setTimeout(() => {
+        const cantidadInput = document.getElementById('cantidad_agregar');
+        if (cantidadInput) {
+            cantidadInput.focus();
+        }
+    }, 300);
 };
 
-window.abrirModalEliminar = function(id, nombre) {
-    document.getElementById('eliminar_producto_id').value = id;
-    document.getElementById('eliminar_nombre_producto').textContent = nombre;
+window.abrirModalEliminar = function(productoData) {
+    console.log('🗑️ Abriendo modal de eliminación con datos:', productoData);
+    
+    document.getElementById('eliminar_producto_id').value = productoData.id || '';
+    document.getElementById('eliminar_nombre_producto').textContent = productoData.nombre || 'este producto';
+    
+    console.log('✅ Modal de eliminación configurado');
+    
     const modalElement = document.getElementById('modal-eliminar-producto');
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         const modal = new bootstrap.Modal(modalElement);
@@ -297,11 +283,12 @@ function eliminarFlor(id) {
 
 // Función auxiliar para procesar la eliminación
 function procesarEliminarProducto(id) {
-    fetch(`?ctrl=Cinventario&accion=eliminar_producto&id=${id}`, {
+    const formData = new FormData();
+    formData.append('id', id);
+    
+    fetch(`?ctrl=Cinventario&accion=eliminar_producto`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
+        body: formData
     })
     .then(response => response.json())
     .then(data => {

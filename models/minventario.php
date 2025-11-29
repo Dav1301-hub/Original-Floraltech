@@ -88,11 +88,17 @@ class Minventario {
             $stmt_total->execute();
             $total_productos = $stmt_total->fetch(PDO::FETCH_ASSOC)['total'];
             
-            // Productos con stock bajo (menos de 20)
-            $sql_bajo = "SELECT COUNT(*) as bajo FROM inv WHERE stock < 20";
+            // Productos con stock bajo (10-19 unidades)
+            $sql_bajo = "SELECT COUNT(*) as bajo FROM inv WHERE stock >= 10 AND stock < 20";
             $stmt_bajo = $this->db->prepare($sql_bajo);
             $stmt_bajo->execute();
             $stock_bajo = $stmt_bajo->fetch(PDO::FETCH_ASSOC)['bajo'];
+            
+            // Productos con stock crítico (1-9 unidades)
+            $sql_critico = "SELECT COUNT(*) as critico FROM inv WHERE stock > 0 AND stock < 10";
+            $stmt_critico = $this->db->prepare($sql_critico);
+            $stmt_critico->execute();
+            $stock_critico = $stmt_critico->fetch(PDO::FETCH_ASSOC)['critico'];
             
             // Productos sin stock
             $sql_sin = "SELECT COUNT(*) as sin_stock FROM inv WHERE stock = 0";
@@ -109,6 +115,7 @@ class Minventario {
             return [
                 'total_productos' => $total_productos,
                 'stock_bajo' => $stock_bajo,
+                'stock_critico' => $stock_critico,
                 'sin_stock' => $sin_stock,
                 'valor_total' => $valor_total
             ];
@@ -128,7 +135,8 @@ class Minventario {
             
             // Aplicar filtros si existen
             if (!empty($filtros['categoria'])) {
-                $where_conditions[] = "i.naturaleza = :categoria";
+                // CORREGIDO: Buscar en t.naturaleza Y manejar NULLs con COALESCE
+                $where_conditions[] = "COALESCE(t.naturaleza, 'Sin clasificar') = :categoria";
                 $params[':categoria'] = $filtros['categoria'];
             }
             
@@ -207,7 +215,8 @@ class Minventario {
             
             // Aplicar mismos filtros que en getInventarioPaginado
             if (!empty($filtros['categoria'])) {
-                $where_conditions[] = "i.naturaleza = :categoria";
+                // CORREGIDO: Buscar en t.naturaleza Y manejar NULLs con COALESCE
+                $where_conditions[] = "COALESCE(t.naturaleza, 'Sin clasificar') = :categoria";
                 $params[':categoria'] = $filtros['categoria'];
             }
             
@@ -684,6 +693,83 @@ class Minventario {
     }
     
     /**
+     * Editar proveedor existente
+     */
+    public function editarProveedor($data) {
+        try {
+            // Validar datos
+            if (empty($data['proveedor_id'])) {
+                return ['success' => false, 'message' => 'ID de proveedor requerido'];
+            }
+            
+            if (empty($data['nombre_proveedor']) || empty($data['categoria_proveedor'])) {
+                return ['success' => false, 'message' => 'Nombre y categoría son obligatorios'];
+            }
+            
+            // Actualizar proveedor
+            $sql_update = "UPDATE proveedores SET 
+                          nombre = :nombre,
+                          categoria = :categoria,
+                          telefono = :telefono,
+                          email = :email,
+                          direccion = :direccion,
+                          notas = :notas,
+                          estado = :estado
+                          WHERE id = :id";
+            
+            $stmt = $this->db->prepare($sql_update);
+            $stmt->bindParam(':nombre', $data['nombre_proveedor']);
+            $stmt->bindParam(':categoria', $data['categoria_proveedor']);
+            $stmt->bindParam(':telefono', $data['telefono_proveedor']);
+            $stmt->bindParam(':email', $data['email_proveedor']);
+            $stmt->bindParam(':direccion', $data['direccion_proveedor']);
+            $stmt->bindParam(':notas', $data['notas_proveedor']);
+            $stmt->bindParam(':estado', $data['estado_proveedor']);
+            $stmt->bindParam(':id', $data['proveedor_id'], PDO::PARAM_INT);
+            
+            if ($stmt->execute()) {
+                return ['success' => true, 'message' => 'Proveedor actualizado correctamente'];
+            } else {
+                return ['success' => false, 'message' => 'Error al actualizar el proveedor'];
+            }
+            
+        } catch (PDOException $e) {
+            error_log('Error al editar proveedor: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error de base de datos: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Eliminar proveedor
+     */
+    public function eliminarProveedor($id) {
+        try {
+            if (empty($id)) {
+                return ['success' => false, 'message' => 'ID de proveedor requerido'];
+            }
+            
+            // Eliminar el proveedor (las relaciones se eliminan automáticamente por ON DELETE CASCADE)
+            $sql = "DELETE FROM proveedores WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            
+            if ($stmt->execute()) {
+                if ($stmt->rowCount() > 0) {
+                    return ['success' => true, 'message' => 'Proveedor eliminado correctamente'];
+                } else {
+                    return ['success' => false, 'message' => 'Proveedor no encontrado'];
+                }
+            } else {
+                return ['success' => false, 'message' => 'Error al eliminar el proveedor'];
+            }
+            
+        } catch (PDOException $e) {
+            error_log('Error al eliminar proveedor: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error de base de datos: ' . $e->getMessage()];
+        }
+    }
+    
+    /**
      * Actualizar parámetros de inventario
      */
     public function actualizarParametros($data) {
@@ -768,28 +854,61 @@ class Minventario {
      */
     public function editarProducto($data) {
         try {
-            $sql = "UPDATE inv SET 
-                    producto = :nombre_producto,
-                    naturaleza = :naturaleza,
-                    color = :color,
-                    stock = :stock,
-                    precio = :precio
-                    WHERE idinv = :producto_id";
+            $this->db->beginTransaction();
             
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':nombre_producto', $data['nombre_producto']);
-            $stmt->bindParam(':naturaleza', $data['naturaleza']);
-            $stmt->bindParam(':color', $data['color']);
-            $stmt->bindParam(':stock', $data['stock'], PDO::PARAM_INT);
-            $stmt->bindParam(':precio', $data['precio']);
-            $stmt->bindParam(':producto_id', $data['producto_id'], PDO::PARAM_INT);
+            // Primero obtener el tflor_idtflor del producto en inventario
+            $sql_get_tflor = "SELECT tflor_idtflor FROM inv WHERE idinv = :producto_id";
+            $stmt_get_tflor = $this->db->prepare($sql_get_tflor);
+            $stmt_get_tflor->bindParam(':producto_id', $data['producto_id'], PDO::PARAM_INT);
+            $stmt_get_tflor->execute();
+            $resultado = $stmt_get_tflor->fetch(PDO::FETCH_ASSOC);
             
-            if ($stmt->execute()) {
+            if (!$resultado) {
+                $this->db->rollBack();
+                return ['success' => false, 'message' => 'Producto no encontrado en el inventario'];
+            }
+            
+            $tflor_id = $resultado['tflor_idtflor'];
+            
+            // Actualizar la tabla tflor (nombre, naturaleza, color)
+            if ($tflor_id) {
+                $sql_update_tflor = "UPDATE tflor SET 
+                                     nombre = :nombre_producto,
+                                     naturaleza = :naturaleza,
+                                     color = :color
+                                     WHERE idtflor = :tflor_id";
+                
+                $stmt_tflor = $this->db->prepare($sql_update_tflor);
+                $stmt_tflor->bindParam(':nombre_producto', $data['nombre_producto']);
+                $stmt_tflor->bindParam(':naturaleza', $data['naturaleza']);
+                $stmt_tflor->bindParam(':color', $data['color']);
+                $stmt_tflor->bindParam(':tflor_id', $tflor_id, PDO::PARAM_INT);
+                $stmt_tflor->execute();
+            }
+            
+            // Actualizar la tabla inv (stock y precio)
+            $sql_update_inv = "UPDATE inv SET 
+                              stock = :stock,
+                              precio = :precio,
+                              fecha_actualizacion = NOW()
+                              WHERE idinv = :producto_id";
+            
+            $stmt_inv = $this->db->prepare($sql_update_inv);
+            $stmt_inv->bindParam(':stock', $data['stock'], PDO::PARAM_INT);
+            $stmt_inv->bindParam(':precio', $data['precio']);
+            $stmt_inv->bindParam(':producto_id', $data['producto_id'], PDO::PARAM_INT);
+            
+            if ($stmt_inv->execute()) {
+                $this->db->commit();
                 return ['success' => true, 'message' => 'Producto actualizado correctamente'];
             } else {
+                $this->db->rollBack();
                 return ['success' => false, 'message' => 'Error al actualizar el producto'];
             }
         } catch (PDOException $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log('Error al editar producto: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Error de base de datos: ' . $e->getMessage()];
         }
@@ -857,6 +976,21 @@ class Minventario {
      */
     public function eliminarProducto($id) {
         try {
+            // Primero verificar si el producto tiene historial de movimientos
+            $sqlCheck = "SELECT COUNT(*) as total FROM inv_historial WHERE idinv = :id";
+            $stmtCheck = $this->db->prepare($sqlCheck);
+            $stmtCheck->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmtCheck->execute();
+            $historial = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+            
+            if ($historial['total'] > 0) {
+                return [
+                    'success' => false, 
+                    'message' => 'No se puede eliminar este producto porque tiene ' . $historial['total'] . ' movimiento(s) en el historial. Los productos con historial no pueden eliminarse para preservar la integridad de los datos.'
+                ];
+            }
+            
+            // Si no tiene historial, proceder con la eliminación
             $sql = "DELETE FROM inv WHERE idinv = :id";
             $stmt = $this->db->prepare($sql);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
