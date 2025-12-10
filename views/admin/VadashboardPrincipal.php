@@ -9,9 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/dashboard-cliente.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/dashboard-admin.css">
-    <link rel="stylesheet" href="/Original-Floraltech/assets/dashboard-admin.css">
-    <link rel="stylesheet" href="/Original-Floraltech/assets/styles.css">
+    <link rel="stylesheet" href="assets/dashboard-admin.css">
+    <link rel="stylesheet" href="assets/styles.css">
 
 </head>
 <body>
@@ -45,8 +44,8 @@
                 </ul>
             </aside>
             <!-- Main Content -->
-            <div class="main-content flex-grow-1 d-flex flex-column align-items-center justify-content-center" id="mainContent" style="margin: 24px 24px 24px 0; min-height: calc(100vh - 120px);">
-                <div class="w-100" style="max-width: 1100px;">
+            <div class="main-content flex-grow-1 d-flex flex-column align-items-stretch" id="mainContent" style="margin: 24px 24px 24px 0; min-height: calc(100vh - 120px); width: 100%;">
+                <div class="w-100" style="width: 100%;">
                     <?php
                     $pg = $_GET['pg'] ?? null;
 

@@ -325,134 +325,20 @@ class cliente {
         }
     }
 
-    public function generar_factura() {
-        // Obtener el ID del pedido de los parámetros GET
-        $idPedido = $_GET['idpedido'] ?? 0;
-        
-        try {
-            if (empty($idPedido)) {
-                throw new Exception("No se ha especificado un número de pedido");
-            }
-
-            // Verificar que el pedido pertenece al cliente
-            $pedido = $this->obtenerDetallesPedido($idPedido);
-            
-            if (!$pedido || $pedido['cli_idcli'] != $this->cliente_id) {
-                throw new Exception("No tiene permiso para ver este pedido o el pedido no existe");
-            }
-            
-            // Obtener detalles del pago (si existe)
-            $pago = $this->obtenerPagoPorPedido($idPedido);
-            
-            // Obtener detalles de los items del pedido
-            $detalles = $this->obtenerDetallesItemsPedido($idPedido);
-            
-            // Crear documento con márgenes ajustados (usando nuestra clase extendida)
-                $pdf = new FacturaPDF();
-                $pdf->AliasNbPages();
-                $pdf->SetMargins(10, 30, 10); // Izquierda, Arriba (mayor para el logo), Derecha
-                $pdf->SetAutoPageBreak(true, 25); // Margen inferior de 25mm
-                $pdf->AddPage();
-            
-            // Configuración de colores (exactamente igual que antes)
-            $colorPrimario = array(79, 129, 189); // Azul corporativo
-            $colorSecundario = array(220, 230, 241); // Azul claro para fondos
-            $colorTexto = array(50, 50, 50); // Gris oscuro para texto
-            $pdf->SetTextColor($colorTexto[0], $colorTexto[1], $colorTexto[2]);
-            
-            // Información de la factura (mismo diseño)
-            $pdf->SetFont('Arial','B',14);
-            $pdf->Cell(0,10,'FACTURA #'.$pedido['numped'],0,1);
-            $pdf->SetFont('Arial','',10);
-            $pdf->Cell(0,6,'Fecha: '.date('d/m/Y H:i', strtotime($pedido['fecha_pedido'])),0,1);
-            $pdf->Ln(5);
-            
-            // Dos columnas: Cliente y Detalles de Pago (igual que antes)
-            $pdf->SetFont('Arial','B',11);
-            $pdf->Cell(95,7,'DATOS DEL CLIENTE',0,0);
-            $pdf->Cell(95,7,'INFORMACION DE PAGO',0,1);
-            $pdf->SetFont('Arial','',10);
-            
-            // Datos del cliente (sin cambios)
-            $pdf->Cell(95,6,$_SESSION['user']['nombre_completo'],0,0);
-            $pdf->Cell(95,6,'Metodo: '.($pago ? $pago['metodo_pago'] : 'No registrado'),0,1);
-            
-            $pdf->Cell(95,6,$_SESSION['user']['email'],0,0);
-            $pdf->Cell(95,6,'Estado: '.($pago ? $pago['estado_pag'] : 'No registrado'),0,1);
-            
-            $pdf->Cell(95,6,$_SESSION['user']['naturaleza'],0,0);
-            $pdf->Cell(95,6,'Fecha pago: '.($pago ? date('d/m/Y', strtotime($pago['fecha_pago'])) : 'N/A'),0,1);
-            
-            $pdf->Ln(10);
-            
-            // Tabla de productos (mismo diseño exacto)
-            $pdf->SetFillColor($colorSecundario[0], $colorSecundario[1], $colorSecundario[2]);
-            $pdf->SetFont('Arial','B',11);
-            
-                // Encabezados de la tabla (reducir altura a 8)
-                $pdf->Cell(100,8,'DESCRIPCION',1,0,'L', true);
-                $pdf->Cell(30,8,'CANTIDAD',1,0,'C', true);
-                $pdf->Cell(30,8,'PRECIO UNIT.',1,0,'R', true);
-                $pdf->Cell(30,8,'SUBTOTAL',1,1,'R', true);
-                $pdf->SetFont('Arial','',10);
-                $pdf->SetFillColor(255, 255, 255); // Fondo blanco
-            
-            // Items del pedido (misma lógica de paginación)
-            foreach($detalles as $item) {
-                // Verificar si necesitamos nueva página (mismo cálculo)
-                if($pdf->GetY() > 240) {
-                    $pdf->AddPage();
-                    $pdf->SetFont('Arial','B',11);
-                    $pdf->Cell(100,8,'DESCRIPCION','LRB',0,'L', true);
-                    $pdf->Cell(30,8,'CANTIDAD','LRB',0,'C', true);
-                    $pdf->Cell(30,8,'PRECIO UNIT.','LRB',0,'R', true);
-                    $pdf->Cell(30,8,'SUBTOTAL','LRB',1,'R', true);
-                    $pdf->SetFont('Arial','',10);
-                }
-                
-                // Celdas con los mismos parámetros que antes
-                $pdf->Cell(100,7,$item['nombre'],'LR',0,'L');
-                $pdf->Cell(30,7,$item['cantidad'],'LR',0,'C');
-                $pdf->Cell(30,7,'$'.number_format($item['precio_unitario'],2),'LR',0,'R');
-                $pdf->Cell(30,7,'$'.number_format($item['subtotal'],2),'LR',1,'R');
-            }
-            
-            // Línea de cierre de la tabla (igual)
-            $pdf->Cell(190,0,'','T');
-            $pdf->Ln(5);
-            
-            // Totales (mismo formato)
-            $pdf->SetFont('Arial','B',12);
-            $pdf->Cell(160,8,'TOTAL:',0,0,'R');
-            $pdf->Cell(30,8,'$'.number_format($pedido['monto_total'],2),0,1,'R');
-            
-                // Términos y condiciones 
-                $pdf->SetY(-33);
-                $pdf->SetFont('Arial', 'I', 8);
-                $pdf->MultiCell(0, 4, "Terminos y condiciones: El pago debe realizarse dentro de los 5 dias habiles.\nCualquier retraso puede incurrir en intereses moratorios.", 0, 'C');
-                
-            
-            // Forzar descarga del PDF (igual)
-            $pdf->Output('D', 'factura_'.$pedido['numped'].'.pdf');
-            exit();
-            
-        } catch (Exception $e) {
-            $_SESSION['mensaje_error'] = "Error al generar factura: ".$e->getMessage();
-            header('Location: index.php?ctrl=cliente&action=historial');
-            exit();
+public function generar_factura() {
+    // Obtener el ID del pedido de los parámetros GET
+    $idPedido = $_GET['idpedido'] ?? 0;
+    
+    try {
+        if (empty($idPedido)) {
+            throw new Exception("No se ha especificado un número de pedido");
         }
-    }
 
-    /**
-     * Nueva función para enviar factura por email
-     * Esta función se llama mediante AJAX desde el botón "Enviar" en historial_pago.php
-     */
-    public function enviar_factura_email() {
-        // Solo permitir solicitudes POST
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Método no permitido']);
-            exit();
+        // Verificar que el pedido pertenece al cliente
+        $pedido = $this->obtenerDetallesPedido($idPedido);
+        
+        if (!$pedido || $pedido['cli_idcli'] != $this->cliente_id) {
+            throw new Exception("No tiene permiso para ver este pedido o el pedido no existe");
         }
         
         // Configurar header para JSON PRIMERO, antes de cualquier salida
@@ -525,70 +411,74 @@ class cliente {
         $pdf->SetAutoPageBreak(true, 25);
         $pdf->AddPage();
         
-        // Configuración de colores
-        $colorPrimario = array(79, 129, 189);
-        $colorSecundario = array(220, 230, 241);
-        $colorTexto = array(50, 50, 50);
+        // Configuración de colores (exactamente igual que antes)
+        $colorPrimario = array(79, 129, 189); // Azul corporativo
+        $colorSecundario = array(220, 230, 241); // Azul claro para fondos
+        $colorTexto = array(50, 50, 50); // Gris oscuro para texto
         $pdf->SetTextColor($colorTexto[0], $colorTexto[1], $colorTexto[2]);
         
-        // Información de la factura
+        // Información de la factura (mismo diseño)
         $pdf->SetFont('Arial','B',14);
         $pdf->Cell(0,10,'FACTURA #'.$pedido['numped'],0,1);
         $pdf->SetFont('Arial','',10);
         $pdf->Cell(0,6,'Fecha: '.date('d/m/Y H:i', strtotime($pedido['fecha_pedido'])),0,1);
         $pdf->Ln(5);
         
-        // Dos columnas: Cliente y Detalles de Pago
+        // Dos columnas: Cliente y Detalles de Pago (igual que antes)
         $pdf->SetFont('Arial','B',11);
         $pdf->Cell(95,7,'DATOS DEL CLIENTE',0,0);
         $pdf->Cell(95,7,'INFORMACION DE PAGO',0,1);
         $pdf->SetFont('Arial','',10);
         
-        // Datos del cliente
-        $pdf->Cell(95,6,$pedido['nombre_cliente'],0,0);
-        $pdf->Cell(95,6,'Método: '.($pago ? $pago['metodo_pago'] : 'No registrado'),0,1);
+        // Datos del cliente (sin cambios)
+        $pdf->Cell(95,6,$_SESSION['user']['nombre_completo'],0,0);
+        $pdf->Cell(95,6,'Metodo: '.($pago ? $pago['metodo_pago'] : 'No registrado'),0,1);
         
-        $pdf->Cell(95,6,$pedido['email'],0,0);
+        $pdf->Cell(95,6,$_SESSION['user']['email'],0,0);
         $pdf->Cell(95,6,'Estado: '.($pago ? $pago['estado_pag'] : 'No registrado'),0,1);
         
-        $pdf->Cell(95,6,$pedido['direccion'] ?? 'No especificada',0,0);
+        $pdf->Cell(95,6,$_SESSION['user']['naturaleza'],0,0);
         $pdf->Cell(95,6,'Fecha pago: '.($pago ? date('d/m/Y', strtotime($pago['fecha_pago'])) : 'N/A'),0,1);
         
         $pdf->Ln(10);
         
-        // Tabla de productos
+        // Tabla de productos (mismo diseño exacto)
         $pdf->SetFillColor($colorSecundario[0], $colorSecundario[1], $colorSecundario[2]);
         $pdf->SetFont('Arial','B',11);
         
-        $pdf->Cell(100,8,'DESCRIPCIÓN',1,0,'L', true);
-        $pdf->Cell(30,8,'CANTIDAD',1,0,'C', true);
-        $pdf->Cell(30,8,'PRECIO UNIT.',1,0,'R', true);
-        $pdf->Cell(30,8,'SUBTOTAL',1,1,'R', true);
-        $pdf->SetFont('Arial','',10);
-        $pdf->SetFillColor(255, 255, 255);
+            // Encabezados de la tabla (reducir altura a 8)
+            $pdf->Cell(100,8,'DESCRIPCION',1,0,'L', true);
+            $pdf->Cell(30,8,'CANTIDAD',1,0,'C', true);
+            $pdf->Cell(30,8,'PRECIO UNIT.',1,0,'R', true);
+            $pdf->Cell(30,8,'SUBTOTAL',1,1,'R', true);
+            $pdf->SetFont('Arial','',10);
+            $pdf->SetFillColor(255, 255, 255); // Fondo blanco
         
-        // Items del pedido
+        // Items del pedido (misma lógica de paginación)
         foreach($detalles as $item) {
+            // Verificar si necesitamos nueva página (mismo cálculo)
             if($pdf->GetY() > 240) {
                 $pdf->AddPage();
                 $pdf->SetFont('Arial','B',11);
-                $pdf->Cell(100,8,'DESCRIPCIÓN','LRB',0,'L', true);
+                $pdf->Cell(100,8,'DESCRIPCION','LRB',0,'L', true);
                 $pdf->Cell(30,8,'CANTIDAD','LRB',0,'C', true);
                 $pdf->Cell(30,8,'PRECIO UNIT.','LRB',0,'R', true);
                 $pdf->Cell(30,8,'SUBTOTAL','LRB',1,'R', true);
                 $pdf->SetFont('Arial','',10);
             }
             
+            // Celdas con los mismos parámetros que antes
             $pdf->Cell(100,7,$item['nombre'],'LR',0,'L');
             $pdf->Cell(30,7,$item['cantidad'],'LR',0,'C');
             $pdf->Cell(30,7,'$'.number_format($item['precio_unitario'],2),'LR',0,'R');
-            $pdf->Cell(30,7,'$'.number_format($item['cantidad'] * $item['precio_unitario'],2),'LR',1,'R');
+            $pdf->Cell(30,7,'$'.number_format($item['subtotal'],2),'LR',1,'R');
         }
         
+        // Línea de cierre de la tabla (igual)
         $pdf->Cell(190,0,'','T');
         $pdf->Ln(5);
         
-        // Totales
+        // Totales (mismo formato)
         $pdf->SetFont('Arial','B',12);
         $pdf->Cell(160,8,'TOTAL:',0,0,'R');
         $pdf->Cell(30,8,'$'.number_format($pedido['monto_total'],2),0,1,'R');
@@ -891,10 +781,11 @@ class cliente {
             return false;
         }
     }
+}
 
     private function obtenerDetallesPedido($idPedido) {
         $stmt = $this->db->prepare("
-            SELECT p.*, c.nombre as nombre_cliente, c.email, c.direccion
+            SELECT p.*, c.nombre as nombre_cliente, c.email 
             FROM ped p 
             JOIN cli c ON p.cli_idcli = c.idcli 
             WHERE p.idped = ?
