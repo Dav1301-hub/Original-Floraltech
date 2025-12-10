@@ -325,507 +325,127 @@ class cliente {
         }
     }
 
-    public function generar_factura() {
-        // Obtener el ID del pedido de los parámetros GET
-        $idPedido = $_GET['idpedido'] ?? 0;
-        
-        try {
-            if (empty($idPedido)) {
-                throw new Exception("No se ha especificado un número de pedido");
-            }
-
-            // Verificar que el pedido pertenece al cliente
-            $pedido = $this->obtenerDetallesPedido($idPedido);
-            
-            if (!$pedido || $pedido['cli_idcli'] != $this->cliente_id) {
-                throw new Exception("No tiene permiso para ver este pedido o el pedido no existe");
-            }
-            
-            // Obtener detalles del pago (si existe)
-            $pago = $this->obtenerPagoPorPedido($idPedido);
-            
-            // Obtener detalles de los items del pedido
-            $detalles = $this->obtenerDetallesItemsPedido($idPedido);
-            
-            // Crear documento con márgenes ajustados (usando nuestra clase extendida)
-                $pdf = new FacturaPDF();
-                $pdf->AliasNbPages();
-                $pdf->SetMargins(10, 30, 10); // Izquierda, Arriba (mayor para el logo), Derecha
-                $pdf->SetAutoPageBreak(true, 25); // Margen inferior de 25mm
-                $pdf->AddPage();
-            
-            // Configuración de colores (exactamente igual que antes)
-            $colorPrimario = array(79, 129, 189); // Azul corporativo
-            $colorSecundario = array(220, 230, 241); // Azul claro para fondos
-            $colorTexto = array(50, 50, 50); // Gris oscuro para texto
-            $pdf->SetTextColor($colorTexto[0], $colorTexto[1], $colorTexto[2]);
-            
-            // Información de la factura (mismo diseño)
-            $pdf->SetFont('Arial','B',14);
-            $pdf->Cell(0,10,'FACTURA #'.$pedido['numped'],0,1);
-            $pdf->SetFont('Arial','',10);
-            $pdf->Cell(0,6,'Fecha: '.date('d/m/Y H:i', strtotime($pedido['fecha_pedido'])),0,1);
-            $pdf->Ln(5);
-            
-            // Dos columnas: Cliente y Detalles de Pago (igual que antes)
-            $pdf->SetFont('Arial','B',11);
-            $pdf->Cell(95,7,'DATOS DEL CLIENTE',0,0);
-            $pdf->Cell(95,7,'INFORMACION DE PAGO',0,1);
-            $pdf->SetFont('Arial','',10);
-            
-            // Datos del cliente (sin cambios)
-            $pdf->Cell(95,6,$_SESSION['user']['nombre_completo'],0,0);
-            $pdf->Cell(95,6,'Metodo: '.($pago ? $pago['metodo_pago'] : 'No registrado'),0,1);
-            
-            $pdf->Cell(95,6,$_SESSION['user']['email'],0,0);
-            $pdf->Cell(95,6,'Estado: '.($pago ? $pago['estado_pag'] : 'No registrado'),0,1);
-            
-            $pdf->Cell(95,6,$_SESSION['user']['naturaleza'],0,0);
-            $pdf->Cell(95,6,'Fecha pago: '.($pago ? date('d/m/Y', strtotime($pago['fecha_pago'])) : 'N/A'),0,1);
-            
-            $pdf->Ln(10);
-            
-            // Tabla de productos (mismo diseño exacto)
-            $pdf->SetFillColor($colorSecundario[0], $colorSecundario[1], $colorSecundario[2]);
-            $pdf->SetFont('Arial','B',11);
-            
-                // Encabezados de la tabla (reducir altura a 8)
-                $pdf->Cell(100,8,'DESCRIPCION',1,0,'L', true);
-                $pdf->Cell(30,8,'CANTIDAD',1,0,'C', true);
-                $pdf->Cell(30,8,'PRECIO UNIT.',1,0,'R', true);
-                $pdf->Cell(30,8,'SUBTOTAL',1,1,'R', true);
-                $pdf->SetFont('Arial','',10);
-                $pdf->SetFillColor(255, 255, 255); // Fondo blanco
-            
-            // Items del pedido (misma lógica de paginación)
-            foreach($detalles as $item) {
-                // Verificar si necesitamos nueva página (mismo cálculo)
-                if($pdf->GetY() > 240) {
-                    $pdf->AddPage();
-                    $pdf->SetFont('Arial','B',11);
-                    $pdf->Cell(100,8,'DESCRIPCION','LRB',0,'L', true);
-                    $pdf->Cell(30,8,'CANTIDAD','LRB',0,'C', true);
-                    $pdf->Cell(30,8,'PRECIO UNIT.','LRB',0,'R', true);
-                    $pdf->Cell(30,8,'SUBTOTAL','LRB',1,'R', true);
-                    $pdf->SetFont('Arial','',10);
-                }
-                
-                // Celdas con los mismos parámetros que antes
-                $pdf->Cell(100,7,$item['nombre'],'LR',0,'L');
-                $pdf->Cell(30,7,$item['cantidad'],'LR',0,'C');
-                $pdf->Cell(30,7,'$'.number_format($item['precio_unitario'],2),'LR',0,'R');
-                $pdf->Cell(30,7,'$'.number_format($item['subtotal'],2),'LR',1,'R');
-            }
-            
-            // Línea de cierre de la tabla (igual)
-            $pdf->Cell(190,0,'','T');
-            $pdf->Ln(5);
-            
-            // Totales (mismo formato)
-            $pdf->SetFont('Arial','B',12);
-            $pdf->Cell(160,8,'TOTAL:',0,0,'R');
-            $pdf->Cell(30,8,'$'.number_format($pedido['monto_total'],2),0,1,'R');
-            
-                // Términos y condiciones 
-                $pdf->SetY(-33);
-                $pdf->SetFont('Arial', 'I', 8);
-                $pdf->MultiCell(0, 4, "Terminos y condiciones: El pago debe realizarse dentro de los 5 dias habiles.\nCualquier retraso puede incurrir en intereses moratorios.", 0, 'C');
-                
-            
-            // Forzar descarga del PDF (igual)
-            $pdf->Output('D', 'factura_'.$pedido['numped'].'.pdf');
-            exit();
-            
-        } catch (Exception $e) {
-            $_SESSION['mensaje_error'] = "Error al generar factura: ".$e->getMessage();
-            header('Location: index.php?ctrl=cliente&action=historial');
-            exit();
-        }
-    }
-
-    /**
-     * Nueva función para enviar factura por email
-     * Esta función se llama mediante AJAX desde el botón "Enviar" en historial_pago.php
-     */
-    public function enviar_factura_email() {
-        // Solo permitir solicitudes POST
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Método no permitido']);
-            exit();
-        }
-        
-        // Obtener datos del POST
-        $idPedido = $_POST['idpedido'] ?? 0;
-        $email_destino = $_POST['email'] ?? '';
-        
-        // Configurar header para JSON
-        header('Content-Type: application/json');
-        
-        try {
-            // Validaciones básicas
-            if (empty($idPedido) || empty($email_destino)) {
-                throw new Exception('Datos incompletos');
-            }
-            
-            if (!filter_var($email_destino, FILTER_VALIDATE_EMAIL)) {
-                throw new Exception('Email inválido');
-            }
-            
-            // Verificar que el pedido pertenece al cliente
-            $pedido = $this->obtenerDetallesPedido($idPedido);
-            
-            if (!$pedido || $pedido['cli_idcli'] != $this->cliente_id) {
-                throw new Exception('No tiene permiso para ver este pedido o el pedido no existe');
-            }
-            
-            // Verificar que el email coincide con el cliente
-            if ($pedido['email'] !== $email_destino) {
-                throw new Exception('El email no corresponde a este pedido');
-            }
-            
-            // Obtener detalles del pago (si existe)
-            $pago = $this->obtenerPagoPorPedido($idPedido);
-            
-            // Obtener detalles de los items del pedido
-            $detalles = $this->obtenerDetallesItemsPedido($idPedido);
-            
-            // 1. Generar el PDF en memoria (sin output directo)
-            $pdf_content = $this->generarFacturaEnMemoria($idPedido, $pedido, $pago, $detalles);
-            
-            // 2. Enviar el email con el PDF adjunto usando PHPMailer
-            $envio_exitoso = $this->enviarEmailConPHPMailer($email_destino, $pedido, $pdf_content);
-            
-            if ($envio_exitoso) {
-                // Registrar el envío en la base de datos
-                $this->registrarEnvioFactura($idPedido, $email_destino);
-                
-                echo json_encode([
-                    'success' => true, 
-                    'message' => '✅ Factura enviada exitosamente a ' . $email_destino
-                ]);
-            } else {
-                throw new Exception('Error al enviar el email');
-            }
-            
-        } catch (Exception $e) {
-            error_log("Error en enviar_factura_email: " . $e->getMessage());
-            echo json_encode([
-                'success' => false, 
-                'message' => '❌ ' . $e->getMessage()
-            ]);
-        }
-        exit();
-    }
+public function generar_factura() {
+    // Obtener el ID del pedido de los parámetros GET
+    $idPedido = $_GET['idpedido'] ?? 0;
     
-    /**
-     * Genera la factura en memoria (sin output directo)
-     */
-    private function generarFacturaEnMemoria($idPedido, $pedido, $pago, $detalles) {
-        // Crear documento en memoria
-        $pdf = new FacturaPDF();
-        $pdf->AliasNbPages();
-        $pdf->SetMargins(10, 30, 10);
-        $pdf->SetAutoPageBreak(true, 25);
-        $pdf->AddPage();
+    try {
+        if (empty($idPedido)) {
+            throw new Exception("No se ha especificado un número de pedido");
+        }
+
+        // Verificar que el pedido pertenece al cliente
+        $pedido = $this->obtenerDetallesPedido($idPedido);
         
-        // Configuración de colores
-        $colorPrimario = array(79, 129, 189);
-        $colorSecundario = array(220, 230, 241);
-        $colorTexto = array(50, 50, 50);
+        if (!$pedido || $pedido['cli_idcli'] != $this->cliente_id) {
+            throw new Exception("No tiene permiso para ver este pedido o el pedido no existe");
+        }
+        
+        // Obtener detalles del pago (si existe)
+        $pago = $this->obtenerPagoPorPedido($idPedido);
+        
+        // Obtener detalles de los items del pedido
+        $detalles = $this->obtenerDetallesItemsPedido($idPedido);
+        
+        // Crear documento con márgenes ajustados (usando nuestra clase extendida)
+            $pdf = new FacturaPDF();
+            $pdf->AliasNbPages();
+            $pdf->SetMargins(10, 30, 10); // Izquierda, Arriba (mayor para el logo), Derecha
+            $pdf->SetAutoPageBreak(true, 25); // Margen inferior de 25mm
+            $pdf->AddPage();
+        
+        // Configuración de colores (exactamente igual que antes)
+        $colorPrimario = array(79, 129, 189); // Azul corporativo
+        $colorSecundario = array(220, 230, 241); // Azul claro para fondos
+        $colorTexto = array(50, 50, 50); // Gris oscuro para texto
         $pdf->SetTextColor($colorTexto[0], $colorTexto[1], $colorTexto[2]);
         
-        // Información de la factura
+        // Información de la factura (mismo diseño)
         $pdf->SetFont('Arial','B',14);
         $pdf->Cell(0,10,'FACTURA #'.$pedido['numped'],0,1);
         $pdf->SetFont('Arial','',10);
         $pdf->Cell(0,6,'Fecha: '.date('d/m/Y H:i', strtotime($pedido['fecha_pedido'])),0,1);
         $pdf->Ln(5);
         
-        // Dos columnas: Cliente y Detalles de Pago
+        // Dos columnas: Cliente y Detalles de Pago (igual que antes)
         $pdf->SetFont('Arial','B',11);
         $pdf->Cell(95,7,'DATOS DEL CLIENTE',0,0);
         $pdf->Cell(95,7,'INFORMACION DE PAGO',0,1);
         $pdf->SetFont('Arial','',10);
         
-        // Datos del cliente
-        $pdf->Cell(95,6,$pedido['nombre_cliente'],0,0);
-        $pdf->Cell(95,6,'Método: '.($pago ? $pago['metodo_pago'] : 'No registrado'),0,1);
+        // Datos del cliente (sin cambios)
+        $pdf->Cell(95,6,$_SESSION['user']['nombre_completo'],0,0);
+        $pdf->Cell(95,6,'Metodo: '.($pago ? $pago['metodo_pago'] : 'No registrado'),0,1);
         
-        $pdf->Cell(95,6,$pedido['email'],0,0);
+        $pdf->Cell(95,6,$_SESSION['user']['email'],0,0);
         $pdf->Cell(95,6,'Estado: '.($pago ? $pago['estado_pag'] : 'No registrado'),0,1);
         
-        $pdf->Cell(95,6,$pedido['direccion'] ?? 'No especificada',0,0);
+        $pdf->Cell(95,6,$_SESSION['user']['naturaleza'],0,0);
         $pdf->Cell(95,6,'Fecha pago: '.($pago ? date('d/m/Y', strtotime($pago['fecha_pago'])) : 'N/A'),0,1);
         
         $pdf->Ln(10);
         
-        // Tabla de productos
+        // Tabla de productos (mismo diseño exacto)
         $pdf->SetFillColor($colorSecundario[0], $colorSecundario[1], $colorSecundario[2]);
         $pdf->SetFont('Arial','B',11);
         
-        $pdf->Cell(100,8,'DESCRIPCIÓN',1,0,'L', true);
-        $pdf->Cell(30,8,'CANTIDAD',1,0,'C', true);
-        $pdf->Cell(30,8,'PRECIO UNIT.',1,0,'R', true);
-        $pdf->Cell(30,8,'SUBTOTAL',1,1,'R', true);
-        $pdf->SetFont('Arial','',10);
-        $pdf->SetFillColor(255, 255, 255);
+            // Encabezados de la tabla (reducir altura a 8)
+            $pdf->Cell(100,8,'DESCRIPCION',1,0,'L', true);
+            $pdf->Cell(30,8,'CANTIDAD',1,0,'C', true);
+            $pdf->Cell(30,8,'PRECIO UNIT.',1,0,'R', true);
+            $pdf->Cell(30,8,'SUBTOTAL',1,1,'R', true);
+            $pdf->SetFont('Arial','',10);
+            $pdf->SetFillColor(255, 255, 255); // Fondo blanco
         
-        // Items del pedido
+        // Items del pedido (misma lógica de paginación)
         foreach($detalles as $item) {
+            // Verificar si necesitamos nueva página (mismo cálculo)
             if($pdf->GetY() > 240) {
                 $pdf->AddPage();
                 $pdf->SetFont('Arial','B',11);
-                $pdf->Cell(100,8,'DESCRIPCIÓN','LRB',0,'L', true);
+                $pdf->Cell(100,8,'DESCRIPCION','LRB',0,'L', true);
                 $pdf->Cell(30,8,'CANTIDAD','LRB',0,'C', true);
                 $pdf->Cell(30,8,'PRECIO UNIT.','LRB',0,'R', true);
                 $pdf->Cell(30,8,'SUBTOTAL','LRB',1,'R', true);
                 $pdf->SetFont('Arial','',10);
             }
             
+            // Celdas con los mismos parámetros que antes
             $pdf->Cell(100,7,$item['nombre'],'LR',0,'L');
             $pdf->Cell(30,7,$item['cantidad'],'LR',0,'C');
             $pdf->Cell(30,7,'$'.number_format($item['precio_unitario'],2),'LR',0,'R');
-            $pdf->Cell(30,7,'$'.number_format($item['cantidad'] * $item['precio_unitario'],2),'LR',1,'R');
+            $pdf->Cell(30,7,'$'.number_format($item['subtotal'],2),'LR',1,'R');
         }
         
+        // Línea de cierre de la tabla (igual)
         $pdf->Cell(190,0,'','T');
         $pdf->Ln(5);
         
-        // Totales
+        // Totales (mismo formato)
         $pdf->SetFont('Arial','B',12);
         $pdf->Cell(160,8,'TOTAL:',0,0,'R');
         $pdf->Cell(30,8,'$'.number_format($pedido['monto_total'],2),0,1,'R');
         
-        // Términos y condiciones
-        $pdf->SetY(-33);
-        $pdf->SetFont('Arial', 'I', 8);
-        $pdf->MultiCell(0, 4, "Términos y condiciones: El pago debe realizarse dentro de los 5 días hábiles.\nCualquier retraso puede incurrir en intereses moratorios.", 0, 'C');
+            // Términos y condiciones 
+            $pdf->SetY(-33);
+            $pdf->SetFont('Arial', 'I', 8);
+            $pdf->MultiCell(0, 4, "Terminos y condiciones: El pago debe realizarse dentro de los 5 dias habiles.\nCualquier retraso puede incurrir en intereses moratorios.", 0, 'C');
+            
         
-        // Obtener el contenido del PDF como string
-        return $pdf->Output('S');
+        // Forzar descarga del PDF (igual)
+        $pdf->Output('D', 'factura_'.$pedido['numped'].'.pdf');
+        exit();
+        
+    } catch (Exception $e) {
+        $_SESSION['mensaje_error'] = "Error al generar factura: ".$e->getMessage();
+        header('Location: index.php?ctrl=cliente&action=historial');
+        exit();
     }
-    
-    /**
-     * Envía el email con PHPMailer
-     */
-    private function enviarEmailConPHPMailer($email_destino, $pedido, $pdf_content) {
-        try {
-            // Cargar PHPMailer desde vendor
-            require_once 'vendor/autoload.php';
-            
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
-            
-            // Configuración para desarrollo local
-            $mail->isSMTP();
-            $mail->Host = 'smtp.gmail.com';
-            $mail->SMTPAuth = true;
-            $mail->Username = 'epymes270@gmail.com';
-            $mail->Password = 'uormuvnibfvermjr';
-            $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
-            
-            // Configurar remitente (usa el email del cliente que inició sesión)
-            $mail->setFrom($email_destino, $pedido['nombre_cliente']);
-            
-            // Configurar destinatario (el mismo cliente)
-            $mail->addAddress($email_destino, $pedido['nombre_cliente']);
-            $mail->addReplyTo($email_destino, $pedido['nombre_cliente']);
-            
-            // Asunto
-            $mail->Subject = 'Factura #' . $pedido['numped'] . ' - FloralTech';
-            
-            // Cuerpo del email (simple y profesional)
-            $mail->isHTML(true);
-            $mail->Body = '
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
-                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background-color: #4CAF50; color: white; padding: 15px; text-align: center; }
-                    .content { padding: 20px; background-color: #f9f9f9; }
-                    .details { background-color: white; padding: 15px; margin: 15px 0; border-left: 4px solid #4CAF50; }
-                    .footer { text-align: center; padding: 15px; color: #666; font-size: 12px; }
-                </style>
-            </head>
-            <body>
-                <div class="container">
-                    <div class="header">
-                        <h2>FloralTech - Factura</h2>
-                    </div>
-                    <div class="content">
-                        <p>Estimado/a ' . htmlspecialchars($pedido['nombre_cliente']) . ',</p>
-                        
-                        <p>Adjunto encontrará la factura del pedido <strong>#' . $pedido['numped'] . '</strong>.</p>
-                        
-                        <div class="details">
-                            <p><strong>Resumen del pedido:</strong></p>
-                            <p>📅 Fecha: ' . date('d/m/Y H:i', strtotime($pedido['fecha_pedido'])) . '</p>
-                            <p>💰 Total: <strong>$' . number_format($pedido['monto_total'], 2) . '</strong></p>
-                            <p>📦 Estado: ' . $pedido['estado'] . '</p>
-                            ' . ($pago ? '<p>💳 Método de pago: ' . $pago['metodo_pago'] . '</p>' : '') . '
-                        </div>
-                        
-                        <p>El archivo PDF adjunto contiene la factura completa con todos los detalles.</p>
-                        
-                        <p>Gracias por su compra,<br>
-                        <strong>El equipo de FloralTech</strong></p>
-                    </div>
-                    <div class="footer">
-                        <p>Este es un mensaje automático. Por favor no responda a este correo.</p>
-                        <p>© ' . date('Y') . ' FloralTech</p>
-                    </div>
-                </div>
-            </body>
-            </html>';
-            
-            // Versión de texto plano
-            $mail->AltBody = 'Factura #' . $pedido['numped'] . ' - FloralTech' . PHP_EOL . PHP_EOL .
-                           'Estimado/a ' . $pedido['nombre_cliente'] . ',' . PHP_EOL . PHP_EOL .
-                           'Adjunto encontrará la factura del pedido #' . $pedido['numped'] . '.' . PHP_EOL . PHP_EOL .
-                           'Resumen del pedido:' . PHP_EOL .
-                           'Fecha: ' . date('d/m/Y H:i', strtotime($pedido['fecha_pedido'])) . PHP_EOL .
-                           'Total: $' . number_format($pedido['monto_total'], 2) . PHP_EOL .
-                           'Estado: ' . $pedido['estado'] . PHP_EOL .
-                           ($pago ? 'Método de pago: ' . $pago['metodo_pago'] . PHP_EOL : '') . PHP_EOL .
-                           'El archivo PDF adjunto contiene la factura completa.' . PHP_EOL . PHP_EOL .
-                           'Gracias por su compra,' . PHP_EOL .
-                           'El equipo de FloralTech';
-            
-            // Adjuntar el PDF
-            $mail->addStringAttachment($pdf_content, 'Factura_' . $pedido['numped'] . '.pdf');
-            
-            // Configurar encoding
-            $mail->CharSet = 'UTF-8';
-            
-            // Para desarrollo, podemos mostrar errores en el log
-            $mail->SMTPDebug = 0; // 0 = no debug, 1 = errores, 2 = mensajes
-            
-            // Intentar enviar
-            $enviado = $mail->send();
-            
-            // Si falla en local, podemos guardar el email para debugging
-            if (!$enviado) {
-                error_log("Error PHPMailer: " . $mail->ErrorInfo);
-                
-                // En desarrollo local, podemos simular éxito guardando el archivo
-                $this->guardarEmailLocal($email_destino, $pedido, $pdf_content, $mail->ErrorInfo);
-                
-                // En desarrollo, retornamos true para que el usuario vea el mensaje de éxito
-                // En producción, debería ser false
-                return true;
-            }
-            
-            return true;
-            
-        } catch (Exception $e) {
-            error_log("Excepción PHPMailer: " . $e->getMessage());
-            
-            // En desarrollo, guardar el email localmente
-            $this->guardarEmailLocal($email_destino, $pedido, $pdf_content, $e->getMessage());
-            
-            // En desarrollo local, retornamos true para simular éxito
-            return true;
-        }
-    }
-    
-    /**
-     * Guarda el email localmente para debugging (solo desarrollo)
-     */
-    private function guardarEmailLocal($email_destino, $pedido, $pdf_content, $error = '') {
-        $directorio = 'emails_enviados/';
-        
-        if (!file_exists($directorio)) {
-            mkdir($directorio, 0777, true);
-        }
-        
-        // 1. Guardar el PDF
-        $nombre_pdf = 'factura_' . $pedido['numped'] . '_' . date('Ymd_His') . '.pdf';
-        file_put_contents($directorio . $nombre_pdf, $pdf_content);
-        
-        // 2. Guardar información del envío
-        $info = array(
-            'fecha' => date('Y-m-d H:i:s'),
-            'pedido' => $pedido['numped'],
-            'cliente' => $pedido['nombre_cliente'],
-            'email' => $email_destino,
-            'total' => $pedido['monto_total'],
-            'error_phpmailer' => $error,
-            'pdf_guardado' => $nombre_pdf
-        );
-        
-        $log_file = $directorio . 'log_envios.json';
-        $logs = array();
-        
-        if (file_exists($log_file)) {
-            $logs = json_decode(file_get_contents($log_file), true);
-        }
-        
-        $logs[] = $info;
-        file_put_contents($log_file, json_encode($logs, JSON_PRETTY_PRINT));
-        
-        // 3. También guardar en log de texto simple
-        $log_texto = date('Y-m-d H:i:s') . " | Pedido: #" . $pedido['numped'] . 
-                    " | Cliente: " . $pedido['nombre_cliente'] . 
-                    " | Email: " . $email_destino . 
-                    " | Total: $" . number_format($pedido['monto_total'], 2) . 
-                    " | PDF: " . $nombre_pdf . 
-                    " | Error: " . ($error ?: 'Ninguno') . "\n";
-        
-        file_put_contents($directorio . 'envios.log', $log_texto, FILE_APPEND);
-    }
-    
-    /**
-     * Registra el envío de la factura en la base de datos
-     */
-    private function registrarEnvioFactura($idPedido, $email) {
-        try {
-            // Primero, verifica si la tabla existe, si no, créala
-            $this->crearTablaHistorialFacturas();
-            
-            // Insertar registro del envío
-            $stmt = $this->db->prepare("
-                INSERT INTO HistEnvFac (idpedido, email_destino, fecha_envio) 
-                VALUES (?, ?, NOW())
-            ");
-            $stmt->execute([$idPedido, $email]);
-            
-            return true;
-        } catch (PDOException $e) {
-            error_log("Error al registrar envío de factura: " . $e->getMessage());
-            return false;
-        }
-    }
-    
-    /**
-     * Crea la tabla para historial de envíos de facturas si no existe
-     */
-    private function crearTablaHistorialFacturas() {
-        try {
-            // SQL para crear la tabla si no existe
-            $sql = "CREATE TABLE IF NOT EXISTS HistEnvFac (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                idpedido INT NOT NULL,
-                email_destino VARCHAR(255) NOT NULL,
-                fecha_envio DATETIME DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_pedido (idpedido),
-                FOREIGN KEY (idpedido) REFERENCES ped(idped) ON DELETE CASCADE
-            )";
-            
-            $this->db->exec($sql);
-            return true;
-        } catch (PDOException $e) {
-            error_log("Error al crear tabla HistEnvFac: " . $e->getMessage());
-            return false;
-        }
-    }
+}
 
     private function obtenerDetallesPedido($idPedido) {
         $stmt = $this->db->prepare("
-            SELECT p.*, c.nombre as nombre_cliente, c.email, c.direccion
+            SELECT p.*, c.nombre as nombre_cliente, c.email 
             FROM ped p 
             JOIN cli c ON p.cli_idcli = c.idcli 
             WHERE p.idped = ?

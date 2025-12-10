@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Vista de configuración general para administrador
 ?>
 <!DOCTYPE html>
@@ -36,4 +36,3 @@
     </div>
 </body>
 </html>
-

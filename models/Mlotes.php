@@ -14,7 +14,7 @@ class Mlotes {
      */
     public function getLotesPorProducto($inv_idinv) {
         try {
-                $sql = "SELECT l.*, i.stock, t.nombre as producto
+            $sql = "SELECT l.*, i.stock, t.nombre as producto
                     FROM lotes l
                     INNER JOIN inv i ON l.inv_idinv = i.idinv
                     LEFT JOIN tflor t ON i.tflor_idtflor = t.idtflor
@@ -37,7 +37,7 @@ class Mlotes {
      */
     public function getLotePorId($idlote) {
         try {
-                $sql = "SELECT l.*, i.stock, t.nombre as producto
+            $sql = "SELECT l.*, i.stock, t.nombre as producto
                     FROM lotes l
                     INNER JOIN inv i ON l.inv_idinv = i.idinv
                     LEFT JOIN tflor t ON i.tflor_idtflor = t.idtflor
@@ -248,7 +248,7 @@ class Mlotes {
      */
     public function getLotesProximosCaducar($dias = 7) {
         try {
-                $sql = "SELECT l.*, t.nombre as producto, i.stock
+            $sql = "SELECT l.*, t.nombre as producto, i.stock
                     FROM lotes l
                     INNER JOIN inv i ON l.inv_idinv = i.idinv
                     LEFT JOIN tflor t ON i.tflor_idtflor = t.idtflor
