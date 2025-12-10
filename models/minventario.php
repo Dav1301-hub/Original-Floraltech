@@ -2,6 +2,44 @@
 require_once __DIR__ . '/conexion.php';
 
 class Minventario {
+    private $db;
+    
+    public function __construct() {
+        try {
+            $conexion = new conexion();
+            $this->db = $conexion->get_conexion();
+            
+            // Verificar que la conexión sea válida
+            if ($this->db === null) {
+                throw new Exception("No se pudo establecer conexión con la base de datos");
+            }
+            
+            // Verificar que las tablas necesarias existan
+            $this->verificarTablas();
+            
+        } catch (Exception $e) {
+            throw new Exception("Error al conectar con la base de datos: " . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Verificar que las tablas necesarias existan
+     */
+    private function verificarTablas() {
+        $tablas_necesarias = ['inv', 'tflor'];
+        
+        foreach ($tablas_necesarias as $tabla) {
+            $sql = "SHOW TABLES LIKE '$tabla'";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $resultado = $stmt->fetch();
+            
+            if (!$resultado) {
+                throw new Exception("La tabla '$tabla' no existe en la base de datos");
+            }
+        }
+    }
+    
     /**
      * Obtener todos los proveedores con productos asociados (con paginación)
      */
@@ -66,42 +104,24 @@ class Minventario {
             return [];
         }
     }
-    private $db;
     
-    public function __construct() {
+    /**
+     * Obtener inventario completo (para compatibilidad)
+     */
+    public function getInventario() {
         try {
-            $conexion = new conexion();
-            $this->db = $conexion->get_conexion();
-            
-            // Verificar que la conexión sea válida
-            if ($this->db === null) {
-                throw new Exception("No se pudo establecer conexión con la base de datos");
-            }
-            
-            // Verificar que las tablas necesarias existan
-            $this->verificarTablas();
-            
+            return $this->getInventarioPaginado(9999, 0, []);
         } catch (Exception $e) {
-            throw new Exception("Error al conectar con la base de datos: " . $e->getMessage());
+            error_log('Error al obtener inventario: ' . $e->getMessage());
+            return [];
         }
     }
     
     /**
-     * Verificar que las tablas necesarias existan
+     * Obtener estadísticas del inventario (alias para compatibilidad)
      */
-    private function verificarTablas() {
-        $tablas_necesarias = ['inv', 'tflor'];
-        
-        foreach ($tablas_necesarias as $tabla) {
-            $sql = "SHOW TABLES LIKE '$tabla'";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute();
-            $resultado = $stmt->fetch();
-            
-            if (!$resultado) {
-                throw new Exception("La tabla '$tabla' no existe en la base de datos");
-            }
-        }
+    public function obtenerEstadisticas() {
+        return $this->getEstadisticasInventario();
     }
     
     /**
@@ -189,9 +209,11 @@ class Minventario {
             // Filtro de tipo de producto (perecedero/no perecedero)
             if (!empty($filtros['tipo_producto'])) {
                 if ($filtros['tipo_producto'] === 'perecedero') {
-                    $where_conditions[] = "COALESCE(t.naturaleza, '') LIKE '%Natural%'";
+                    // Productos perecederos: aquellos con naturaleza que contenga 'Natural' o 'Flor natural'
+                    $where_conditions[] = "(COALESCE(t.naturaleza, '') LIKE '%Natural%' OR COALESCE(t.naturaleza, '') LIKE '%natural%')";
                 } elseif ($filtros['tipo_producto'] === 'no_perecedero') {
-                    $where_conditions[] = "COALESCE(t.naturaleza, '') NOT LIKE '%Natural%'";
+                    // Productos no perecederos: aquellos sin 'Natural' en la naturaleza
+                    $where_conditions[] = "(COALESCE(t.naturaleza, '') NOT LIKE '%Natural%' AND COALESCE(t.naturaleza, '') NOT LIKE '%natural%')";
                 }
             }
             
@@ -289,9 +311,11 @@ class Minventario {
             // Filtro por tipo de producto (perecedero/no_perecedero)
             if (!empty($filtros['tipo_producto'])) {
                 if ($filtros['tipo_producto'] === 'perecedero') {
-                    $where_conditions[] = "COALESCE(t.naturaleza, 'Sin clasificar') = 'Natural'";
+                    // Productos perecederos: aquellos con naturaleza que contenga 'Natural' o 'natural'
+                    $where_conditions[] = "(COALESCE(t.naturaleza, '') LIKE '%Natural%' OR COALESCE(t.naturaleza, '') LIKE '%natural%')";
                 } elseif ($filtros['tipo_producto'] === 'no_perecedero') {
-                    $where_conditions[] = "COALESCE(t.naturaleza, 'Sin clasificar') != 'Natural'";
+                    // Productos no perecederos: aquellos sin 'Natural' en la naturaleza
+                    $where_conditions[] = "(COALESCE(t.naturaleza, '') NOT LIKE '%Natural%' AND COALESCE(t.naturaleza, '') NOT LIKE '%natural%')";
                 }
             }
             
@@ -957,6 +981,65 @@ class Minventario {
     }
     
     /**
+     * Listar todos los productos del inventario
+     */
+    public function listarProductos() {
+        try {
+            $sql = "SELECT 
+                    i.idinv,
+                    COALESCE(t.nombre, CONCAT('Producto ID-', i.idinv)) as nombre,
+                    COALESCE(t.naturaleza, 'Sin clasificar') as naturaleza,
+                    COALESCE(t.color, 'Sin especificar') as color,
+                    i.stock,
+                    i.precio,
+                    i.precio_compra,
+                    i.alimentacion,
+                    i.tflor_idtflor,
+                    CASE 
+                        WHEN i.stock = 0 THEN 'Sin Stock'
+                        WHEN i.stock < 20 THEN 'Bajo'
+                        ELSE 'Normal'
+                    END as estado_stock
+                    FROM inv i
+                    LEFT JOIN tflor t ON i.tflor_idtflor = t.idtflor
+                    ORDER BY COALESCE(t.nombre, CONCAT('Producto ID-', i.idinv)) ASC";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('Error al listar productos: ' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Listar tipos/categorías de productos (naturalezas en tflor)
+     */
+    public function listarTipos() {
+        try {
+            $sql = "SELECT DISTINCT naturaleza as tipo 
+                    FROM tflor 
+                    WHERE naturaleza IS NOT NULL AND naturaleza != ''
+                    ORDER BY naturaleza ASC";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $tipos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Si no hay tipos, retornar un array con categoría por defecto
+            if (empty($tipos)) {
+                return [['tipo' => 'Sin clasificar']];
+            }
+            
+            return $tipos;
+        } catch (PDOException $e) {
+            error_log('Error al listar tipos: ' . $e->getMessage());
+            return [['tipo' => 'Sin clasificar']];
+        }
+    }
+    
+    /**
      * Obtener un producto por su ID
      */
     public function obtenerProductoPorId($id) {
@@ -1139,3 +1222,5 @@ class Minventario {
     }
 }
 ?>
+
+
