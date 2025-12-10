@@ -33,7 +33,7 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                 <div class="d-flex gap-3 flex-wrap">
                     <div class="px-3 py-2 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-25">
                         <div class="small text-white-50">Pagos del mes</div>
-                        <div class="h5 mb-0">$<?= number_format($pagosMes['monto'] ?? 0, 2) ?> ┬À <?= intval($pagosMes['conteo'] ?? 0) ?> ops</div>
+                        <div class="h5 mb-0">$<?= number_format($pagosMes['monto'] ?? 0, 2) ?> <?= intval($pagosMes['conteo'] ?? 0) ?></div>
                     </div>
                     <div class="px-3 py-2 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-25">
                         <div class="small text-white-50">Usuarios activos hoy</div>
@@ -305,7 +305,7 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                             <div class="card-body">
                                 <form method="POST" class="row g-3">
                                     <div class="col-12">
-                                        <label class="form-label">T├¡tulo</label>
+                                        <label class="form-label">Titulo</label>
                                         <input type="text" class="form-control" name="objetivo_titulo" placeholder="Ej: Meta Q4" value="<?= htmlspecialchars($proyeccionActiva['titulo'] ?? 'Meta de pagos') ?>">
                                     </div>
                                     <div class="col-12 col-md-6">

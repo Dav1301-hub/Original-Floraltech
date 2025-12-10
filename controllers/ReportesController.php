@@ -18,12 +18,15 @@ class ReportesController {
         $modalUsuarios = $this->filtrarUsuarios($dtAllUsu, $_GET);
         $totalUsuarios = count($dtAllUsu);
         $datos['usuarios']['activos'] = count(array_filter($dtAllUsu, fn($u) => $u['activo'] == 1));
+        $tiposUsuarios = array_values(array_unique(array_filter(array_map(fn($u) => $u['tipo_usuario'] ?? '', $dtAllUsu))));
+        sort($tiposUsuarios, SORT_NATURAL | SORT_FLAG_CASE);
 
         // Inventario
         $dtAllInv = $this->model->getAllInventario();
         $modalInventario = $this->filtrarInventario($dtAllInv, $_GET);
-        $datos['inventario']['productos'] = count($dtAllInv);
-        $datos['inventario']['stock_total'] = array_sum(array_column($dtAllInv, 'stock'));
+        $inventarioActivos = array_filter($dtAllInv, fn($f) => ($f['stock'] ?? 0) > 0);
+        $datos['inventario']['productos'] = count($inventarioActivos);
+        $datos['inventario']['stock_total'] = array_sum(array_map(fn($f) => max(0, $f['stock'] ?? 0), $inventarioActivos));
 
         // Pagos
         $dtAllPagos = $this->model->getAllPagos();
@@ -47,6 +50,7 @@ class ReportesController {
             'modalPedidos',
             'dtAllUsu',
             'modalUsuarios',
+            'tiposUsuarios',
             'dtAllInv',
             'modalInventario',
             'dtAllPagos',
@@ -70,11 +74,12 @@ class ReportesController {
     }
 
     private function filtrarUsuarios($items, $params) {
-        if (empty($params['tipo'])) {
+        $tipoSeleccionado = $params['tipo'] ?? ($params['rol'] ?? '');
+        $tipoSeleccionado = strtolower(trim((string) $tipoSeleccionado));
+        if ($tipoSeleccionado === '' || $tipoSeleccionado === 'todos') {
             return $items;
         }
-        $tipo = strtolower($params['tipo']);
-        return array_filter($items, fn($u) => strtolower($u['tipo_usuario']) === $tipo);
+        return array_filter($items, fn($u) => strtolower($u['tipo_usuario'] ?? '') === $tipoSeleccionado);
     }
 
     private function filtrarInventario($items, $params) {
