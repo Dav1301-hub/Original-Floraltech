@@ -8,7 +8,7 @@ class mcalendar {
     public function getPedidosPorFecha($fecha) {
         try {
             // Mostrar pedidos programados para la fecha de entrega o creados ese día
-            $sql = "SELECT p.idped AS id, p.monto_total AS monto, p.estado, p.fecha_entrega_solicitada, p.fecha_pedido,
+            $sql = "SELECT p.idped AS id, p.numped, p.monto_total AS monto, p.estado, p.fecha_entrega_solicitada, p.fecha_pedido,
                            COALESCE(c.nombre, CONCAT('Cliente ID: ', p.cli_idcli)) AS cliente 
                     FROM ped p 
                     LEFT JOIN cli c ON p.cli_idcli = c.idcli 
@@ -19,7 +19,7 @@ class mcalendar {
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch(Exception $e) {
             // Si falla el JOIN, usar consulta simple
-            $sql = "SELECT idped AS id, monto_total AS monto, estado, fecha_entrega_solicitada, fecha_pedido,
+            $sql = "SELECT idped AS id, numped, monto_total AS monto, estado, fecha_entrega_solicitada, fecha_pedido,
                            CONCAT('Cliente ID: ', cli_idcli) AS cliente 
                     FROM ped 
                     WHERE (DATE(fecha_entrega_solicitada) = :fecha OR DATE(fecha_pedido) = :fecha)

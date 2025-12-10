@@ -1,81 +1,24 @@
 <?php
+$vacaciones = isset($vacaciones) && is_array($vacaciones) ? $vacaciones : [];
+// Evitar warnings por variables indefinidas y que se impriman en la UI
+$vacaciones_activas = isset($vacaciones_activas) ? $vacaciones_activas : 0;
+$empleados_activos = isset($empleados_activos) ? $empleados_activos : 0;
+$permisos_pendientes = isset($permisos_pendientes) ? $permisos_pendientes : 0;
+$permisos = isset($permisos) && is_array($permisos) ? $permisos : [];
+$turnos = isset($turnos) && is_array($turnos) ? $turnos : [];
+$mensaje = isset($mensaje) ? $mensaje : '';
+// ...existing code...
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 // Procesar formulario de nuevo empleado antes de cualquier salida
 
-// Cargar modelo de usuario
-require_once __DIR__ . '/../../models/Mdgemp.php';
-$userModel = new Mdgemp();
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_empleado'])) {
-    $nombre = trim($_POST['nombre'] ?? '');
-    $apellido = trim($_POST['apellido'] ?? '');
-    $documento = trim($_POST['documento'] ?? '');
-    $cargo = trim($_POST['cargo'] ?? '');
-    $password = trim($_POST['password'] ?? '');
-
-    // Validaciones básicas
-    if ($nombre === '' || $apellido === '' || $documento === '' || $cargo === '') {
-        $mensaje = 'Todos los campos son obligatorios.';
-        $tipo_mensaje = 'danger';
-    } else {
-        try {
-            // Usar el modelo para crear el empleado
-            $userModel->crearEmpleado($_POST);
-            $mensaje = 'Empleado creado exitosamente.';
-            $tipo_mensaje = 'success';
-            // Redirigir para evitar reenvío del formulario
-            header('Location: ' . $_SERVER['REQUEST_URI'] . '?msg=success');
-            exit();
-        } catch (Exception $e) {
-            $mensaje = $e->getMessage();
-            $tipo_mensaje = 'danger';
-        }
-    }
+// Generar token CSRF si no existe
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-// Obtener datos usando el modelo
-$empleados = $userModel->getAllEmpleados();
-$tipos_usuario = $userModel->getTiposUsuario();
-$empleados_activos = $userModel->getEmpleadosActivos();
-
-// Variables para mensajes
-$mensaje = $mensaje ?? '';
-$tipo_mensaje = $tipo_mensaje ?? '';
-
-// Consulta permisos (mantener por ahora - podría moverse al modelo después)
-require_once __DIR__ . '/../../models/conexion.php';
-$conn = new conexion();
-$db = $conn->get_conexion();
-
-$permisos = [];
-try {
-    $stmt = $db->prepare("SELECT p.idpermiso, u.nombre_completo as empleado, p.tipo, p.fecha_inicio, p.fecha_fin, p.estado FROM permisos p LEFT JOIN usu u ON p.idempleado = u.idusu");
-    $stmt->execute();
-    $permisos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {}
-
-// Consulta turnos
-$turnos = [];
-try {
-    $stmt = $db->prepare("SELECT t.idturno, u.nombre_completo as empleado, t.fecha_inicio, t.fecha_fin, t.horario FROM turnos t LEFT JOIN usu u ON t.idempleado = u.idusu");
-    $stmt->execute();
-    $turnos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {}
-
-// Consulta vacaciones
-$vacaciones = [];
-try {
-    $stmt = $db->prepare("SELECT v.id, u.nombre_completo as empleado, v.fecha_inicio, v.fecha_fin, v.estado, v.motivo FROM vacaciones v LEFT JOIN usu u ON v.id_empleado = u.idusu");
-    $stmt->execute();
-    $vacaciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {}
-
-// Estadísticas para las tarjetas (empleados_activos ya se obtuvo del modelo)
-$vacaciones_activas = 0;
-foreach ($vacaciones as $vacacion) {
-    if ($vacacion['estado'] == 'En curso') $vacaciones_activas++;
-}
-
-$permisos_pendientes = 0;
+// Los datos deben ser pasados desde el controlador, no cargados ni procesados aquí.
 foreach ($permisos as $permiso) {
     if ($permiso['estado'] == 'Pendiente') $permisos_pendientes++;
 }
@@ -186,8 +129,31 @@ foreach ($turnos as $turno) {
             <div class="tab-pane fade show active" id="empleados" role="tabpanel" aria-labelledby="empleados-tab">
                 <!-- Sección Gestión de Empleados -->
                 <div class="section-block">
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <input type="text" id="filtroNombre" class="form-control" placeholder="Buscar por nombre">
+                        </div>
+                        <div class="col-md-3">
+                            <select id="filtroTipo" class="form-select">
+                                <option value="0">Todos los tipos</option>
+                                <?php foreach ($tipos_usuario as $id => $nombre): ?>
+                                    <option value="<?= $id ?>"><?= $nombre ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="filtroEstado" class="form-select">
+                                <option value="">Todos los estados</option>
+                                <option value="activo">Activo</option>
+                                <option value="inactivo">Inactivo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button id="btnFiltrarEmpleados" class="btn btn-primary w-100">Filtrar</button>
+                        </div>
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="tablaEmpleados">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -201,55 +167,13 @@ foreach ($turnos as $turno) {
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($empleados as $empleado): ?>
-                                    <tr>
-                                        <td><?= htmlspecialchars($empleado['idusu']) ?></td>
-                                        <td><?= htmlspecialchars($empleado['nombre_completo']) ?></td>
-                                        <td><?= htmlspecialchars($empleado['username']) ?></td>
-                                        <td><?= htmlspecialchars($empleado['naturaleza']) ?></td>
-                                        <td><?= date('d/m/Y', strtotime($empleado['fecha_registro'])) ?></td>
-                                        <td>
-                                                <?php 
-                                                    $tipo_id = (int)$empleado['tpusu_idtpusu'];
-                                                ?>
-                                                <select class="form-select form-select-sm tipo-select" data-idusu="<?= $empleado['idusu'] ?>">
-                                                    <?php foreach ($tipos_usuario as $id => $nombre): ?>
-                                                        <option value="<?= $id ?>" <?= $tipo_id === $id ? 'selected' : '' ?>><?= $nombre . ' - ' . $id ?></option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                        </td>
-                                        <td>
-                                            <span class="badge <?= $empleado['activo'] ? 'bg-success' : 'bg-danger' ?>">
-                                                <?= $empleado['activo'] ? 'Activo' : 'Inactivo' ?>
-                                            </span>
-                                        </td>
-                                        <td class="actions-column">
-                                            <a href="#" class="btn btn-sm btn-outline-primary" onclick="cargarEmpleado(<?= $empleado['idusu'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarEmpleado(<?= $empleado['idusu'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar">
-                                                <i class="fas fa-trash"></i>
-                                            </a>
-                                            <a href="#" class="btn btn-sm btn-outline-info" onclick="verEmpleado(<?= $empleado['idusu'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Ver Detalles">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
+                                <!-- Empleados AJAX -->
                             </tbody>
                         </table>
                     </div>
                     <nav aria-label="Page navigation">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item disabled">
-                                <a class="page-link" href="#" tabindex="-1">Anterior</a>
-                            </li>
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                            <li class="page-item">
-                                <a class="page-link" href="#">Siguiente</a>
-                            </li>
+                        <ul class="pagination justify-content-center" id="paginacionEmpleados">
+                            <!-- Paginación AJAX -->
                         </ul>
                     </nav>
                 </div>
@@ -456,6 +380,7 @@ foreach ($turnos as $turno) {
                     </div>
                     <div class="modal-body">
                         <form method="POST" autocomplete="off" onsubmit="return validarNuevoEmpleado();">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                             <input type="hidden" name="nuevo_empleado" value="1">
                             <div class="row mb-3">
                                 <div class="col-md-6">
@@ -475,6 +400,23 @@ foreach ($turnos as $turno) {
                                 <div class="col-md-6">
                                     <label for="cargo" class="form-label">Cargo</label>
                                     <input type="text" class="form-control" id="cargo" name="cargo" required>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="rol" class="form-label">Rol</label>
+                                    <select class="form-select" id="rol" name="naturaleza" required>
+                                        <option value="">Selecciona un rol</option>
+                                        <option value="Administrador">Administrador</option>
+                                        <option value="Vendedor">Vendedor</option>
+                                        <option value="Inventario">Inventario</option>
+                                        <option value="Repartidor">Repartidor</option>
+                                        <option value="Cliente">Cliente</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="email" class="form-label">Correo electrónico</label>
+                                    <input type="email" class="form-control" id="email" name="email" pattern="^[^@\s]+@[^@\s]+\.[^@\s]+$" title="Correo electrónico válido" required>
                                 </div>
                             </div>
                             <div class="row mb-3">
@@ -663,7 +605,7 @@ foreach ($turnos as $turno) {
                             <div class="mb-3">
                                 <label for="permisoEmpleado" class="form-label">Empleado</label>
                                 <select class="form-select" id="permisoEmpleado" name="empleado" required>
-                                    <?php foreach ($empleados as $empleado): ?>
+                                    <?php foreach (($empleados ?? []) as $empleado): ?>
                                         <option value="<?= $empleado['idusu'] ?>"><?= htmlspecialchars($empleado['nombre_completo']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
@@ -986,7 +928,7 @@ foreach ($turnos as $turno) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/Original-Floraltech/assets/dgemp_v2.js?v=<?= time() ?>"></script>
+    <script src="/Original-Floraltech/assets/dgemp.js?v=<?= time() ?>"></script>
     <script src="/Original-Floraltech/assets/test_vacaciones.js?v=<?= time() ?>"></script>
     
     <script>

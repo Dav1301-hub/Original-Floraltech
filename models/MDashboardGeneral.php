@@ -5,213 +5,168 @@ class MDashboardGeneral {
     public function __construct($db) {
         $this->db = $db;
     }
+    
     public function getKPIs() {
         try {
-            // Verificar qué columnas existen y usar las correctas
             $kpis = [];
             
             // Total pagos
-            try {
-                $kpis['totalPagos'] = $this->db->query("SELECT COUNT(*) FROM pagos")->fetchColumn();
-            } catch(Exception $e) {
-                $kpis['totalPagos'] = 0;
-            }
+            $kpis['totalPagos'] = $this->db->query("SELECT COUNT(*) FROM pagos")->fetchColumn();
             
-            // Pagos pendientes - intentar diferentes nombres de columna
-            try {
-                $stmt = $this->db->query("SHOW COLUMNS FROM pagos LIKE '%estado%'");
-                $estadoColumn = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                if($estadoColumn) {
-                    $columnName = $estadoColumn['Field'];
-                    $kpis['pagosPendientes'] = $this->db->query("SELECT COUNT(*) FROM pagos WHERE $columnName = 'Pendiente'")->fetchColumn();
-                    $kpis['pagosRechazados'] = $this->db->query("SELECT COUNT(*) FROM pagos WHERE $columnName IN ('Rechazado','Reembolsado','Cancelado')")->fetchColumn();
-                } else {
-                    $kpis['pagosPendientes'] = 0;
-                    $kpis['pagosRechazados'] = 0;
-                }
-            } catch(Exception $e) {
-                $kpis['pagosPendientes'] = 0;
-                $kpis['pagosRechazados'] = 0;
-            }
+            // Pagos pendientes y rechazados
+            $kpis['pagosPendientes'] = $this->db->query("SELECT COUNT(*) FROM pagos WHERE estado_pag = 'Pendiente'")->fetchColumn();
+            $kpis['pagosRechazados'] = $this->db->query("SELECT COUNT(*) FROM pagos WHERE estado_pag IN ('Rechazado','Reembolsado','Cancelado')")->fetchColumn();
             
             // Usuarios registrados
-            try {
-                $kpis['usuariosRegistrados'] = $this->db->query("SELECT COUNT(*) FROM usu")->fetchColumn();
-            } catch(Exception $e) {
-                $kpis['usuariosRegistrados'] = 0;
-            }
+            $kpis['usuariosRegistrados'] = $this->db->query("SELECT COUNT(*) FROM usu WHERE activo = 1")->fetchColumn();
             
-            // Nuevos usuarios - intentar diferentes nombres de columna fecha
-            try {
-                $stmt = $this->db->query("SHOW COLUMNS FROM usu LIKE '%fecha%'");
-                $fechaColumn = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                if($fechaColumn) {
-                    $columnName = $fechaColumn['Field'];
-                    $kpis['nuevosUsuarios'] = $this->db->query("SELECT COUNT(*) FROM usu WHERE $columnName >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetchColumn();
-                } else {
-                    $kpis['nuevosUsuarios'] = 0;
-                }
-            } catch(Exception $e) {
-                $kpis['nuevosUsuarios'] = 0;
-            }
+            // Nuevos usuarios (últimos 7 días)
+            $kpis['nuevosUsuarios'] = $this->db->query("SELECT COUNT(*) FROM usu WHERE fecha_registro >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetchColumn();
+            
+            // Ingresos del mes actual (suma de monto de pagos completados)
+            $mesActual = date('m');
+            $anoActual = date('Y');
+            $ingresosMes = $this->db->query("
+                SELECT COALESCE(SUM(monto), 0) 
+                FROM pagos 
+                WHERE estado_pag = 'Completado' 
+                AND MONTH(fecha_pago) = $mesActual 
+                AND YEAR(fecha_pago) = $anoActual
+            ")->fetchColumn();
+            $kpis['ingresosMes'] = round($ingresosMes, 2);
+            
+            // Tasa de conversión del mes actual
+            $totalPedidosMes = $this->db->query("SELECT COUNT(*) FROM ped WHERE MONTH(fecha_pedido) = $mesActual AND YEAR(fecha_pedido) = $anoActual")->fetchColumn();
+            $pedidosCompletadosMes = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND MONTH(fecha_pedido) = $mesActual AND YEAR(fecha_pedido) = $anoActual")->fetchColumn();
+            $kpis['tasaConversion'] = $totalPedidosMes > 0 ? round(($pedidosCompletadosMes / $totalPedidosMes) * 100, 1) : 0;
             
             return $kpis;
             
         } catch(Exception $e) {
-            // Si todo falla, devolver datos por defecto
+            error_log("Error en getKPIs: " . $e->getMessage());
             return [
                 'totalPagos' => 0,
                 'pagosPendientes' => 0,
                 'pagosRechazados' => 0,
                 'usuariosRegistrados' => 0,
-                'nuevosUsuarios' => 0
+                'nuevosUsuarios' => 0,
+                'ingresosMes' => 0,
+                'tasaConversion' => 0
             ];
         }
     }
+    
     public function getTendencias() {
         try {
-            // Intentar obtener columna de fecha en tabla pagos
-            $stmt = $this->db->query("SHOW COLUMNS FROM pagos LIKE '%fecha%'");
-            $fechaColumn = $stmt->fetch(PDO::FETCH_ASSOC);
+            // Tendencia de pagos (comparar semana actual vs anterior)
+            $pagosSemanaActual = $this->db->query("SELECT COUNT(*) FROM pagos WHERE YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)")->fetchColumn();
+            $pagosSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM pagos WHERE YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
+            $tendenciaPagos = $pagosSemanaAnterior > 0 ? round((($pagosSemanaActual-$pagosSemanaAnterior)/$pagosSemanaAnterior)*100) : 0;
             
-            if($fechaColumn) {
-                $columnName = $fechaColumn['Field'];
-                
-                $pagosSemanaActual = $this->db->query("SELECT COUNT(*) FROM pagos WHERE YEARWEEK($columnName,1) = YEARWEEK(NOW(),1)")->fetchColumn();
-                $pagosSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM pagos WHERE YEARWEEK($columnName,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
-                $tendenciaPagos = $pagosSemanaAnterior > 0 ? round((($pagosSemanaActual-$pagosSemanaAnterior)/$pagosSemanaAnterior)*100) : 0;
-                
-                // Verificar si existe columna estado
-                $stmtEstado = $this->db->query("SHOW COLUMNS FROM pagos LIKE '%estado%'");
-                $estadoColumn = $stmtEstado->fetch(PDO::FETCH_ASSOC);
-                
-                if($estadoColumn) {
-                    $estadoColumnName = $estadoColumn['Field'];
-                    $pendientesSemanaActual = $this->db->query("SELECT COUNT(*) FROM pagos WHERE $estadoColumnName = 'Pendiente' AND YEARWEEK($columnName,1) = YEARWEEK(NOW(),1)")->fetchColumn();
-                    $pendientesSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM pagos WHERE $estadoColumnName = 'Pendiente' AND YEARWEEK($columnName,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
-                    $tendenciaPendientes = $pendientesSemanaAnterior > 0 ? round((($pendientesSemanaActual-$pendientesSemanaAnterior)/$pendientesSemanaAnterior)*100) : 0;
-                    
-                    $rechazadosSemanaActual = $this->db->query("SELECT COUNT(*) FROM pagos WHERE $estadoColumnName IN ('Rechazado','Reembolsado','Cancelado') AND YEARWEEK($columnName,1) = YEARWEEK(NOW(),1)")->fetchColumn();
-                    $rechazadosSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM pagos WHERE $estadoColumnName IN ('Rechazado','Reembolsado','Cancelado') AND YEARWEEK($columnName,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
-                    $tendenciaRechazados = $rechazadosSemanaAnterior > 0 ? round((($rechazadosSemanaActual-$rechazadosSemanaAnterior)/$rechazadosSemanaAnterior)*100) : 0;
-                } else {
-                    $tendenciaPendientes = 0;
-                    $tendenciaRechazados = 0;
-                }
-            } else {
-                $tendenciaPagos = 0;
-                $tendenciaPendientes = 0;
-                $tendenciaRechazados = 0;
-            }
+            // Tendencia de pagos pendientes
+            $pendientesSemanaActual = $this->db->query("SELECT COUNT(*) FROM pagos WHERE estado_pag = 'Pendiente' AND YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)")->fetchColumn();
+            $pendientesSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM pagos WHERE estado_pag = 'Pendiente' AND YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
+            $tendenciaPendientes = $pendientesSemanaAnterior > 0 ? round((($pendientesSemanaActual-$pendientesSemanaAnterior)/$pendientesSemanaAnterior)*100) : 0;
+            
+            // Tendencia de pagos rechazados
+            $rechazadosSemanaActual = $this->db->query("SELECT COUNT(*) FROM pagos WHERE estado_pag IN ('Rechazado','Reembolsado','Cancelado') AND YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)")->fetchColumn();
+            $rechazadosSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM pagos WHERE estado_pag IN ('Rechazado','Reembolsado','Cancelado') AND YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
+            $tendenciaRechazados = $rechazadosSemanaAnterior > 0 ? round((($rechazadosSemanaActual-$rechazadosSemanaAnterior)/$rechazadosSemanaAnterior)*100) : 0;
+            
+            // Tendencia de ingresos (comparar semana actual vs anterior)
+            $ingresosSemanaActual = $this->db->query("SELECT COALESCE(SUM(monto), 0) FROM pagos WHERE estado_pag = 'Completado' AND YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)")->fetchColumn();
+            $ingresosSemanaAnterior = $this->db->query("SELECT COALESCE(SUM(monto), 0) FROM pagos WHERE estado_pag = 'Completado' AND YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
+            $tendenciaIngresos = $ingresosSemanaAnterior > 0 ? round((($ingresosSemanaActual-$ingresosSemanaAnterior)/$ingresosSemanaAnterior)*100) : 0;
+            
+            // Tendencia de tasa de conversión (comparar semana actual vs anterior)
+            $totalPedidosSemanaActual = $this->db->query("SELECT COUNT(*) FROM ped WHERE YEARWEEK(fecha_pedido,1) = YEARWEEK(NOW(),1)")->fetchColumn();
+            $completadosSemanaActual = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND YEARWEEK(fecha_pedido,1) = YEARWEEK(NOW(),1)")->fetchColumn();
+            $conversionSemanaActual = $totalPedidosSemanaActual > 0 ? ($completadosSemanaActual / $totalPedidosSemanaActual) * 100 : 0;
+            
+            $totalPedidosSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM ped WHERE YEARWEEK(fecha_pedido,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
+            $completadosSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND YEARWEEK(fecha_pedido,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
+            $conversionSemanaAnterior = $totalPedidosSemanaAnterior > 0 ? ($completadosSemanaAnterior / $totalPedidosSemanaAnterior) * 100 : 0;
+            
+            $tendenciaConversion = $conversionSemanaAnterior > 0 ? round((($conversionSemanaActual-$conversionSemanaAnterior)/$conversionSemanaAnterior)*100) : 0;
             
             return [
                 'tendenciaPagos' => $tendenciaPagos,
                 'tendenciaPendientes' => $tendenciaPendientes,
-                'tendenciaRechazados' => $tendenciaRechazados
+                'tendenciaRechazados' => $tendenciaRechazados,
+                'tendenciaIngresos' => $tendenciaIngresos,
+                'tendenciaConversion' => $tendenciaConversion
             ];
             
         } catch(Exception $e) {
+            error_log("Error en getTendencias: " . $e->getMessage());
             return [
                 'tendenciaPagos' => 0,
                 'tendenciaPendientes' => 0,
-                'tendenciaRechazados' => 0
+                'tendenciaRechazados' => 0,
+                'tendenciaIngresos' => 0,
+                'tendenciaConversion' => 0
             ];
         }
     }
+    
     public function getActividadReciente() {
         try {
-            // Verificar columnas de tabla pagos
-            $stmt = $this->db->query("SHOW COLUMNS FROM pagos");
-            $pagoColumns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $actividad = [];
             
-            $fechaCol = null;
-            $estadoCol = null;
-            $metodoCol = null;
-            $montoCol = null;
+            // Obtener últimos pedidos recientes
+            $pedidos = $this->db->query("
+                SELECT 
+                    p.fecha_pedido AS fecha, 
+                    CONCAT('Pedido ', p.numped, ' - ', c.nombre, ' ($', FORMAT(p.monto_total, 2), ')') AS descripcion
+                FROM ped p
+                LEFT JOIN cli c ON p.cli_idcli = c.idcli
+                ORDER BY p.fecha_pedido DESC 
+                LIMIT 10
+            ")->fetchAll(PDO::FETCH_ASSOC);
             
-            foreach($pagoColumns as $col) {
-                if(stripos($col, 'fecha') !== false) $fechaCol = $col;
-                if(stripos($col, 'estado') !== false) $estadoCol = $col;
-                if(stripos($col, 'metodo') !== false) $metodoCol = $col;
-                if(stripos($col, 'monto') !== false) $montoCol = $col;
-            }
+            $actividad = array_merge($actividad, $pedidos);
             
-            $pagosRecientes = [];
-            if($fechaCol && $estadoCol && $metodoCol && $montoCol) {
-                $pagosRecientes = $this->db->query("SELECT $fechaCol AS fecha, CONCAT('Pago ', $estadoCol, ' por ', $metodoCol, ' ($', $montoCol, ')') AS descripcion FROM pagos ORDER BY $fechaCol DESC LIMIT 3")->fetchAll(PDO::FETCH_ASSOC);
-            }
+            // Ordenar por fecha descendente
+            usort($actividad, function($a, $b) { 
+                return strtotime($b['fecha']) - strtotime($a['fecha']); 
+            });
             
-            // Verificar columnas de tabla usu
-            $stmt2 = $this->db->query("SHOW COLUMNS FROM usu");
-            $usuColumns = $stmt2->fetchAll(PDO::FETCH_COLUMN);
-            
-            $fechaUsuCol = null;
-            $nombreCol = null;
-            
-            foreach($usuColumns as $col) {
-                if(stripos($col, 'fecha') !== false) $fechaUsuCol = $col;
-                if(stripos($col, 'nombre') !== false) $nombreCol = $col;
-            }
-            
-            $usuariosRecientes = [];
-            if($fechaUsuCol && $nombreCol) {
-                $usuariosRecientes = $this->db->query("SELECT $fechaUsuCol AS fecha, CONCAT('Nuevo usuario registrado: ', $nombreCol) AS descripcion FROM usu ORDER BY $fechaUsuCol DESC LIMIT 2")->fetchAll(PDO::FETCH_ASSOC);
-            }
-            
-            $actividadReciente = array_merge($pagosRecientes, $usuariosRecientes);
-            if(count($actividadReciente) > 0) {
-                usort($actividadReciente, function($a, $b) { 
-                    return strtotime($b['fecha']) - strtotime($a['fecha']); 
-                });
-            }
-            
-            return $actividadReciente;
+            return array_slice($actividad, 0, 10);
             
         } catch(Exception $e) {
-            return [
-                ['fecha' => date('Y-m-d H:i:s'), 'descripcion' => 'Sistema iniciado correctamente'],
-                ['fecha' => date('Y-m-d H:i:s'), 'descripcion' => 'Dashboard cargado']
-            ];
+            error_log("Error en getActividadReciente: " . $e->getMessage());
+            return [];
         }
     }
+    
     public function getResumenPedidosMes() {
         try {
             $mesActual = date('m');
             $anoActual = date('Y');
             
-            // Usar nombres exactos de columnas según la estructura real de la tabla ped
-            $fechaCol = 'fecha_pedido';  // Nombre exacto de la columna
-            $estadoCol = 'estado';       // Nombre exacto de la columna
+            // Contar pedidos del mes actual
+            $pedidosMes = $this->db->query("SELECT COUNT(*) FROM ped WHERE MONTH(fecha_pedido) = $mesActual AND YEAR(fecha_pedido) = $anoActual")->fetchColumn();
+            $pedidosCompletados = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND MONTH(fecha_pedido) = $mesActual AND YEAR(fecha_pedido) = $anoActual")->fetchColumn();
+            $pedidosPendientes = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Pendiente' AND MONTH(fecha_pedido) = $mesActual AND YEAR(fecha_pedido) = $anoActual")->fetchColumn();
+            $pedidosEnProceso = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado LIKE '%proceso%' AND MONTH(fecha_pedido) = $mesActual AND YEAR(fecha_pedido) = $anoActual")->fetchColumn();
+            $pedidosCancelados = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado IN ('Cancelado','Rechazado') AND MONTH(fecha_pedido) = $mesActual AND YEAR(fecha_pedido) = $anoActual")->fetchColumn();
             
-            // Verificar que la tabla existe
-            $stmt = $this->db->query("SHOW TABLES LIKE 'ped'");
-            if($stmt->rowCount() == 0) {
-                throw new Exception("Tabla 'ped' no existe");
-            }
-            
-            // Consultas con los nombres correctos de columnas
-            $pedidosMes = $this->db->query("SELECT COUNT(*) FROM ped WHERE MONTH($fechaCol) = $mesActual AND YEAR($fechaCol) = $anoActual")->fetchColumn();
-            $pedidosCompletados = $this->db->query("SELECT COUNT(*) FROM ped WHERE $estadoCol = 'Completado' AND MONTH($fechaCol) = $mesActual AND YEAR($fechaCol) = $anoActual")->fetchColumn();
-            $pedidosPendientes = $this->db->query("SELECT COUNT(*) FROM ped WHERE $estadoCol = 'Pendiente' AND MONTH($fechaCol) = $mesActual AND YEAR($fechaCol) = $anoActual")->fetchColumn();
-            $pedidosEnProceso = $this->db->query("SELECT COUNT(*) FROM ped WHERE $estadoCol LIKE '%proceso%' AND MONTH($fechaCol) = $mesActual AND YEAR($fechaCol) = $anoActual")->fetchColumn();
-            $pedidosCancelados = $this->db->query("SELECT COUNT(*) FROM ped WHERE $estadoCol IN ('Cancelado','Rechazado') AND MONTH($fechaCol) = $mesActual AND YEAR($fechaCol) = $anoActual")->fetchColumn();
-            
-            // Si no hay datos del mes actual, mostrar datos del mes anterior o del último mes con datos
+            // Si no hay datos del mes actual, buscar el último mes con datos
+            $mesReferencia = "$mesActual/$anoActual";
             if($pedidosMes == 0) {
-                // Buscar el último mes con datos
-                $ultimoMes = $this->db->query("SELECT MONTH($fechaCol) as mes, YEAR($fechaCol) as ano FROM ped ORDER BY $fechaCol DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+                $ultimoMes = $this->db->query("SELECT MONTH(fecha_pedido) as mes, YEAR(fecha_pedido) as ano FROM ped ORDER BY fecha_pedido DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
                 
                 if($ultimoMes) {
                     $mesConsulta = $ultimoMes['mes'];
                     $anoConsulta = $ultimoMes['ano'];
                     
-                    $pedidosMes = $this->db->query("SELECT COUNT(*) FROM ped WHERE MONTH($fechaCol) = $mesConsulta AND YEAR($fechaCol) = $anoConsulta")->fetchColumn();
-                    $pedidosCompletados = $this->db->query("SELECT COUNT(*) FROM ped WHERE $estadoCol = 'Completado' AND MONTH($fechaCol) = $mesConsulta AND YEAR($fechaCol) = $anoConsulta")->fetchColumn();
-                    $pedidosPendientes = $this->db->query("SELECT COUNT(*) FROM ped WHERE $estadoCol = 'Pendiente' AND MONTH($fechaCol) = $mesConsulta AND YEAR($fechaCol) = $anoConsulta")->fetchColumn();
-                    $pedidosEnProceso = $this->db->query("SELECT COUNT(*) FROM ped WHERE $estadoCol LIKE '%proceso%' AND MONTH($fechaCol) = $mesConsulta AND YEAR($fechaCol) = $anoConsulta")->fetchColumn();
-                    $pedidosCancelados = $this->db->query("SELECT COUNT(*) FROM ped WHERE $estadoCol IN ('Cancelado','Rechazado') AND MONTH($fechaCol) = $mesConsulta AND YEAR($fechaCol) = $anoConsulta")->fetchColumn();
+                    $pedidosMes = $this->db->query("SELECT COUNT(*) FROM ped WHERE MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
+                    $pedidosCompletados = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
+                    $pedidosPendientes = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Pendiente' AND MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
+                    $pedidosEnProceso = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado LIKE '%proceso%' AND MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
+                    $pedidosCancelados = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado IN ('Cancelado','Rechazado') AND MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
+                    
+                    $mesReferencia = "$mesConsulta/$anoConsulta";
                 }
             }
             
@@ -221,22 +176,148 @@ class MDashboardGeneral {
                 'pedidosPendientes' => $pedidosPendientes,
                 'pedidosEnProceso' => $pedidosEnProceso,
                 'pedidosCancelados' => $pedidosCancelados,
-                'mesReferencia' => isset($mesConsulta) ? "$mesConsulta/$anoConsulta" : "$mesActual/$anoActual"
+                'mesReferencia' => $mesReferencia
             ];
             
         } catch(Exception $e) {
-            // Log del error para debugging
             error_log("Error en getResumenPedidosMes: " . $e->getMessage());
-            
             return [
                 'pedidosMes' => 0,
                 'pedidosCompletados' => 0,
                 'pedidosPendientes' => 0,
                 'pedidosEnProceso' => 0,
                 'pedidosCancelados' => 0,
-                'mesReferencia' => date('m/Y'),
-                'error' => $e->getMessage()
+                'mesReferencia' => date('m/Y')
             ];
+        }
+    }
+    
+    public function getEntregasProximas() {
+        try {
+            $hoy = date('Y-m-d');
+            $manana = date('Y-m-d', strtotime('+1 day'));
+            
+            // Entregas para hoy
+            $entregasHoy = $this->db->query("
+                SELECT 
+                    p.numped,
+                    p.fecha_entrega_solicitada,
+                    p.estado,
+                    p.monto_total,
+                    c.nombre as cliente
+                FROM ped p
+                LEFT JOIN cli c ON p.cli_idcli = c.idcli
+                WHERE DATE(p.fecha_entrega_solicitada) = '$hoy'
+                ORDER BY p.fecha_entrega_solicitada ASC
+            ")->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Entregas para mañana
+            $entregasManana = $this->db->query("
+                SELECT 
+                    p.numped,
+                    p.fecha_entrega_solicitada,
+                    p.estado,
+                    p.monto_total,
+                    c.nombre as cliente
+                FROM ped p
+                LEFT JOIN cli c ON p.cli_idcli = c.idcli
+                WHERE DATE(p.fecha_entrega_solicitada) = '$manana'
+                ORDER BY p.fecha_entrega_solicitada ASC
+            ")->fetchAll(PDO::FETCH_ASSOC);
+            
+            return [
+                'hoy' => $entregasHoy,
+                'manana' => $entregasManana,
+                'cantidadHoy' => count($entregasHoy),
+                'cantidadManana' => count($entregasManana)
+            ];
+            
+        } catch(Exception $e) {
+            error_log("Error en getEntregasProximas: " . $e->getMessage());
+            return [
+                'hoy' => [],
+                'manana' => [],
+                'cantidadHoy' => 0,
+                'cantidadManana' => 0
+            ];
+        }
+    }
+    
+    public function getTendenciaVentas($dias = 14) {
+        try {
+            $tendencia = [];
+            
+            for($i = $dias - 1; $i >= 0; $i--) {
+                $fecha = date('Y-m-d', strtotime("-$i days"));
+                $fechaLabel = date('d/m', strtotime("-$i days"));
+                
+                // Contar pedidos del día
+                $pedidos = $this->db->query("
+                    SELECT COUNT(*) 
+                    FROM ped 
+                    WHERE DATE(fecha_pedido) = '$fecha'
+                ")->fetchColumn();
+                
+                // Sumar monto total de pedidos del día
+                $monto = $this->db->query("
+                    SELECT COALESCE(SUM(monto_total), 0) 
+                    FROM ped 
+                    WHERE DATE(fecha_pedido) = '$fecha'
+                ")->fetchColumn();
+                
+                $tendencia[] = [
+                    'fecha' => $fechaLabel,
+                    'pedidos' => (int)$pedidos,
+                    'monto' => round($monto, 2)
+                ];
+            }
+            
+            return $tendencia;
+            
+        } catch(Exception $e) {
+            error_log("Error en getTendenciaVentas: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    public function getTopProductos($limite = 5, $dias = 30) {
+        try {
+            $fechaInicio = date('Y-m-d', strtotime("-$dias days"));
+            
+            $query = "
+                SELECT 
+                    t.nombre,
+                    t.color,
+                    SUM(d.cantidad) as total_vendido,
+                    COUNT(DISTINCT d.idped) as num_pedidos,
+                    SUM(d.subtotal) as ingresos_total
+                FROM detped d
+                JOIN tflor t ON d.idtflor = t.idtflor
+                JOIN ped p ON d.idped = p.idped
+                WHERE p.fecha_pedido >= '$fechaInicio'
+                GROUP BY t.idtflor, t.nombre, t.color
+                ORDER BY total_vendido DESC
+                LIMIT $limite
+            ";
+            
+            $productos = $this->db->query($query)->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Calcular total para porcentajes
+            $totalGeneral = 0;
+            foreach($productos as $prod) {
+                $totalGeneral += $prod['total_vendido'];
+            }
+            
+            // Agregar porcentajes
+            foreach($productos as &$prod) {
+                $prod['porcentaje'] = $totalGeneral > 0 ? round(($prod['total_vendido'] / $totalGeneral) * 100, 1) : 0;
+            }
+            
+            return $productos;
+            
+        } catch(Exception $e) {
+            error_log("Error en getTopProductos: " . $e->getMessage());
+            return [];
         }
     }
 }

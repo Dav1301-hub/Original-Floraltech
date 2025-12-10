@@ -106,6 +106,7 @@ $stmt = $db->prepare("
                                     <th>Estado Pago</th>
                                     <th>Método Pago</th>
                                     <th>Factura</th>
+                                    <th>Email</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -183,7 +184,16 @@ $stmt = $db->prepare("
                                                 target="_blank">
                                                     <i class="fas fa-file-pdf"></i> Factura
                                                 </a>
-
+                                            <td>    
+                                                <!-- Nuevo botón para enviar factura por email -->
+                                                <button type="button" 
+                                                        class="btn btn-outline-success btn-sm btn-enviar-factura"
+                                                        title="Enviar Factura por Email"
+                                                        data-idpedido="<?= $pedido['idped'] ?>"
+                                                        data-email="<?= htmlspecialchars($usuario['email']) ?>">
+                                                    <i class="fas fa-envelope"></i> Enviar
+                                                </button>
+                                            </td>    
                                             </div>
                                         </td>
                                     </tr>
@@ -251,90 +261,145 @@ $stmt = $db->prepare("
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-
-        // Manejar clic en botones de factura
-document.querySelectorAll('.btn-generar-factura').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const idPedido = this.dataset.idpedido;
-        const btn = this;
-        const originalHtml = btn.innerHTML; // Guardar el contenido original
-        
-        // Mostrar indicador de carga
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
-        btn.disabled = true;
-        
-        // Establecer tiempo máximo de carga (5 segundos)
-        const tiempoMaximo = 2000; // 5 segundos en milisegundos
-        let timeoutId = setTimeout(() => {
-            // Restaurar botón si la operación tarda demasiado
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
-            showAlert('warning', 'La operación está tardando más de lo esperado');
-        }, tiempoMaximo);
-        
-        fetch(`index.php?ctrl=cliente&action=generar_factura&idpedido=${idPedido}`)
-            .then(response => response.json())
-            .then(data => {
-                // Cancelar el timeout si la respuesta llega antes
-                clearTimeout(timeoutId);
+        // Manejar clic en botones de enviar factura por email
+        document.querySelectorAll('.btn-enviar-factura').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const idPedido = this.dataset.idpedido;
+                const email = this.dataset.email;
+                const btn = this;
+                const originalHtml = btn.innerHTML;
                 
-                if (data.success) {
-                    showAlert('success', data.message);
-                    window.open(data.pdf_url, '_blank');
-                } else {
-                    showAlert('danger', data.message);
-                }
-            })
-            .catch(error => {
-                clearTimeout(timeoutId);
-                showAlert('danger', 'Error al procesar la solicitud');
-            })
-            .finally(() => {
-                // Restaurar botón después de 1 segundo (incluso si falla)
-                setTimeout(() => {
+                // Mostrar indicador de carga
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                btn.disabled = true;
+                
+                // Tiempo máximo de 10 segundos
+                const tiempoMaximo = 10000;
+                let timeoutId = setTimeout(() => {
                     btn.innerHTML = originalHtml;
                     btn.disabled = false;
-                }, 2000);
+                    showAlert('warning', 'La operación está tardando más de lo esperado');
+                }, tiempoMaximo);
+                
+                // Enviar solicitud AJAX
+                fetch(`index.php?ctrl=cliente&action=enviar_factura_email`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `idpedido=${idPedido}&email=${encodeURIComponent(email)}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    clearTimeout(timeoutId);
+                    
+                    if (data.success) {
+                        showAlert('success', data.message);
+                        // Restaurar el ícono de email con un check temporal
+                        btn.innerHTML = '<i class="fas fa-check"></i>';
+                        setTimeout(() => {
+                            btn.innerHTML = originalHtml;
+                            btn.disabled = false;
+                        }, 2000);
+                    } else {
+                        showAlert('danger', data.message || 'Error al enviar la factura');
+                        btn.innerHTML = originalHtml;
+                        btn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    clearTimeout(timeoutId);
+                    showAlert('danger', 'Error en la conexión: ' + error.message);
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                });
             });
-    });
-});
+        });
+
+        // Manejar clic en botones de factura
+        document.querySelectorAll('.btn-generar-factura').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const idPedido = this.dataset.idpedido;
+                const btn = this;
+                const originalHtml = btn.innerHTML; // Guardar el contenido original
+                
+                // Mostrar indicador de carga
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
+                btn.disabled = true;
+                
+                // Establecer tiempo máximo de carga (5 segundos)
+                const tiempoMaximo = 2000; // 5 segundos en milisegundos
+                let timeoutId = setTimeout(() => {
+                    // Restaurar botón si la operación tarda demasiado
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                    showAlert('warning', 'La operación está tardando más de lo esperado');
+                }, tiempoMaximo);
+                
+                fetch(`index.php?ctrl=cliente&action=generar_factura&idpedido=${idPedido}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Cancelar el timeout si la respuesta llega antes
+                        clearTimeout(timeoutId);
+                        
+                        if (data.success) {
+                            showAlert('success', data.message);
+                            window.open(data.pdf_url, '_blank');
+                        } else {
+                            showAlert('danger', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        clearTimeout(timeoutId);
+                        showAlert('danger', 'Error al procesar la solicitud');
+                    })
+                    .finally(() => {
+                        // Restaurar botón después de 1 segundo (incluso si falla)
+                        setTimeout(() => {
+                            btn.innerHTML = originalHtml;
+                            btn.disabled = false;
+                        }, 2000);
+                    });
+            });
+        });
 
         // Manejar clic en botones de pago
-document.querySelectorAll('.btn-pagar').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const idPedido = this.dataset.idpedido;
-        const btn = this;
-        const originalHtml = btn.innerHTML;
-        
-        // Mostrar indicador de carga
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
-        btn.disabled = true;
-        
-        // Tiempo máximo de 5 segundos
-        const tiempoMaximo = 5000;
-        let timeoutId = setTimeout(() => {
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
-            showAlert('warning', 'El pago está tardando más de lo esperado');
-        }, tiempoMaximo);
-        
-        // Simular procesamiento de pago
-        setTimeout(() => {
-            clearTimeout(timeoutId);
-            showAlert('info', 'Generando la factura...');
-            
-            // Restaurar botón brevemente antes de redirigir
-            setTimeout(() => {
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
-                // URL CORREGIDA - Eliminar espacios en blanco
-                window.location.href = `index.php?ctrl=cliente&action=generar_factura&idpedido=${idPedido}`;
-            }, 2000);
-        }, 2000);
-    });
-});
+        document.querySelectorAll('.btn-pagar').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const idPedido = this.dataset.idpedido;
+                const btn = this;
+                const originalHtml = btn.innerHTML;
+                
+                // Mostrar indicador de carga
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+                btn.disabled = true;
+                
+                // Tiempo máximo de 5 segundos
+                const tiempoMaximo = 5000;
+                let timeoutId = setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                    showAlert('warning', 'El pago está tardando más de lo esperado');
+                }, tiempoMaximo);
+                
+                // Simular procesamiento de pago
+                setTimeout(() => {
+                    clearTimeout(timeoutId);
+                    showAlert('info', 'Generando la factura...');
+                    
+                    // Restaurar botón brevemente antes de redirigir
+                    setTimeout(() => {
+                        btn.innerHTML = originalHtml;
+                        btn.disabled = false;
+                        // URL CORREGIDA - Eliminar espacios en blanco
+                        window.location.href = `index.php?ctrl=cliente&action=generar_factura&idpedido=${idPedido}`;
+                    }, 2000);
+                }, 2000);
+            });
+        });
 
         function showAlert(type, message) {
             const alertContainer = document.getElementById('alert-container');

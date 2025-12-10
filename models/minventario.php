@@ -3,16 +3,28 @@ require_once __DIR__ . '/conexion.php';
 
 class Minventario {
     /**
-     * Obtener todos los proveedores con productos asociados
+     * Obtener todos los proveedores con productos asociados (con paginación)
      */
-    public function getProveedoresConProductos() {
+    public function getProveedoresConProductos($elementos_por_pagina = null, $offset = 0) {
         try {
+            $limit_clause = '';
+            if ($elementos_por_pagina !== null) {
+                $limit_clause = " LIMIT :limit OFFSET :offset";
+            }
+            
             $sql = "SELECT p.id, p.nombre, p.categoria, p.telefono, p.email, p.direccion, p.notas, p.estado,
                            GROUP_CONCAT(pp.producto_id) AS productos
                     FROM proveedores p
                     LEFT JOIN proveedor_producto pp ON p.id = pp.proveedor_id
-                    GROUP BY p.id";
+                    GROUP BY p.id" . $limit_clause;
+            
             $stmt = $this->db->prepare($sql);
+            
+            if ($elementos_por_pagina !== null) {
+                $stmt->bindParam(':limit', $elementos_por_pagina, PDO::PARAM_INT);
+                $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+            }
+            
             $stmt->execute();
             $proveedores = $stmt->fetchAll(PDO::FETCH_ASSOC);
             // Convertir productos a array
@@ -23,6 +35,21 @@ class Minventario {
         } catch (PDOException $e) {
             error_log('Error al obtener proveedores con productos: ' . $e->getMessage());
             return [];
+        }
+    }
+    
+    /**
+     * Obtener total de proveedores
+     */
+    public function getTotalProveedores() {
+        try {
+            $sql = "SELECT COUNT(*) as total FROM proveedores";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+        } catch (PDOException $e) {
+            error_log('Error al obtener total de proveedores: ' . $e->getMessage());
+            return 0;
         }
     }
     /**
@@ -159,7 +186,48 @@ class Minventario {
                 $params[':buscar'] = '%' . $filtros['buscar'] . '%';
             }
             
+            // Filtro de tipo de producto (perecedero/no perecedero)
+            if (!empty($filtros['tipo_producto'])) {
+                if ($filtros['tipo_producto'] === 'perecedero') {
+                    $where_conditions[] = "COALESCE(t.naturaleza, '') LIKE '%Natural%'";
+                } elseif ($filtros['tipo_producto'] === 'no_perecedero') {
+                    $where_conditions[] = "COALESCE(t.naturaleza, '') NOT LIKE '%Natural%'";
+                }
+            }
+            
             $where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
+            
+            // Configurar ordenamiento
+            $orden_permitido = ['nombre', 'naturaleza', 'stock', 'precio', 'valor_total', 'fecha_caducidad'];
+            $orden_columna = 'i.stock'; // Por defecto
+            $orden_direccion = 'ASC';
+            
+            if (!empty($filtros['orden']) && in_array($filtros['orden'], $orden_permitido)) {
+                switch($filtros['orden']) {
+                    case 'nombre':
+                        $orden_columna = 'COALESCE(t.nombre, CONCAT(\'Producto ID-\', i.idinv))';
+                        break;
+                    case 'naturaleza':
+                        $orden_columna = 'COALESCE(t.naturaleza, \'Sin clasificar\')';
+                        break;
+                    case 'stock':
+                        $orden_columna = 'i.stock';
+                        break;
+                    case 'precio':
+                        $orden_columna = 'i.precio';
+                        break;
+                    case 'valor_total':
+                        $orden_columna = '(i.stock * i.precio)';
+                        break;
+                    case 'fecha_caducidad':
+                        $orden_columna = 'i.fecha_actualizacion';
+                        break;
+                }
+            }
+            
+            if (!empty($filtros['direccion']) && in_array(strtoupper($filtros['direccion']), ['ASC', 'DESC'])) {
+                $orden_direccion = strtoupper($filtros['direccion']);
+            }
             
             // Consulta mejorada con LEFT JOIN para mostrar todos los productos del inventario
             $sql_inventario = "
@@ -168,6 +236,11 @@ class Minventario {
                     COALESCE(t.nombre, CONCAT('Producto ID-', i.idinv)) as producto,
                     i.stock,
                     i.precio,
+                    i.precio_compra,
+                    ROUND(i.precio - i.precio_compra, 2) as margen_unitario,
+                    ROUND((i.precio - i.precio_compra) * i.stock, 2) as ganancia_potencial,
+                    ROUND(i.precio_compra * i.stock, 2) as inversion_total,
+                    ROUND(i.precio * i.stock, 2) as ingresos_potenciales,
                     COALESCE(t.naturaleza, 'Sin clasificar') as naturaleza,
                     COALESCE(t.color, 'Sin especificar') as color,
                     COALESCE(i.alimentacion, 'N/A') as categoria_producto,
@@ -181,7 +254,7 @@ class Minventario {
                 FROM inv i
                 LEFT JOIN tflor t ON i.tflor_idtflor = t.idtflor
                 {$where_clause}
-                ORDER BY i.stock ASC, i.idinv ASC
+                ORDER BY {$orden_columna} {$orden_direccion}, i.idinv ASC
                 LIMIT :limit OFFSET :offset
             ";
             
@@ -212,6 +285,15 @@ class Minventario {
         try {
             $where_conditions = [];
             $params = [];
+            
+            // Filtro por tipo de producto (perecedero/no_perecedero)
+            if (!empty($filtros['tipo_producto'])) {
+                if ($filtros['tipo_producto'] === 'perecedero') {
+                    $where_conditions[] = "COALESCE(t.naturaleza, 'Sin clasificar') = 'Natural'";
+                } elseif ($filtros['tipo_producto'] === 'no_perecedero') {
+                    $where_conditions[] = "COALESCE(t.naturaleza, 'Sin clasificar') != 'Natural'";
+                }
+            }
             
             // Aplicar mismos filtros que en getInventarioPaginado
             if (!empty($filtros['categoria'])) {
@@ -323,6 +405,28 @@ class Minventario {
             
             $tflor_id = null;
             
+            // VALIDACIÓN ANTI-DUPLICADOS: Verificar si ya existe un producto con el mismo nombre
+            $sql_check_nombre = "SELECT i.idinv, t.nombre, i.stock, t.idtflor 
+                                FROM inv i
+                                INNER JOIN tflor t ON i.tflor_idtflor = t.idtflor
+                                WHERE LOWER(TRIM(t.nombre)) = LOWER(TRIM(:nombre_producto))";
+            $stmt_check = $this->db->prepare($sql_check_nombre);
+            $stmt_check->bindValue(':nombre_producto', $data['nombre_producto']);
+            $stmt_check->execute();
+            $producto_existente = $stmt_check->fetch(PDO::FETCH_ASSOC);
+            
+            if ($producto_existente) {
+                $this->db->rollBack();
+                // Retornar información del producto existente para que el controlador lo maneje
+                throw new Exception(json_encode([
+                    'tipo' => 'producto_duplicado',
+                    'mensaje' => 'Ya existe un producto con el nombre "' . $data['nombre_producto'] . '"',
+                    'producto_id' => $producto_existente['idinv'],
+                    'producto_nombre' => $producto_existente['nombre'],
+                    'stock_actual' => $producto_existente['stock']
+                ]));
+            }
+            
             // Si se seleccionó una flor existente
             if (!empty($data['tflor_idtflor'])) {
                 $tflor_id = $data['tflor_idtflor'];
@@ -362,12 +466,13 @@ class Minventario {
             $alimentacion = $this->determinarAlimentacion($data['tipo_producto'] ?? 'otro');
             
             // Insertar producto en inventario
-            $sql_inventario = "INSERT INTO inv (tflor_idtflor, stock, precio, alimentacion, fecha_actualizacion, empleado_id, motivo, cantidad_disponible) 
-                              VALUES (:tflor_id, :stock, :precio, :alimentacion, NOW(), :empleado_id, :motivo, :stock)";
+            $sql_inventario = "INSERT INTO inv (tflor_idtflor, stock, precio, precio_compra, alimentacion, fecha_actualizacion, empleado_id, motivo, cantidad_disponible) 
+                              VALUES (:tflor_id, :stock, :precio, :precio_compra, :alimentacion, NOW(), :empleado_id, :motivo, :stock)";
             $stmt_inventario = $this->db->prepare($sql_inventario);
             $stmt_inventario->bindParam(':tflor_id', $tflor_id, PDO::PARAM_INT);
             $stmt_inventario->bindParam(':stock', $data['stock'], PDO::PARAM_INT);
             $stmt_inventario->bindParam(':precio', $data['precio']);
+            $stmt_inventario->bindParam(':precio_compra', $data['precio_compra']);
             $stmt_inventario->bindParam(':alimentacion', $alimentacion);
             $stmt_inventario->bindValue(':empleado_id', $_SESSION['user']['idusu'] ?? null, PDO::PARAM_INT);
             $stmt_inventario->bindValue(':motivo', 'Producto nuevo agregado al inventario');
@@ -697,14 +802,22 @@ class Minventario {
      */
     public function editarProveedor($data) {
         try {
+            // LOG TEMPORAL PARA DEBUG
+            error_log('=== MODELO editarProveedor ===');
+            error_log('Data recibida: ' . print_r($data, true));
+            
             // Validar datos
             if (empty($data['proveedor_id'])) {
+                error_log('ERROR: ID de proveedor vacío');
                 return ['success' => false, 'message' => 'ID de proveedor requerido'];
             }
             
             if (empty($data['nombre_proveedor']) || empty($data['categoria_proveedor'])) {
+                error_log('ERROR: Nombre o categoría vacíos');
                 return ['success' => false, 'message' => 'Nombre y categoría son obligatorios'];
             }
+            
+            error_log('Validación OK. Ejecutando UPDATE...');
             
             // Actualizar proveedor
             $sql_update = "UPDATE proveedores SET 
@@ -727,14 +840,27 @@ class Minventario {
             $stmt->bindParam(':estado', $data['estado_proveedor']);
             $stmt->bindParam(':id', $data['proveedor_id'], PDO::PARAM_INT);
             
-            if ($stmt->execute()) {
-                return ['success' => true, 'message' => 'Proveedor actualizado correctamente'];
+            $execute_result = $stmt->execute();
+            $rows_affected = $stmt->rowCount();
+            
+            error_log('Execute result: ' . ($execute_result ? 'TRUE' : 'FALSE'));
+            error_log('Rows affected: ' . $rows_affected);
+            
+            if ($execute_result) {
+                if ($rows_affected > 0) {
+                    error_log('✅ UPDATE exitoso - ' . $rows_affected . ' fila(s) actualizada(s)');
+                    return ['success' => true, 'message' => 'Proveedor actualizado correctamente'];
+                } else {
+                    error_log('⚠️ UPDATE ejecutado pero sin cambios (datos idénticos o ID no existe)');
+                    return ['success' => true, 'message' => 'No hubo cambios (datos idénticos)'];
+                }
             } else {
+                error_log('❌ Error en execute()');
                 return ['success' => false, 'message' => 'Error al actualizar el proveedor'];
             }
             
         } catch (PDOException $e) {
-            error_log('Error al editar proveedor: ' . $e->getMessage());
+            error_log('❌ PDOException: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Error de base de datos: ' . $e->getMessage()];
         }
     }
@@ -890,12 +1016,14 @@ class Minventario {
             $sql_update_inv = "UPDATE inv SET 
                               stock = :stock,
                               precio = :precio,
+                              precio_compra = :precio_compra,
                               fecha_actualizacion = NOW()
                               WHERE idinv = :producto_id";
             
             $stmt_inv = $this->db->prepare($sql_update_inv);
             $stmt_inv->bindParam(':stock', $data['stock'], PDO::PARAM_INT);
             $stmt_inv->bindParam(':precio', $data['precio']);
+            $stmt_inv->bindParam(':precio_compra', $data['precio_compra']);
             $stmt_inv->bindParam(':producto_id', $data['producto_id'], PDO::PARAM_INT);
             
             if ($stmt_inv->execute()) {
