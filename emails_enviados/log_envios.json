@@ -1,0 +1,11 @@
+[
+    {
+        "fecha": "2025-12-10 15:08:12",
+        "pedido": "PED-20250811175737-8",
+        "cliente": "Jorge Luis Puentes Brochero",
+        "email": "jorgepb2007@gmail.com",
+        "total": "10000.00",
+        "error": "Usando m\u00e9todo manual",
+        "pdf_guardado": "factura_PED-20250811175737-8_20251210_150812.pdf"
+    }
+]
