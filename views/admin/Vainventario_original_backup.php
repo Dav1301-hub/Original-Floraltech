@@ -1,16 +1,11 @@
 <!-- FontAwesome 6.5.2 CDN -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-+Cf+8J2k6U5zQ6QwQ6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-<!-- Bootstrap 5 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
     /* Responsive para Inventario Admin */
-    * {
-        box-sizing: border-box;
-    }
-    
-    html, body {
-        overflow-x: hidden;
-        width: 100%;
+    body {
+        overflow-x: hidden !important;
+        width: 100vw;
+        max-width: 100vw;
         margin: 0;
         padding: 0;
     }
@@ -20,11 +15,10 @@
         margin: 0 !important;
         width: 100% !important;
         max-width: 100% !important;
-        overflow-x: hidden;
     }
     
     main.container-fluid {
-        padding: 1.5rem 1rem !important;
+        padding: 2rem 2.5rem !important;
     }
     
     /* Asegurar que las cards y tablas tengan espacio */
@@ -197,102 +191,6 @@
     
     .sortable:hover i {
         opacity: 1;
-    }
-    
-    /* Columna de acciones - solución para botones cortados */
-    .table-responsive {
-        overflow-x: auto !important;
-        overflow-y: visible;
-        width: 100%;
-        box-sizing: border-box;
-        -webkit-overflow-scrolling: touch;
-    }
-    
-    .table {
-        width: 100%;
-        table-layout: auto;
-        font-size: 0.65rem;
-        margin-bottom: 0;
-        min-width: 100%;
-    }
-    
-    .table th {
-        font-size: 0.6rem;
-        padding: 0.25rem 0.15rem !important;
-    }
-    
-    .table td {
-        padding: 0.25rem 0.15rem !important;
-        white-space: nowrap;
-        font-size: 0.65rem;
-    }
-    
-    /* Columna de acciones - fijar ancho y mostrar botones */
-    .table td:last-child,
-    .table th:last-child {
-        white-space: normal !important;
-        padding: 0.25rem 0.1rem !important;
-        min-width: 100px;
-        position: sticky;
-        right: 0;
-        background-color: #fff;
-    }
-    
-    /* Botones en columna de acciones - muy compactos */
-    .table .btn-group,
-    .table .btn-group-sm {
-        display: flex !important;
-        flex-wrap: wrap;
-        gap: 0.05rem;
-        width: 100%;
-    }
-    
-    .table .btn {
-        padding: 0.15rem 0.25rem;
-        font-size: 0.55rem;
-        flex: 0 1 auto;
-        min-width: auto;
-        white-space: nowrap;
-        line-height: 1;
-        border: 0.5px solid;
-    }
-    
-    .table .btn i,
-    .table .btn .fa {
-        margin-right: 0 !important;
-        font-size: 0.5rem;
-    }
-    
-    /* Badges más pequeños */
-    .table .badge {
-        padding: 0.15rem 0.25rem;
-        font-size: 0.5rem;
-    }
-    
-    /* Reducir espacios en filas */
-    .table tbody tr {
-        height: auto;
-    }
-    
-    /* En tablets */
-    @media (max-width: 992px) {
-        .table {
-            font-size: 0.6rem;
-        }
-        
-        .table th {
-            font-size: 0.55rem;
-        }
-        
-        .table th,
-        .table td {
-            padding: 0.2rem 0.1rem !important;
-        }
-        
-        .table .btn {
-            padding: 0.1rem 0.2rem;
-            font-size: 0.5rem;
-        }
     }
 </style>
 <!-- Gestión de Inventario - Vista -->

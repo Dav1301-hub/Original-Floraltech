@@ -1,10 +1,50 @@
 <?php
-require_once dirname(__DIR__) . '/vendor/autoload.php';
 require_once __DIR__ . '/../models/mreportes.php';
 
-use Mpdf\Mpdf;
+// Seleccionar motor PDF disponible (mPDF si existe, FPDF si no)
+$mpdfPath = dirname(__DIR__) . '/vendor/autoload.php';
+$fpdfPath = __DIR__ . '/../libs/FPDF/fpdf.php';
+$pdfEngine = file_exists($mpdfPath) ? 'mpdf' : (file_exists($fpdfPath) ? 'fpdf' : null);
+
+if ($pdfEngine === 'mpdf') {
+    require_once $mpdfPath;
+} elseif ($pdfEngine === 'fpdf') {
+    require_once $fpdfPath;
+}
 
 $mreportes = new Mreportes();
+
+/**
+ * Fallback sencillo con FPDF si no hay vendor/autoload.
+ */
+function renderWithFPDF($titulo, $headers, $rows, $fileName) {
+    $pdf = new FPDF('L', 'mm', 'A4');
+    $pdf->AddPage();
+    $pdf->SetFont('Arial', 'B', 16);
+    $pdf->Cell(0, 10, utf8_decode($titulo), 0, 1, 'C');
+    $pdf->SetFont('Arial', '', 10);
+    $pdf->Cell(0, 7, 'Generado: ' . date('d/m/Y H:i:s'), 0, 1, 'R');
+    // Headers
+    $pdf->SetFont('Arial', 'B', 9);
+    foreach ($headers as $h) {
+        $pdf->Cell(277 / max(1, count($headers)), 8, utf8_decode($h), 1, 0, 'C');
+    }
+    $pdf->Ln();
+    // Rows
+    $pdf->SetFont('Arial', '', 8);
+    if (empty($rows)) {
+        $pdf->Cell(277, 8, 'Sin datos para exportar', 1, 1, 'C');
+    } else {
+        foreach ($rows as $row) {
+            foreach ($row as $cell) {
+                $pdf->Cell(277 / max(1, count($headers)), 7, utf8_decode($cell), 1, 0, 'C');
+            }
+            $pdf->Ln();
+        }
+    }
+    $pdf->Output('D', $fileName);
+    exit;
+}
 
 // Estilos base para todos los reportes
 $baseCss = '
@@ -36,6 +76,23 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'usuarios_pdf') {
     $usuariosSeleccionados = array_filter($usuarios, fn($u) => in_array((string)$u['idusu'], $ids, true));
 
     $totalActivos = count(array_filter($usuariosSeleccionados, fn($u) => $u['activo']));
+
+    if ($pdfEngine === 'fpdf') {
+        $headers = ['ID', 'Usuario', 'Nombre', 'Tipo', 'Telefono', 'Email', 'Activo'];
+        $rows = [];
+        foreach ($usuariosSeleccionados as $u) {
+            $rows[] = [
+                $u['idusu'] ?? '',
+                $u['username'] ?? '',
+                $u['nombre_completo'] ?? '',
+                $u['tipo_usuario'] ?? '',
+                $u['telefono'] ?? '',
+                $u['email'] ?? '',
+                ($u['activo'] ? 'Si' : 'No')
+            ];
+        }
+        renderWithFPDF('Reporte de Usuarios', $headers, $rows, 'Usuarios_Seleccionados.pdf');
+    }
 
     $html = $baseCss;
     $html .= '<h1>Reporte de Usuarios Seleccionados</h1>';
@@ -80,7 +137,7 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'usuarios_pdf') {
     $html .= '</tbody></table>';
 
     ob_clean();
-    $mpdf = new Mpdf();
+    $mpdf = new \Mpdf\Mpdf();
     $mpdf->WriteHTML($html);
     $mpdf->Output('Usuarios_Seleccionados.pdf', \Mpdf\Output\Destination::DOWNLOAD);
     exit;
@@ -92,10 +149,29 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'usuarios_pdf') {
 if (isset($_POST['accion']) && $_POST['accion'] === 'flores_pdf') {
     $ids = array_filter(explode(',', $_POST['ids'] ?? ''));
     $flores = $mreportes->getAllInventario();
-    $floresSeleccionadas = array_filter($flores, fn($f) => in_array((string)$f['idtflor'], $ids, true));
+    $floresSeleccionadas = array_filter($flores, fn($f) => in_array((string)$f['idinv'], $ids, true));
 
     $totalStock = array_sum(array_column($floresSeleccionadas, 'stock'));
     $totalValor = array_sum(array_column($floresSeleccionadas, 'valor_total'));
+
+    if ($pdfEngine === 'fpdf') {
+        $headers = ['ID Prod','Categoría','Producto','Naturaleza','Color','Stock','P. Unit','Valor','Estado'];
+        $rows = [];
+        foreach ($floresSeleccionadas as $f) {
+            $rows[] = [
+                $f['idinv'] ?? '',
+                $f['categoria'] ?? '',
+                $f['producto'] ?? '',
+                $f['naturaleza'] ?? '',
+                $f['color'] ?? '',
+                $f['stock'] ?? 0,
+                number_format($f['precio_unitario'] ?? 0, 2),
+                number_format($f['valor_total'] ?? 0, 2),
+                $f['estado'] ?? ''
+            ];
+        }
+        renderWithFPDF('Inventario de Flores', $headers, $rows, 'Inventario_Flores.pdf');
+    }
 
     $html = $baseCss;
     $html .= '<h1>Reporte de Inventario de Flores</h1>';
@@ -106,7 +182,8 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'flores_pdf') {
     <table>
         <thead>
             <tr>
-                <th>ID Flor</th>
+                <th>ID Prod</th>
+                <th>Categoría</th>
                 <th>Producto</th>
                 <th>Naturaleza</th>
                 <th>Color</th>
@@ -122,7 +199,8 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'flores_pdf') {
         foreach ($floresSeleccionadas as $f) {
             $html .= '
             <tr>
-                <td>' . htmlspecialchars($f['idtflor']) . '</td>
+                <td>' . htmlspecialchars($f['idinv']) . '</td>
+                <td>' . htmlspecialchars($f['categoria'] ?? 'Sin categoría') . '</td>
                 <td>' . htmlspecialchars($f['producto']) . '</td>
                 <td>' . htmlspecialchars($f['naturaleza']) . '</td>
                 <td>' . htmlspecialchars($f['color']) . '</td>
@@ -134,20 +212,20 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'flores_pdf') {
         }
         $html .= '
         <tr class="totales">
-            <td colspan="4" style="text-align:right;">Totales:</td>
+            <td colspan="5" style="text-align:right;">Totales:</td>
             <td>' . $totalStock . '</td>
             <td></td>
             <td>$' . number_format($totalValor, 2) . '</td>
             <td></td>
         </tr>';
     } else {
-        $html .= '<tr><td colspan="8">No se encontraron flores seleccionadas</td></tr>';
+        $html .= '<tr><td colspan="9">No se encontraron flores seleccionadas</td></tr>';
     }
 
     $html .= '</tbody></table>';
 
     ob_clean();
-    $mpdf = new Mpdf();
+    $mpdf = new \Mpdf\Mpdf();
     $mpdf->WriteHTML($html);
     $mpdf->Output('Inventario_Flores.pdf', \Mpdf\Output\Destination::DOWNLOAD);
     exit;
@@ -164,6 +242,25 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'pagos_pdf') {
     $totalMonto = array_sum(array_column($pagosSeleccionados, 'monto'));
     $completados = count(array_filter($pagosSeleccionados, fn($p) => strtolower($p['estado_pag']) === 'completado'));
     $pendientes = count(array_filter($pagosSeleccionados, fn($p) => strtolower($p['estado_pag']) === 'pendiente'));
+
+    if ($pdfEngine === 'fpdf') {
+        $headers = ['ID','Fecha','Metodo','Monto','Estado','Pedido','Cliente','Transaccion','Comprobante'];
+        $rows = [];
+        foreach ($pagosSeleccionados as $pago) {
+            $rows[] = [
+                $pago['idpago'] ?? '',
+                !empty($pago['fecha_pago']) ? date('d/m/Y', strtotime($pago['fecha_pago'])) : '',
+                $pago['metodo_pago'] ?? '',
+                number_format((float)($pago['monto'] ?? 0), 2),
+                $pago['estado_pag'] ?? '',
+                $pago['numped'] ?? '-',
+                $pago['cliente'] ?? '-',
+                $pago['transaccion_id'] ?? '',
+                !empty($pago['comprobante_transferencia']) ? $pago['comprobante_transferencia'] : 'Sin comprobante'
+            ];
+        }
+        renderWithFPDF('Pagos Seleccionados', $headers, $rows, 'Pagos_Seleccionados.pdf');
+    }
 
     $html = $baseCss;
     $html .= '<h1>Reporte de Pagos Seleccionados</h1>';
@@ -217,7 +314,7 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'pagos_pdf') {
     $html .= '</tbody></table>';
 
     ob_clean();
-    $mpdf = new Mpdf();
+    $mpdf = new \Mpdf\Mpdf();
     $mpdf->WriteHTML($html);
     $mpdf->Output('Pagos_Seleccionados.pdf', \Mpdf\Output\Destination::DOWNLOAD);
     exit;
@@ -283,7 +380,30 @@ if (!empty($pedidosSeleccionados)) {
 $html .= '</tbody></table>';
 
 ob_clean();
-$mpdf = new Mpdf();
-$mpdf->WriteHTML($html);
-$mpdf->Output('Pedidos_Seleccionados.pdf', \Mpdf\Output\Destination::DOWNLOAD);
-exit;
+if ($pdfEngine === 'fpdf') {
+    $headers = ['ID','Numero','Fecha','Entrega','Monto','Cliente','Estado','Empleado'];
+    $rows = [];
+    foreach ($pedidosSeleccionados as $pedido) {
+        $rows[] = [
+            $pedido['idped'] ?? '',
+            $pedido['numped'] ?? '',
+            !empty($pedido['fecha_pedido']) ? date('d/m/Y', strtotime($pedido['fecha_pedido'])) : '',
+            !empty($pedido['fecha_entrega_solicitada']) ? date('d/m/Y', strtotime($pedido['fecha_entrega_solicitada'])) : 'Sin fecha',
+            number_format($pedido['monto_total'] ?? 0, 2),
+            $pedido['cli_idcli'] ?? '',
+            $pedido['estado'] ?? '',
+            $pedido['empleado_id'] ?? ''
+        ];
+    }
+    renderWithFPDF('Pedidos Seleccionados', $headers, $rows, 'Pedidos_Seleccionados.pdf');
+} elseif ($pdfEngine === 'mpdf') {
+    $mpdf = new \Mpdf\Mpdf();
+    $mpdf->WriteHTML($html);
+    $mpdf->Output('Pedidos_Seleccionados.pdf', \Mpdf\Output\Destination::DOWNLOAD);
+    exit;
+} else {
+    header('Content-Type: text/plain; charset=utf-8');
+    http_response_code(500);
+    echo "No se encontró motor PDF. Instala mpdf/mpdf con Composer o coloca libs/FPDF/fpdf.php.";
+    exit;
+}

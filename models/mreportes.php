@@ -252,18 +252,19 @@ class Mreportes{
         $this->comprobante_transferencia = $comprobante_transferencia;
     }
 
-    public function getAll() {
-    try {
-        $sql = "SELECT idped, numped, fecha_pedido, monto_total, cli_idcli, estado, empleado_id, notas, direccion_entrega, fecha_entrega_solicitada  FROM ped";
-        $modelo = new conexion();
-        $conexion = $modelo->get_conexion();
-        $res = $conexion->prepare($sql);
-        $res->execute();
-        return $res->fetchAll(PDO::FETCH_ASSOC);
-    } catch(Exception $e) {
-        echo "Error: " . $e->getMessage();
+public function getAll() {
+        try {
+            $sql = "SELECT idped, numped, fecha_pedido, monto_total, cli_idcli, estado, empleado_id, notas, direccion_entrega, fecha_entrega_solicitada  FROM ped";
+            $modelo = new conexion();
+            $conexion = $modelo->get_conexion();
+            $res = $conexion->prepare($sql);
+            $res->execute();
+            return $res->fetchAll(PDO::FETCH_ASSOC);
+        } catch(Exception $e) {
+            error_log("Mreportes getAll: " . $e->getMessage());
+            return [];
+        }
     }
-}
 
 public function getAllusu($tipo = null) {
     try {
@@ -286,27 +287,58 @@ public function getAllusu($tipo = null) {
         $res->execute();
         return $res->fetchAll(PDO::FETCH_ASSOC);
     } catch(Exception $e) {
-        echo 'Error: ' . $e->getMessage();
+        error_log('Mreportes getAllusu: ' . $e->getMessage());
+        return [];
+        }
     }
-}
+
+    public function getClientes() {
+        try {
+            $sql = "SELECT idcli, nombre, telefono, email, direccion FROM cli";
+            $modelo = new conexion();
+            $conexion = $modelo->get_conexion();
+            $res = $conexion->prepare($sql);
+            $res->execute();
+            return $res->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log('Mreportes getClientes: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function getAllUsuariosCombinados() {
+        $usuarios = $this->getAllusu();
+        $clientes = $this->getClientes();
+
+        foreach ($clientes as $cli) {
+            $usuarios[] = [
+                'idusu' => 'cli-' . $cli['idcli'],
+                'username' => 'cliente_' . $cli['idcli'],
+                'nombre_completo' => $cli['nombre'] ?? 'Cliente ' . $cli['idcli'],
+                'telefono' => $cli['telefono'] ?? '',
+                'email' => $cli['email'] ?? '',
+                'tipo_usuario' => 'Cliente',
+                'activo' => 1
+            ];
+        }
+
+        return $usuarios;
+    }
 
 public function getAllInventario() {
     try {
         $sql = "SELECT 
-            f.idtflor,
-            f.nombre AS producto,
-            f.naturaleza,
-            f.color,
-            COALESCE(i.cantidad_disponible, i.stock, 0) AS stock,
-            CASE 
-                WHEN COALESCE(i.cantidad_disponible, i.stock, 0) > 0 THEN 'Disponible'
-                ELSE 'Agotado'
-            END AS estado,
-            f.precio AS precio_unitario,
-            COALESCE(i.cantidad_disponible, i.stock, 0) * f.precio AS valor_total
-        FROM tflor f
-        LEFT JOIN inv i ON f.idtflor = i.tflor_idtflor
-        ";
+            i.idinv,
+            t.nombre AS producto,
+            t.nombre AS categoria,
+            t.naturaleza,
+            t.color,
+            i.stock,
+            CASE WHEN i.stock > 0 THEN 'Disponible' ELSE 'Agotado' END AS estado,
+            i.precio AS precio_unitario,
+            (i.stock * i.precio) AS valor_total
+        FROM inv i
+        LEFT JOIN tflor t ON i.tflor_idtflor = t.idtflor";
         
         $modelo = new conexion();
         $conexion = $modelo->get_conexion();
@@ -315,7 +347,8 @@ public function getAllInventario() {
 
         return $res->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
-        echo "Error: " . $e->getMessage();
+        error_log("Mreportes getAllInventario: " . $e->getMessage());
+        return [];
     }
 }
 
@@ -341,7 +374,8 @@ public function getAllPagos() {
         $res->execute();
         return $res->fetchAll(PDO::FETCH_ASSOC);
     } catch(Exception $e) {
-        echo "Error: " . $e->getMessage();
+        error_log("Mreportes getAllPagos: " . $e->getMessage());
+        return [];
     }
 }
 
