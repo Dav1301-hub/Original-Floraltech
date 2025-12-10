@@ -96,6 +96,10 @@ class ReportesController {
             $color = strtolower($params['color']);
             $filtered = array_filter($filtered, fn($f) => strtolower($f['color']) === $color);
         }
+        if (!empty($params['categoria'])) {
+            $cat = strtolower($params['categoria']);
+            $filtered = array_filter($filtered, fn($f) => strtolower($f['categoria'] ?? '') === $cat);
+        }
         return $filtered;
     }
 

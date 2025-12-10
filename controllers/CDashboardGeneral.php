@@ -14,9 +14,16 @@ class CDashboardGeneral {
         $tendencias = $this->modelo->getTendencias();
         $actividadReciente = $this->modelo->getActividadReciente();
         $resumenPedidosMes = $this->modelo->getResumenPedidosMes();
+        $entregasProximas = $this->modelo->getEntregasProximas();
+        $tendenciaVentas = $this->modelo->getTendenciaVentas(14);
+        $topProductos = $this->modelo->getTopProductos(5, 30);
+        
         return array_merge($kpis, $tendencias, [
             'actividadReciente' => $actividadReciente,
-            'resumenPedidosMes' => $resumenPedidosMes
+            'resumenPedidosMes' => $resumenPedidosMes,
+            'entregasProximas' => $entregasProximas,
+            'tendenciaVentas' => $tendenciaVentas,
+            'topProductos' => $topProductos
         ]);
     }
 

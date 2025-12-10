@@ -260,7 +260,7 @@ class Cinventario {
     private function cargarEstadisticas() {
         try {
             if ($this->inventarioModel) {
-                $estadisticas = $this->inventarioModel->getEstadisticasInventario();
+                $estadisticas = $this->inventarioModel->obtenerEstadisticas();
                 if (is_array($estadisticas)) {
                     $this->total_productos = $estadisticas['total_productos'] ?? 0;
                     $this->stock_bajo = $estadisticas['stock_bajo'] ?? 0;
