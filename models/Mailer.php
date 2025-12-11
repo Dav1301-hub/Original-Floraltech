@@ -1,55 +1,75 @@
 <?php
 /**
  * Clase Mailer para envío de emails
- * Usa función mail() de PHP con configuración de email_config.php
+ * Usa PHPMailer con configuración SMTP desde email_config.php
  */
+
+require_once __DIR__ . '/../vendor/phpmailer/phpmailer/src/Exception.php';
+require_once __DIR__ . '/../vendor/phpmailer/phpmailer/src/PHPMailer.php';
+require_once __DIR__ . '/../vendor/phpmailer/phpmailer/src/SMTP.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 class Mailer {
     private $from_email;
     private $from_name;
+    private $host;
+    private $port;
+    private $username;
+    private $password;
+    private $encryption;
     
     public function __construct() {
         // Cargar configuración
         if (file_exists(__DIR__ . '/../config/email_config.php')) {
-            if (!defined('MAIL_FROM_EMAIL')) {
-                require_once __DIR__ . '/../config/email_config.php';
-            }
-            $this->from_email = MAIL_FROM_EMAIL ?? 'epymes270@gmail.com';
-            $this->from_name = MAIL_FROM_NAME ?? 'FloralTech Soporte';
-        } else {
-            $this->from_email = 'epymes270@gmail.com';
-            $this->from_name = 'FloralTech Soporte';
+            require_once __DIR__ . '/../config/email_config.php';
         }
+        
+        $this->from_email = MAIL_FROM_EMAIL ?? 'soporte@floraltech.com';
+        $this->from_name = MAIL_FROM_NAME ?? 'FloralTech Soporte';
+        $this->host = MAIL_HOST ?? 'smtp.gmail.com';
+        $this->port = MAIL_PORT ?? 587;
+        $this->username = MAIL_USERNAME ?? '';
+        $this->password = MAIL_PASSWORD ?? '';
+        $this->encryption = MAIL_ENCRYPTION ?? 'tls';
     }
     
     /**
-     * Enviar email usando la función mail() de PHP
+     * Enviar email usando PHPMailer con SMTP
      */
     public function sendEmail($to, $subject, $body, $isHtml = false) {
         try {
-            $headers = "From: {$this->from_name} <{$this->from_email}>\r\n";
-            $headers .= "Reply-To: {$this->from_email}\r\n";
+            $mail = new PHPMailer(true);
             
-            if ($isHtml) {
-                $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-            } else {
-                $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-            }
+            // Configuración del servidor SMTP
+            $mail->isSMTP();
+            $mail->Host = $this->host;
+            $mail->Port = $this->port;
+            $mail->SMTPAuth = true;
+            $mail->Username = $this->username;
+            $mail->Password = $this->password;
+            $mail->SMTPSecure = $this->encryption === 'ssl' ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
             
-            $headers .= "X-Mailer: FloralTech\r\n";
+            // Remitente
+            $mail->setFrom($this->from_email, $this->from_name);
             
-            // Intentar enviar el email
-            $result = mail($to, $subject, $body, $headers);
+            // Destinatario
+            $mail->addAddress($to);
             
-            if (!$result) {
-                throw new Exception("Error al enviar email a través de mail()");
-            }
+            // Contenido
+            $mail->isHTML($isHtml);
+            $mail->Subject = $subject;
+            $mail->Body = $body;
+            
+            // Enviar
+            $result = $mail->send();
             
             return true;
             
         } catch (Exception $e) {
             error_log("Error enviando email: " . $e->getMessage());
-            throw $e;
+            throw new Exception("Error al enviar email: " . $e->getMessage());
         }
     }
     
@@ -116,4 +136,5 @@ class Mailer {
         return $this->sendEmail($to, $subject, $html, true);
     }
 }
+?>
 ?>
