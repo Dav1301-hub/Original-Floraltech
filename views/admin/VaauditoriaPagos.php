@@ -55,9 +55,6 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                 <button class="nav-link active w-100 w-md-auto" data-bs-toggle="tab" data-bs-target="#tab-resumen">Resumen</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link w-100 w-md-auto" data-bs-toggle="tab" data-bs-target="#tab-actividad">Actividad</button>
-            </li>
-            <li class="nav-item">
                 <button class="nav-link w-100 w-md-auto" data-bs-toggle="tab" data-bs-target="#tab-proyecciones">Proyecciones</button>
             </li>
         </ul>
