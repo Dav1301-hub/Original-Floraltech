@@ -161,6 +161,14 @@ class Cpedido {
     }
 
     /**
+     * Actualiza el monto_total de un pedido.
+     */
+    public function actualizarMontoTotalPedido($idPedido, $montoTotal) {
+        $stmt = $this->db->prepare("UPDATE ped SET monto_total = :monto WHERE idped = :id");
+        return $stmt->execute([':monto' => $montoTotal, ':id' => $idPedido]);
+    }
+
+    /**
      * Lista empleados activos (roles distintos a cliente).
      */
     public function listarEmpleadosActivos() {
@@ -580,6 +588,7 @@ if (php_sapi_name() !== 'cli' && basename(__FILE__) === basename($_SERVER['SCRIP
                 
                 // Procesar productos si se proporcionan
                 $items = [];
+                $totalItems = 0;
                 if (!empty($_POST['producto_id']) && is_array($_POST['producto_id'])) {
                     $productos = $_POST['producto_id'];
                     $cantidades = $_POST['cantidad'] ?? [];
@@ -590,6 +599,7 @@ if (php_sapi_name() !== 'cli' && basename(__FILE__) === basename($_SERVER['SCRIP
                         $precioU = isset($precios[$idx]) ? (float)$precios[$idx] : 0;
                         if ($prodId > 0 && $cant > 0 && $precioU > 0) {
                             $items[] = ['id' => $prodId, 'cantidad' => $cant, 'precio_unitario' => $precioU];
+                            $totalItems += $cant * $precioU;
                         }
                     }
                 }
@@ -604,6 +614,8 @@ if (php_sapi_name() !== 'cli' && basename(__FILE__) === basename($_SERVER['SCRIP
                         try {
                             $controller->eliminarDetallesPedido($id);
                             $controller->agregarDetallesPedido($id, $items);
+                            // Actualizar monto_total con la suma de los items
+                            $controller->actualizarMontoTotalPedido($id, $totalItems);
                             $controller->commitTx();
                         } catch (Exception $e) {
                             $controller->rollbackTx();
