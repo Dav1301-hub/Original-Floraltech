@@ -61,7 +61,7 @@ $total_empleados = count($empleados);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/Original-Floraltechx/assets/dgemp.css">
+    <link rel="stylesheet" href="/Original-Floraltech/assets/dgemp.css">
 </head>
 <body>
     <div class="container-fluid py-4">
@@ -180,8 +180,8 @@ $total_empleados = count($empleados);
                                                 </td>
                                                 <td><?= date('d/m/Y', strtotime($emp['fecha_registro'])) ?></td>
                                                 <td class="text-center">
-                                                    <button class="btn btn-sm btn-outline-primary" onclick="alert('Editar empleado')"><i class="fas fa-edit"></i></button>
-                                                    <button class="btn btn-sm btn-outline-danger" onclick="alert('Eliminar empleado')"><i class="fas fa-trash"></i></button>
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="editarEmpleado(<?= $emp['idusu'] ?>)" title="Editar"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarEmpleado(<?= $emp['idusu'] ?>)" title="Eliminar"><i class="fas fa-trash"></i></button>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -202,7 +202,7 @@ $total_empleados = count($empleados);
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-white border-0 d-flex justify-content-between">
                         <h5 class="mb-0">Gestión de Permisos</h5>
-                        <button class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Nuevo Permiso</button>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoPermisoModal"><i class="fas fa-plus me-1"></i>Nuevo Permiso</button>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -238,8 +238,8 @@ $total_empleados = count($empleados);
                                                     <span class="badge <?= $badge ?>"><?= htmlspecialchars($perm['estado']) ?></span>
                                                 </td>
                                                 <td class="text-center">
-                                                    <button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button>
-                                                    <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="editarPermiso(<?= $perm['idpermiso'] ?>)" title="Editar"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarPermiso(<?= $perm['idpermiso'] ?>)" title="Eliminar"><i class="fas fa-trash"></i></button>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -260,7 +260,7 @@ $total_empleados = count($empleados);
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-white border-0 d-flex justify-content-between">
                         <h5 class="mb-0">Gestión de Turnos</h5>
-                        <button class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Nuevo Turno</button>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoTurnoModal"><i class="fas fa-plus me-1"></i>Nuevo Turno</button>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -285,8 +285,8 @@ $total_empleados = count($empleados);
                                                 <td><?= date('d/m/Y', strtotime($turno['fecha_fin'])) ?></td>
                                                 <td><?= htmlspecialchars($turno['horario']) ?></td>
                                                 <td class="text-center">
-                                                    <button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button>
-                                                    <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="editarTurno(<?= $turno['idturno'] ?>)" title="Editar"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarTurno(<?= $turno['idturno'] ?>)" title="Eliminar"><i class="fas fa-trash"></i></button>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -307,7 +307,7 @@ $total_empleados = count($empleados);
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-white border-0 d-flex justify-content-between">
                         <h5 class="mb-0">Gestión de Vacaciones</h5>
-                        <button class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Nueva Vacación</button>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoVacacionModal"><i class="fas fa-plus me-1"></i>Nueva Vacación</button>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -344,8 +344,8 @@ $total_empleados = count($empleados);
                                                     <span class="badge <?= $badge ?>"><?= htmlspecialchars($vac['estado']) ?></span>
                                                 </td>
                                                 <td class="text-center">
-                                                    <button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button>
-                                                    <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="editarVacacion(<?= $vac['id'] ?>)" title="Editar"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarVacacion(<?= $vac['id'] ?>)" title="Eliminar"><i class="fas fa-trash"></i></button>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -363,13 +363,14 @@ $total_empleados = count($empleados);
         </div>
     </div>
 
+    <!-- Modales - Fuera del container-fluid para que Bootstrap los maneje correctamente -->
     <!-- Modal Nuevo Empleado -->
-    <div class="modal fade" id="nuevoEmpleadoModal" tabindex="-1">
+    <div class="modal fade" id="nuevoEmpleadoModal" tabindex="-1" aria-labelledby="nuevoEmpleadoModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <form method="POST">
                     <div class="modal-header">
-                        <h5 class="modal-title">Nuevo Empleado</h5>
+                        <h5 class="modal-title" id="nuevoEmpleadoModalLabel">Nuevo Empleado</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -418,8 +419,464 @@ $total_empleados = count($empleados);
         </div>
     </div>
 
+    <!-- Modal Editar Empleado -->
+    <div class="modal fade" id="editarEmpleadoModal" tabindex="-1" aria-labelledby="editarEmpleadoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formEditarEmpleado">
+                    <input type="hidden" id="edit_empleado_id" name="id">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editarEmpleadoModalLabel">Editar Empleado</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nombre Completo</label>
+                                <input type="text" class="form-control" id="edit_nombre_completo" name="nombre_completo" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Username</label>
+                                <input type="text" class="form-control" id="edit_username" name="username" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="edit_email" name="email" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Teléfono</label>
+                                <input type="tel" class="form-control" id="edit_telefono" name="telefono">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Rol</label>
+                                <select class="form-select" id="edit_tpusu_idtpusu" name="tpusu_idtpusu" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($tipos_usuario as $id => $nombre): ?>
+                                        <option value="<?= $id ?>"><?= htmlspecialchars($nombre) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Naturaleza / Cargo</label>
+                                <input type="text" class="form-control" id="edit_naturaleza" name="naturaleza">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" id="edit_activo" name="activo" required>
+                                    <option value="1">Activo</option>
+                                    <option value="0">Inactivo</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="nuevoPermisoModal" tabindex="-1" aria-labelledby="nuevoPermisoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formNuevoPermiso">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="nuevoPermisoModalLabel">Nuevo Permiso</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Empleado</label>
+                                <select class="form-select" name="idempleado" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($empleados as $emp): ?>
+                                        <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tipo de Permiso</label>
+                                <input type="text" class="form-control" name="tipo" placeholder="Ej: Médico, Familiar" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" class="form-control" name="fecha_inicio" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" class="form-control" name="fecha_fin" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" name="estado" required>
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Aprobado">Aprobado</option>
+                                    <option value="Rechazado">Rechazado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Permiso -->
+    <div class="modal fade" id="editarPermisoModal" tabindex="-1" aria-labelledby="editarPermisoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formEditarPermiso">
+                    <input type="hidden" id="edit_permiso_id" name="id">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editarPermisoModalLabel">Editar Permiso</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Empleado</label>
+                                <select class="form-select" id="edit_permisoEmpleado" name="idempleado" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($empleados as $emp): ?>
+                                        <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tipo de Permiso</label>
+                                <input type="text" class="form-control" id="edit_permisoTipo" name="tipo" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" class="form-control" id="edit_permisoFechaInicio" name="fecha_inicio" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" class="form-control" id="edit_permisoFechaFin" name="fecha_fin" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" id="edit_permisoEstado" name="estado" required>
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Aprobado">Aprobado</option>
+                                    <option value="Rechazado">Rechazado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nuevo Turno -->
+    <div class="modal fade" id="nuevoTurnoModal" tabindex="-1" aria-labelledby="nuevoTurnoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formNuevoTurno">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="nuevoTurnoModalLabel">Nuevo Turno</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Empleado</label>
+                                <select class="form-select" name="idempleado" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($empleados as $emp): ?>
+                                        <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Horario</label>
+                                <input type="text" class="form-control" name="horario" placeholder="Ej: 08:00 - 16:00" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" class="form-control" name="fecha_inicio" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" class="form-control" name="fecha_fin" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Turno -->
+    <div class="modal fade" id="editarTurnoModal" tabindex="-1" aria-labelledby="editarTurnoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formEditarTurno">
+                    <input type="hidden" id="edit_turno_id" name="id">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editarTurnoModalLabel">Editar Turno</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Empleado</label>
+                                <select class="form-select" id="edit_turnoEmpleado" name="idempleado" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($empleados as $emp): ?>
+                                        <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Horario</label>
+                                <input type="text" class="form-control" id="edit_turnoHorario" name="horario" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" class="form-control" id="edit_turnoFechaInicio" name="fecha_inicio" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" class="form-control" id="edit_turnoFechaFin" name="fecha_fin" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Vacación -->
+    <div class="modal fade" id="nuevoVacacionModal" tabindex="-1" aria-labelledby="nuevoVacacionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formNuevaVacacion">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="nuevoVacacionModalLabel">Nueva Vacación</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Empleado</label>
+                                <select class="form-select" name="id_empleado" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($empleados as $emp): ?>
+                                        <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" name="estado" required>
+                                    <option value="Programadas">Programadas</option>
+                                    <option value="En curso">En curso</option>
+                                    <option value="Aprobada">Aprobada</option>
+                                    <option value="Rechazada">Rechazada</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" class="form-control" name="fecha_inicio" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" class="form-control" name="fecha_fin" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Motivo</label>
+                                <textarea class="form-control" name="motivo" rows="2" placeholder="Describir motivo de la vacación"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Vacación -->
+    <div class="modal fade" id="editarVacacionModal" tabindex="-1" aria-labelledby="editarVacacionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formEditarVacacion">
+                    <input type="hidden" id="edit_vacacion_id" name="id">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editarVacacionModalLabel">Editar Vacación</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Empleado</label>
+                                <select class="form-select" id="edit_vacacionEmpleado" name="id_empleado" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($empleados as $emp): ?>
+                                        <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" id="edit_vacacionEstado" name="estado" required>
+                                    <option value="Programadas">Programadas</option>
+                                    <option value="En curso">En curso</option>
+                                    <option value="Aprobada">Aprobada</option>
+                                    <option value="Rechazada">Rechazada</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" class="form-control" id="edit_vacacionFechaInicio" name="fecha_inicio" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" class="form-control" id="edit_vacacionFechaFin" name="fecha_fin" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Motivo</label>
+                                <textarea class="form-control" id="edit_vacacionMotivo" name="motivo" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/Original-Floraltechx/assets/js/gestion_empleados_handlers.js?v=<?= time() ?>"></script>
+    <script src="/Original-Floraltech/assets/js/gestion_empleados_handlers.js?v=<?= time() ?>"></script>
+    <script>
+        // Esperar a que Bootstrap cargue completamente
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, Bootstrap modal system ready');
+            
+            // Probar que los modales existan en el DOM
+            const modales = [
+                'nuevoEmpleadoModal',
+                'nuevoPermisoModal',
+                'editarPermisoModal',
+                'nuevoTurnoModal',
+                'editarTurnoModal',
+                'nuevoVacacionModal',
+                'editarVacacionModal'
+            ];
+            
+            modales.forEach(id => {
+                const modal = document.getElementById(id);
+                if (modal) {
+                    console.log(`✓ Modal ${id} encontrado en el DOM`);
+                } else {
+                    console.error(`✗ Modal ${id} NO encontrado`);
+                }
+            });
+        });
+
+        // Funciones para editar y eliminar empleados
+        function editarEmpleado(id) {
+            // Obtener datos del empleado
+            fetch('assets/ajax/ajax_gestion_empleados.php', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    action: 'get_empleado',
+                    id: id
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('edit_empleado_id').value = data.idusu || '';
+                    document.getElementById('edit_nombre_completo').value = data.nombre_completo || '';
+                    document.getElementById('edit_username').value = data.username || '';
+                    document.getElementById('edit_email').value = data.email || '';
+                    document.getElementById('edit_telefono').value = data.telefono || '';
+                    document.getElementById('edit_tpusu_idtpusu').value = data.tpusu_idtpusu || '';
+                    document.getElementById('edit_naturaleza').value = data.naturaleza || '';
+                    document.getElementById('edit_activo').value = data.activo || '1';
+                    new bootstrap.Modal(document.getElementById('editarEmpleadoModal')).show();
+                } else {
+                    alert('Error: ' + (data.error || 'No se pudo cargar el empleado'));
+                }
+            })
+            .catch(err => alert('Error: ' + err));
+        }
+
+        function eliminarEmpleado(id) {
+            if (!confirm('¿Estás seguro de que deseas eliminar este empleado?')) return;
+            
+            fetch('assets/ajax/ajax_gestion_empleados.php', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    action: 'delete_empleado',
+                    id: id
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Empleado eliminado correctamente');
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'No se pudo eliminar'));
+                }
+            })
+            .catch(err => alert('Error: ' + err));
+        }
+
+        // Evento submit para editar empleado
+        document.addEventListener('DOMContentLoaded', function() {
+            const formEditarEmpleado = document.getElementById('formEditarEmpleado');
+            if (formEditarEmpleado) {
+                formEditarEmpleado.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const fd = new FormData(this);
+                    fd.append('action', 'update_empleado');
+                    
+                    fetch('assets/ajax/ajax_gestion_empleados.php', {
+                        method: 'POST',
+                        body: fd
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Empleado actualizado correctamente');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + (data.error || 'No se pudo actualizar'));
+                        }
+                    })
+                    .catch(err => alert('Error: ' + err));
+                });
+            }
+        });
+    </script>
 </body>
 </html>
 
