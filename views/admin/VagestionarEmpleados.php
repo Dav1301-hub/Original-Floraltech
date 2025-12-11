@@ -68,8 +68,8 @@ $total_empleados = count($empleados);
         <!-- Encabezado con gradiente -->
         <div class="d-flex align-items-center justify-content-between mb-4 py-3 px-3 rounded-4 shadow-sm text-white" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%);">
             <div>
-                <p class="mb-1 opacity-75" style="letter-spacing:1px;text-transform:uppercase;"><i class="fas fa-users me-2"></i>FloralTech Admin</p>
-                <h2 class="mb-0 fw-bold">Gestión de Empleados</h2>
+                <p class="mb-1 opacity-75" style="letter-spacing:1px;text-transform:uppercase; color: #ffff" ><i class="fas fa-users me-2"></i>FloralTech Admin</p>
+                <h2 class="mb-0 fw-bold" style="color: #ffff">Gestión de Empleados</h2>
             </div>
             <button class="btn btn-light text-primary fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#nuevoEmpleadoModal">
                 <i class="fas fa-plus me-2"></i>Nuevo Empleado
