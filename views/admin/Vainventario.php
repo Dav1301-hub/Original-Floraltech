@@ -351,7 +351,7 @@
                     <i class="fas fa-exclamation-circle fa-lg mb-2" style="color: #ff6b35;"></i>
                     <div class="fw-bold text-muted small">Stock Crítico</div>
                     <div class="fs-4 fw-bold text-dark"><?= $stock_critico ?? 0 ?></div>
-                    <small class="text-muted" style="font-size: 0.75rem;">1-9 unidades</small>
+                    <small class="text-muted" style="font-size: 0.75rem;">0-9 unidades</small>
                 </div>
             </div>
         </div>
