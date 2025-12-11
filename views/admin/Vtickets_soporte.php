@@ -212,14 +212,16 @@ try {
                                         </div>
                                         <div class="modal-body">
                                             <h6 class="fw-bold mb-2">Asunto:</h6>
-                                            <p><?= htmlspecialchars($ticket['asunto']) ?></p>
+                                            <p class="mb-3"><?= htmlspecialchars($ticket['asunto']) ?></p>
 
-                                            <h6 class="fw-bold mb-2">Descripción:</h6>
-                                            <p><?= nl2br(htmlspecialchars($ticket['descripcion'])) ?></p>
+                                            <h6 class="fw-bold mb-2">Mensaje del usuario:</h6>
+                                            <div class="bg-light p-3 rounded mb-3" style="border-left: 4px solid #0d6efd;">
+                                                <?= nl2br(htmlspecialchars($ticket['descripcion'])) ?>
+                                            </div>
 
                                             <?php if (!empty($ticket['archivo'])): ?>
                                                 <h6 class="fw-bold mb-2">Archivo adjunto:</h6>
-                                                <p>
+                                                <p class="mb-3">
                                                     <a href="/Original-Floraltechx/uploads/tickets/<?= htmlspecialchars($ticket['archivo']) ?>" class="btn btn-sm btn-outline-primary" target="_blank">
                                                         <i class="fas fa-download me-1"></i>Descargar
                                                     </a>
@@ -227,17 +229,17 @@ try {
                                             <?php endif; ?>
 
                                             <?php if (!empty($ticket['respuesta'])): ?>
-                                                <h6 class="fw-bold mb-2 mt-4">Respuesta:</h6>
-                                                <div class="alert alert-info">
+                                                <h6 class="fw-bold mb-2 mt-4">Respuesta del soporte:</h6>
+                                                <div class="alert alert-info mb-3">
+                                                    <strong>Estado:</strong> Respondido<br>
                                                     <?= nl2br(htmlspecialchars($ticket['respuesta'])) ?>
                                                 </div>
-                                                <small class="text-muted">Respondido el: <?= date('d/m/Y H:i', strtotime($ticket['fecha_respuesta'])) ?></small>
                                             <?php else: ?>
-                                                <h6 class="fw-bold mb-2 mt-4">Responder:</h6>
+                                                <h6 class="fw-bold mb-2 mt-4">Responder a este ticket:</h6>
                                                 <form method="POST">
                                                     <input type="hidden" name="id_ticket" value="<?= $ticket['id'] ?>">
                                                     <div class="mb-2">
-                                                        <textarea class="form-control" name="respuesta" rows="3" placeholder="Escribe tu respuesta..." required></textarea>
+                                                        <textarea class="form-control" name="respuesta" rows="4" placeholder="Escribe tu respuesta..." required></textarea>
                                                     </div>
                                                     <button type="submit" name="responder_ticket" class="btn btn-primary btn-sm">
                                                         <i class="fas fa-reply me-1"></i>Responder

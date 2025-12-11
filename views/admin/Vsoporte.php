@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_soporte'])) {
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label fw-600">Descripción detallada</label>
+                                <label class="form-label fw-600">Tu Mensaje</label>
                                 <textarea class="form-control" name="descripcion_soporte" rows="5" placeholder="Cuéntanos qué está pasando, qué pasos tomaste, etc." required style="resize: vertical;"></textarea>
                                 <small class="text-muted">Sé lo más específico posible para una respuesta más rápida</small>
                             </div>
