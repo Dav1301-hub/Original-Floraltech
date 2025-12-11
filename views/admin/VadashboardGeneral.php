@@ -1,7 +1,7 @@
 <?php
 // Obtener datos reales del dashboard general mediante el controller
 if (!isset($dashboardData) || !is_array($dashboardData)) {
-    // Solo ejecutar el controller si no tenemos datos (evitar duplicaci+¦n)
+    // Solo ejecutar el controller si no tenemos datos (evitar duplicaci+ï¿½n)
     require_once __DIR__ . '/../../controllers/CDashboardGeneral.php';
     
     try {
@@ -73,7 +73,7 @@ $entregasProximas = $dashboardData['entregasProximas'];
 $tendenciaVentas = $dashboardData['tendenciaVentas'];
 $topProductos = $dashboardData['topProductos'] ?? [];
 
-// Obtener lotes pr+¦ximos a caducar
+// Obtener lotes pr+ï¿½ximos a caducar
 require_once __DIR__ . '/../../models/Mlotes.php';
 $lotesModel = new Mlotes();
 $lotesProximosCaducar = $lotesModel->getLotesProximosCaducar(7);
@@ -250,7 +250,7 @@ $cantidadAlertasLotes = count($lotesProximosCaducar);
             background: linear-gradient(135deg, #fff8e1 0%, #fffbf0 100%);
         }
         
-        /* Responsive: Alerta de caducidad en m+¦viles */
+        /* Responsive: Alerta de caducidad en m+ï¿½viles */
         @media (max-width: 768px) {
             .alert.alert-danger {
                 flex-direction: column !important;
@@ -340,9 +340,9 @@ $cantidadAlertasLotes = count($lotesProximosCaducar);
 <div id="general-dashboard" class="dashboard-main">
     <header class="d-flex flex-wrap align-items-start align-items-md-center justify-content-between mb-4 p-4 rounded-4 shadow-sm text-white" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 50%, #1e1b4b 100%);">
         <div>
-            <p class="mb-1 text-uppercase fw-semibold small opacity-75">Panel general</p>
-            <h1 class="mb-1 fw-bold">Dashboard General</h1>
-            <p class="welcome-text mb-0 opacity-75">Bienvenido al sistema de administracion de FloralTech</p>
+            <p class="mb-1 text-uppercase fw-semibold small opacity-75" style="color: #ffff">Panel general</p>
+            <h1 class="mb-1 fw-bold" style="color: #ffff">Dashboard General</h1>
+            <p class="welcome-text mb-0 opacity-75" style="color: #ffff">Bienvenido al sistema de administracion de FloralTech</p>
         </div>
         <div class="d-flex gap-2 mt-3 mt-md-0">
             <a class="btn btn-light btn-sm text-primary fw-semibold" href="index.php?ctrl=cinventario"><i class="fas fa-boxes me-2"></i>Inventario</a>
@@ -684,7 +684,7 @@ $cantidadAlertasLotes = count($lotesProximosCaducar);
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ========== GR+üFICO DE TENDENCIA DE VENTAS ==========
+    // ========== GR+ï¿½FICO DE TENDENCIA DE VENTAS ==========
     var ctxVentas = document.getElementById('chartVentas');
     if (ctxVentas) {
         var tendenciaData = <?= json_encode($tendenciaVentas) ?>;
@@ -786,7 +786,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ========== CALENDARIO DE PEDIDOS ==========
-    // Funci+¦n helper para formatear fecha sin problemas de zona horaria
+    // Funci+ï¿½n helper para formatear fecha sin problemas de zona horaria
     window.formatearFechaSinZona = function(fechaStr) {
         if (!fechaStr) return '<em>No especificada</em>';
         var partes = fechaStr.split('-');
@@ -923,7 +923,7 @@ function getStatusBadgeClass(estado) {
 }
 </script>
 <script>
-// Actualizaci+¦n autom+ítica de Actividad Reciente cada 30 segundos
+// Actualizaci+ï¿½n autom+ï¿½tica de Actividad Reciente cada 30 segundos
 function actualizarActividadReciente() {
     fetch('/Original-Floraltech/controllers/CDashboardGeneral.php?action=actividadReciente')
         .then(res => res.json())
@@ -952,7 +952,7 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title" id="modalAlertasCaducidadLabel">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Lotes Pr+¦ximos a Caducar
+                    <i class="fas fa-exclamation-triangle me-2"></i>Lotes Pr+ï¿½ximos a Caducar
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -960,7 +960,7 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
                 <?php if (!empty($lotesProximosCaducar)): ?>
                 <div class="alert alert-warning">
                     <i class="fas fa-info-circle me-2"></i>
-                    <strong>Atenci+¦n:</strong> Los siguientes lotes <strong>con stock disponible</strong> caducan en los pr+¦ximos 7 d+¡as. 
+                    <strong>Atenci+ï¿½n:</strong> Los siguientes lotes <strong>con stock disponible</strong> caducan en los pr+ï¿½ximos 7 d+ï¿½as. 
                     Se recomienda priorizar su venta o uso inmediato.
                     <br><small class="mt-1 d-block"><i class="fas fa-lightbulb me-1"></i>Los lotes sin stock (cantidad = 0) no se muestran en esta lista.</small>
                 </div>
@@ -974,7 +974,7 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
                                 <th>Lote</th>
                                 <th>Cantidad</th>
                                 <th>Fecha Caducidad</th>
-                                <th>D+¡as Restantes</th>
+                                <th>D+ï¿½as Restantes</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -984,11 +984,11 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
                                 $diferencia = $hoy->diff($fechaCaducidad);
                                 $diasRestantes = $diferencia->invert ? 0 : $diferencia->days;
                                 
-                                // Determinar color seg+¦n d+¡as restantes
+                                // Determinar color seg+ï¿½n d+ï¿½as restantes
                                 if ($diasRestantes <= 3) {
                                     $colorClase = 'text-danger';
                                     $iconoEstado = '<i class="fas fa-circle text-danger"></i>';
-                                    $nivelUrgencia = 'CR+ìTICO';
+                                    $nivelUrgencia = 'CR+ï¿½TICO';
                                 } elseif ($diasRestantes <= 5) {
                                     $colorClase = 'text-warning';
                                     $iconoEstado = '<i class="fas fa-circle text-warning"></i>';
@@ -1007,7 +1007,7 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
                                 <td><?= $fechaCaducidad->format('d/m/Y') ?></td>
                                 <td>
                                     <span class="badge <?= $diasRestantes <= 3 ? 'bg-danger' : ($diasRestantes <= 5 ? 'bg-warning text-dark' : 'bg-info') ?>">
-                                        <?= $diasRestantes ?> <?= $diasRestantes === 1 ? 'd+¡a' : 'd+¡as' ?>
+                                        <?= $diasRestantes ?> <?= $diasRestantes === 1 ? 'd+ï¿½a' : 'd+ï¿½as' ?>
                                     </span>
                                 </td>
                             </tr>
@@ -1020,15 +1020,15 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
                 <div class="mt-3">
                     <h6 class="fw-bold">Leyenda de Niveles de Urgencia:</h6>
                     <div class="d-flex gap-3 flex-wrap">
-                        <div><i class="fas fa-circle text-danger"></i> <strong>CR+ìTICO:</strong> 1-3 d+¡as</div>
-                        <div><i class="fas fa-circle text-warning"></i> <strong>URGENTE:</strong> 4-5 d+¡as</div>
-                        <div><i class="fas fa-circle text-info"></i> <strong>ALERTA:</strong> 6-7 d+¡as</div>
+                        <div><i class="fas fa-circle text-danger"></i> <strong>CR+ï¿½TICO:</strong> 1-3 d+ï¿½as</div>
+                        <div><i class="fas fa-circle text-warning"></i> <strong>URGENTE:</strong> 4-5 d+ï¿½as</div>
+                        <div><i class="fas fa-circle text-info"></i> <strong>ALERTA:</strong> 6-7 d+ï¿½as</div>
                     </div>
                 </div>
                 <?php else: ?>
                 <div class="alert alert-success">
                     <i class="fas fa-check-circle me-2"></i>
-                    No hay lotes pr+¦ximos a caducar en los pr+¦ximos 7 d+¡as.
+                    No hay lotes pr+ï¿½ximos a caducar en los pr+ï¿½ximos 7 d+ï¿½as.
                 </div>
                 <?php endif; ?>
             </div>

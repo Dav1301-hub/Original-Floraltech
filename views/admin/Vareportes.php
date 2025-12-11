@@ -59,8 +59,8 @@ function badgeClaseEstado($estado)
         <div class="p-4 mb-4 rounded-4 shadow-sm" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%); color:#fff;">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div>
-                    <p class="mb-1 text-white-50 small">Visibilidad rapida de ventas, inventario, cuentas y pagos</p>
-                    <h1 class="fw-bold mb-0">Panel de reportes</h1>
+                    <p class="mb-1 text-white-50 small" style="color: #ffff">Visibilidad rapida de ventas, inventario, cuentas y pagos</p>
+                    <h1 class="fw-bold mb-0" style="color: #ffff">Panel de reportes</h1>
                 </div>
                 <div class="d-flex gap-3 flex-wrap">
                     <div class="px-3 py-2 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-25">
