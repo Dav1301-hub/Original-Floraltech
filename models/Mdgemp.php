@@ -1,127 +1,7 @@
-        /**
-         * Crear un turno para un empleado, validando solapamiento de fechas
-         * @param int $empleado_id
-         * @param string $fecha_inicio (Y-m-d)
-         * @param string $fecha_fin (Y-m-d)
-         * @param string $horario
-         * @param string $tipo_temporada
-         * @param string $turno
-         * @param string $observaciones
-         * @throws Exception Si hay solapamiento o error de datos
-         * @return int ID del turno creado
-         */
-        public function crearTurno($empleado_id, $fecha_inicio, $fecha_fin, $horario, $tipo_temporada, $turno, $observaciones) {
-            // Validar fechas
-            if (!$fecha_inicio || !$fecha_fin || strtotime($fecha_inicio) > strtotime($fecha_fin)) {
-                throw new Exception('Fechas inválidas.');
-            }
-            // Validar solapamiento
-            $stmt = $this->conn->prepare("SELECT COUNT(*) FROM turnos WHERE idempleado = ? AND (
-                (fecha_inicio <= ? AND fecha_fin >= ?) OR
-                (fecha_inicio <= ? AND fecha_fin >= ?) OR
-                (fecha_inicio >= ? AND fecha_fin <= ?)
-            )");
-            $stmt->execute([
-                $empleado_id,
-                $fecha_inicio, $fecha_inicio,
-                $fecha_fin, $fecha_fin,
-                $fecha_inicio, $fecha_fin
-            ]);
-            if ($stmt->fetchColumn() > 0) {
-                throw new Exception('Ya existe un turno que se solapa con las fechas seleccionadas.');
-            }
-            // Insertar turno
-            $stmt = $this->conn->prepare("INSERT INTO turnos (idempleado, fecha_inicio, fecha_fin, horario, tipo_temporada, turno, observaciones) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$empleado_id, $fecha_inicio, $fecha_fin, $horario, $tipo_temporada, $turno, $observaciones]);
-            return $this->conn->lastInsertId();
-        }
-    /**
-     * Crear una vacación para un empleado, validando solapamiento de fechas
-     * @param int $empleado_id
-     * @param string $fecha_inicio (Y-m-d)
-     * @param string $fecha_fin (Y-m-d)
-     * @param string $motivo
-     * @param string $estado
-     * @throws Exception Si hay solapamiento o error de datos
-     * @return int ID de la vacación creada
-     */
-    public function crearVacacion($empleado_id, $fecha_inicio, $fecha_fin, $motivo, $estado) {
-        // Validar fechas
-        if (!$fecha_inicio || !$fecha_fin || strtotime($fecha_inicio) > strtotime($fecha_fin)) {
-            throw new Exception('Fechas inválidas.');
-        }
-        // Validar solapamiento
-        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM vacaciones WHERE id_empleado = ? AND (
-            (fecha_inicio <= ? AND fecha_fin >= ?) OR
-            (fecha_inicio <= ? AND fecha_fin >= ?) OR
-            (fecha_inicio >= ? AND fecha_fin <= ?)
-        )");
-        $stmt->execute([
-            $empleado_id,
-            $fecha_inicio, $fecha_inicio,
-            $fecha_fin, $fecha_fin,
-            $fecha_inicio, $fecha_fin
-        ]);
-        if ($stmt->fetchColumn() > 0) {
-            throw new Exception('Ya existe una vacación que se solapa con las fechas seleccionadas.');
-        }
-        // Insertar vacación
-        $stmt = $this->conn->prepare("INSERT INTO vacaciones (id_empleado, fecha_inicio, fecha_fin, motivo, estado) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$empleado_id, $fecha_inicio, $fecha_fin, $motivo, $estado]);
-        return $this->conn->lastInsertId();
-    }
 <?php
 require_once __DIR__ . '/conexion.php';
 
 class Mdgemp {
-
-    /**
-     * Obtener empleados paginados y filtrados con orden dinámico
-     * @param int $page Página actual
-     * @param int $perPage Cantidad por página
-     * @param string $estado Estado ('activo', 'inactivo', '')
-     * @param int $tipo Tipo de usuario
-     * @param string $nombre Búsqueda por nombre, username o email
-     * @param string $orderBy Columna para ordenar
-     * @param string $orderDir Dirección ('ASC' o 'DESC')
-     * @return array
-     */
-    public function getEmpleadosPaginados($page = 1, $perPage = 10, $estado = '', $tipo = 0, $nombre = '', $orderBy = 'nombre_completo', $orderDir = 'ASC') {
-        $offset = max(0, ($page - 1) * $perPage);
-        $allowedOrder = ['idusu','nombre_completo','username','email','telefono','tpusu_idtpusu','activo','naturaleza','fecha_registro'];
-        $orderBy = in_array($orderBy, $allowedOrder) ? $orderBy : 'nombre_completo';
-        $orderDir = strtoupper($orderDir) === 'DESC' ? 'DESC' : 'ASC';
-        $where = [];
-        $params = [];
-        if ($estado !== '') {
-            $where[] = 'activo = ?';
-            $params[] = ($estado === 'activo') ? 1 : 0;
-        }
-        if ($tipo > 0) {
-            $where[] = 'tpusu_idtpusu = ?';
-            $params[] = $tipo;
-        }
-        if ($nombre !== '') {
-            $where[] = '(nombre_completo LIKE ? OR username LIKE ? OR email LIKE ?)';
-            $params[] = "%$nombre%";
-            $params[] = "%$nombre%";
-            $params[] = "%$nombre%";
-        }
-        $whereSQL = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
-        $sql = "SELECT SQL_CALC_FOUND_ROWS idusu, nombre_completo, username, email, telefono, tpusu_idtpusu, activo, naturaleza, fecha_registro FROM usu $whereSQL ORDER BY $orderBy $orderDir LIMIT $offset, $perPage";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->execute($params);
-        $empleados = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $total = $this->conn->query('SELECT FOUND_ROWS()')->fetchColumn();
-        return [
-            'empleados' => $empleados,
-            'total' => intval($total),
-            'page' => $page,
-            'perPage' => $perPage,
-            'orderBy' => $orderBy,
-            'orderDir' => $orderDir
-        ];
-    }
     private $conn;
 
     public function __construct() {
@@ -129,123 +9,33 @@ class Mdgemp {
         $this->conn = $conexion->get_conexion();
     }
 
-    /**
-     * Registrar auditoría de acciones sobre empleados
-     * @param int $usuario_id ID del usuario que realiza la acción
-     * @param int $empleado_id ID del empleado afectado
-     * @param string $accion Acción realizada
-     * @param array|null $datos_anteriores Datos anteriores (opcional)
-     * @param array|null $datos_nuevos Datos nuevos (opcional)
-     * @return int ID de la auditoría registrada
-     */
-    public function registrarAuditoriaEmpleado($usuario_id, $empleado_id, $accion, $datos_anteriores = null, $datos_nuevos = null) {
-        $stmt = $this->conn->prepare("INSERT INTO auditoria_empleados (usuario_id, empleado_id, accion, datos_anteriores, datos_nuevos, fecha) VALUES (?, ?, ?, ?, ?, NOW())");
-        $stmt->execute([
-            $usuario_id,
-            $empleado_id,
-            $accion,
-            $datos_anteriores ? json_encode($datos_anteriores) : null,
-            $datos_nuevos ? json_encode($datos_nuevos) : null
-        ]);
-        return $this->conn->lastInsertId();
-    }
-
-    /**
-     * Crear empleado y registrar auditoría
-     * @param array $datos Datos del empleado
-     * @return int ID del empleado creado
-     * @throws Exception Si falla la validación o inserción
-     */
-    public function crearEmpleado($datos) {
-        $usuario_id = $_SESSION['user']['idusu'] ?? null;
-        // Validar campos requeridos
-        $requeridos = ['nombre_completo', 'username', 'email', 'telefono', 'tpusu_idtpusu', 'naturaleza', 'password'];
-        foreach ($requeridos as $campo) {
-            if (empty($datos[$campo])) {
-                throw new Exception("El campo '$campo' es obligatorio.");
-            }
-        }
-
-        // Validar formato de email
-        if (!filter_var($datos['email'], FILTER_VALIDATE_EMAIL)) {
-            throw new Exception("El formato de email es inválido.");
-        }
-
-        // Validar formato de teléfono (solo dígitos, mínimo 7)
-        if (!preg_match('/^\d{7,}$/', $datos['telefono'])) {
-            throw new Exception("El teléfono debe contener al menos 7 dígitos.");
-        }
-
-        // Validar duplicados de username/email
-        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM usu WHERE username = ? OR email = ?");
-        $stmt->execute([$datos['username'], $datos['email']]);
-        if ($stmt->fetchColumn() > 0) {
-            throw new Exception("El username o email ya existe.");
-        }
-
-        // Insertar empleado
-        $stmt = $this->conn->prepare("INSERT INTO usu (nombre_completo, username, email, telefono, tpusu_idtpusu, activo, naturaleza, fecha_registro, clave) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?)");
-        $stmt->execute([
-            $datos['nombre_completo'],
-            $datos['username'],
-            $datos['email'],
-            $datos['telefono'],
-            $datos['tpusu_idtpusu'],
-            1,
-            $datos['naturaleza'],
-            password_hash($datos['password'], PASSWORD_DEFAULT)
-        ]);
-        $empleado_id = $this->conn->lastInsertId();
-        $this->registrarAuditoriaEmpleado($usuario_id, $empleado_id, 'crear', null, $datos);
-        return $empleado_id;
-    }
-
-    /**
-     * Retorna el total de usuarios en la base de datos
-     */
-    public function getTotalUsuarios() {
-        $stmt = $this->conn->prepare("SELECT COUNT(*) as total FROM usu");
-        $stmt->execute();
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ? intval($row['total']) : 0;
-    }
+    // ========================================
+    // MÉTODOS DE AUTENTICACIÓN Y USUARIOS
+    // ========================================
 
     /**
      * Valida las credenciales de inicio de sesión con sistema de bloqueo
-     * @param string $username Correo electrónico o username del usuario
-     * @param string $password Contraseña sin encriptar del usuario
-     * @return array|false Retorna los datos del usuario si las credenciales son válidas, o false si no lo son
      */
     public function validateLogin($username, $password) {
-        // Primero obtener el usuario para verificar estado de bloqueo
         $user = $this->getUserByUsernameOrEmail($username);
         
         if (!$user) {
-            return false; // Usuario no existe
+            return false;
         }
 
-        // Verificar si la cuenta está bloqueada permanentemente
         if ($user['activo'] == 0) {
-            return false; // Cuenta bloqueada permanentemente
+            return false;
         }
 
-        // Validar que el usuario exista y que la contraseña sea correcta
         if (password_verify($password, $user['clave'])) {
-            // Contraseña correcta - reiniciar intentos fallidos si existen
-            if ($user['intentos_fallidos'] > 0) {
-                $this->resetFailedAttempts($user['idusu']);
-            }
+            $this->resetFailedAttempts($user['idusu']);
             return $user;
         } else {
-            // Contraseña incorrecta - incrementar intentos fallidos
             $this->incrementFailedAttempts($user['idusu']);
-            
-            // Verificar si supera el límite de intentos (3)
-            $updatedUser = $this->getUserByUsernameOrEmail($username);
+            $updatedUser = $this->getLockInfo($user['idusu']);
             if ($updatedUser['intentos_fallidos'] >= 3) {
                 $this->lockAccountPermanently($user['idusu'], "Múltiples intentos fallidos de inicio de sesión");
             }
-            
             return false;
         }
     }
@@ -256,8 +46,8 @@ class Mdgemp {
     private function getUserByUsernameOrEmail($username) {
         $query = "SELECT u.*, tp.nombre as tipo_usuario_nombre 
                   FROM usu u 
-                  JOIN tpusu tp ON u.tpusu_idtpusu = tp.idtpusu 
-                  WHERE u.email = :username OR u.username = :username";
+                  LEFT JOIN tpusu tp ON u.tpusu_idtpusu = tp.idtpusu 
+                  WHERE u.username = :username OR u.email = :username";
         
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':username', $username);
@@ -276,7 +66,7 @@ class Mdgemp {
     }
 
     /**
-     * Bloquear cuenta permanentemente (sin opción de desbloqueo automático)
+     * Bloquear cuenta permanentemente
      */
     private function lockAccountPermanently($userId, $motivo = "Múltiples intentos fallidos de inicio de sesión") {
         $fechaBloqueo = date('Y-m-d H:i:s');
@@ -288,7 +78,7 @@ class Mdgemp {
     }
 
     /**
-     * Reiniciar intentos fallidos (al iniciar sesión exitosamente)
+     * Reiniciar intentos fallidos
      */
     private function resetFailedAttempts($userId) {
         $stmt = $this->conn->prepare("UPDATE usu SET intentos_fallidos = 0, fecha_bloqueo = NULL, motivo_bloqueo = NULL WHERE idusu = :id");
@@ -333,8 +123,8 @@ class Mdgemp {
     public function getLockedUsers() {
         $stmt = $this->conn->prepare("SELECT u.*, tp.nombre as tipo_usuario_nombre 
                                     FROM usu u 
-                                    JOIN tpusu tp ON u.tpusu_idtpusu = tp.idtpusu 
-                                    WHERE u.activo = 0 
+                                    LEFT JOIN tpusu tp ON u.tpusu_idtpusu = tp.idtpusu 
+                                    WHERE u.activo = 0
                                     ORDER BY u.fecha_bloqueo DESC");
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -355,7 +145,7 @@ class Mdgemp {
     public function getUserById($id) {
         $query = "SELECT u.*, tp.nombre as tipo_usuario_nombre 
                   FROM usu u 
-                  JOIN tpusu tp ON u.tpusu_idtpusu = tp.idtpusu 
+                  LEFT JOIN tpusu tp ON u.tpusu_idtpusu = tp.idtpusu 
                   WHERE u.idusu = :id";
         
         $stmt = $this->conn->prepare($query);
@@ -383,9 +173,10 @@ class Mdgemp {
      */
     public function getAllUsers() {
         $query = "SELECT u.idusu, u.nombre_completo, u.username, u.email, tp.nombre as rol, u.activo,
-                         u.intentos_fallidos, u.fecha_bloqueo, u.motivo_bloqueo
-                  FROM usu u
-                  JOIN tpusu tp ON u.tpusu_idtpusu = tp.idtpusu
+                         u.fecha_registro
+                  FROM usu u 
+                  LEFT JOIN tpusu tp ON u.tpusu_idtpusu = tp.idtpusu 
+                  WHERE u.activo = 1
                   ORDER BY u.nombre_completo";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
@@ -417,6 +208,63 @@ class Mdgemp {
     }
 
     /**
+     * Crear empleado y registrar auditoría
+     */
+    public function crearEmpleado($datos) {
+        $usuario_id = $_SESSION['user']['idusu'] ?? null;
+        $requeridos = ['nombre_completo', 'username', 'email', 'telefono', 'tpusu_idtpusu', 'naturaleza', 'password'];
+        foreach ($requeridos as $campo) {
+            if (!isset($datos[$campo]) || empty($datos[$campo])) {
+                throw new Exception("El campo '$campo' es requerido.");
+            }
+        }
+
+        if (!filter_var($datos['email'], FILTER_VALIDATE_EMAIL)) {
+            throw new Exception('El formato del email no es válido.');
+        }
+
+        if (!preg_match('/^\d{7,}$/', $datos['telefono'])) {
+            throw new Exception('El teléfono debe contener al menos 7 dígitos.');
+        }
+
+        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM usu WHERE username = ? OR email = ?");
+        $stmt->execute([$datos['username'], $datos['email']]);
+        if ($stmt->fetchColumn() > 0) {
+            throw new Exception('El username o email ya existe.');
+        }
+
+        $stmt = $this->conn->prepare("INSERT INTO usu (nombre_completo, username, email, telefono, tpusu_idtpusu, activo, naturaleza, fecha_registro, clave) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?)");
+        $stmt->execute([
+            $datos['nombre_completo'],
+            $datos['username'],
+            $datos['email'],
+            $datos['telefono'],
+            $datos['tpusu_idtpusu'],
+            isset($datos['activo']) ? $datos['activo'] : 1,
+            $datos['naturaleza'],
+            password_hash($datos['password'], PASSWORD_DEFAULT)
+        ]);
+        $empleado_id = $this->conn->lastInsertId();
+        $this->registrarAuditoriaEmpleado($usuario_id, $empleado_id, 'crear', null, $datos);
+        return $empleado_id;
+    }
+
+    /**
+     * Registrar auditoría de acciones sobre empleados
+     */
+    public function registrarAuditoriaEmpleado($usuario_id, $empleado_id, $accion, $datos_anteriores = null, $datos_nuevos = null) {
+        $stmt = $this->conn->prepare("INSERT INTO auditoria_empleados (usuario_id, empleado_id, accion, datos_anteriores, datos_nuevos, fecha) VALUES (?, ?, ?, ?, ?, NOW())");
+        $stmt->execute([
+            $usuario_id,
+            $empleado_id,
+            $accion,
+            $datos_anteriores ? json_encode($datos_anteriores) : null,
+            $datos_nuevos ? json_encode($datos_nuevos) : null
+        ]);
+        return $this->conn->lastInsertId();
+    }
+
+    /**
      * Verificar si existe un username
      */
     public function existeUsername($username) {
@@ -441,10 +289,10 @@ class Mdgemp {
     public function getTiposUsuario() {
         return [
             1 => 'Administrador',
-            2 => 'Vendedor', 
-            3 => 'Inventario',
-            4 => 'Repartidor',
-            5 => 'Cliente'
+            2 => 'Vendedor',
+            3 => 'Cliente',
+            4 => 'Inventario',
+            5 => 'Empleado'
         ];
     }
 
@@ -453,8 +301,7 @@ class Mdgemp {
      */
     public function getEmpleadoById($id) {
         $stmt = $this->conn->prepare("
-            SELECT idusu, nombre_completo, username, email, telefono, 
-                   tpusu_idtpusu, activo, naturaleza, fecha_registro 
+            SELECT idusu, nombre_completo, username, email, telefono, tpusu_idtpusu, activo, naturaleza, fecha_registro 
             FROM usu WHERE idusu = ?
         ");
         $stmt->execute([$id]);
@@ -467,18 +314,18 @@ class Mdgemp {
     public function actualizarEmpleado($id, $datos) {
         $stmt = $this->conn->prepare("
             UPDATE usu 
-            SET nombre_completo = ?, email = ?, telefono = ?, 
-                naturaleza = ?, tpusu_idtpusu = ?, activo = ?
+            SET nombre_completo = ?, username = ?, email = ?, telefono = ?, tpusu_idtpusu = ?, naturaleza = ?, activo = ? 
             WHERE idusu = ?
         ");
         
         return $stmt->execute([
             $datos['nombre_completo'],
+            $datos['username'],
             $datos['email'],
             $datos['telefono'],
-            $datos['naturaleza'],
             $datos['tpusu_idtpusu'],
-            $datos['activo'],
+            $datos['naturaleza'],
+            $datos['activo'] ?? 1,
             $id
         ]);
     }
@@ -491,6 +338,59 @@ class Mdgemp {
         return $stmt->execute([$id]);
     }
 
+    /**
+     * Obtener empleados paginados y filtrados
+     */
+    public function getEmpleadosPaginados($page = 1, $perPage = 10, $estado = '', $tipo = 0, $nombre = '', $orderBy = 'nombre_completo', $orderDir = 'ASC') {
+        $offset = max(0, ($page - 1) * $perPage);
+        $allowedOrder = ['idusu','nombre_completo','username','email','telefono','tpusu_idtpusu','activo','naturaleza','fecha_registro'];
+        $orderBy = in_array($orderBy, $allowedOrder) ? $orderBy : 'nombre_completo';
+        $orderDir = strtoupper($orderDir) === 'DESC' ? 'DESC' : 'ASC';
+        $where = [];
+        $params = [];
+        if ($estado !== '') {
+            $where[] = "activo = ?";
+            $params[] = $estado === 'activo' ? 1 : 0;
+        }
+        if ($tipo > 0) {
+            $where[] = "tpusu_idtpusu = ?";
+            $params[] = $tipo;
+        }
+        if ($nombre !== '') {
+            $where[] = "(nombre_completo LIKE ? OR username LIKE ? OR email LIKE ?)";
+            $search = "%$nombre%";
+            $params[] = $search;
+            $params[] = $search;
+            $params[] = $search;
+        }
+        $whereSQL = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+        $sql = "SELECT SQL_CALC_FOUND_ROWS idusu, nombre_completo, username, email, telefono, tpusu_idtpusu, activo, naturaleza, fecha_registro FROM usu $whereSQL ORDER BY $orderBy $orderDir LIMIT $offset, $perPage";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        $empleados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $total = $this->conn->query('SELECT FOUND_ROWS()')->fetchColumn();
+        return [
+            'data' => $empleados,
+            'total' => intval($total),
+            'page' => $page,
+            'perPage' => $perPage,
+            'pages' => ceil($total / $perPage)
+        ];
+    }
+
+    /**
+     * Retorna el total de usuarios en la base de datos
+     */
+    public function getTotalUsuarios() {
+        $stmt = $this->conn->prepare("SELECT COUNT(*) as total FROM usu");
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? intval($row['total']) : 0;
+    }
+
+    // ========================================
+    // MÉTODOS PARA GESTIÓN DE PERMISOS
+    // ========================================
 
     /**
      * Obtener permisos de empleados
@@ -503,6 +403,50 @@ class Mdgemp {
     }
 
     /**
+     * Crear un permiso para un empleado
+     */
+    public function crearPermiso($idempleado, $tipo, $fecha_inicio, $fecha_fin, $estado = 'Pendiente') {
+        if (!$fecha_inicio || !$fecha_fin || strtotime($fecha_inicio) > strtotime($fecha_fin)) {
+            throw new Exception('Fechas inválidas.');
+        }
+        $stmt = $this->conn->prepare("INSERT INTO permisos (idempleado, tipo, fecha_inicio, fecha_fin, estado) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$idempleado, $tipo, $fecha_inicio, $fecha_fin, $estado]);
+        return $this->conn->lastInsertId();
+    }
+
+    /**
+     * Obtener un permiso por ID
+     */
+    public function getPermisoById($id) {
+        $stmt = $this->conn->prepare("SELECT * FROM permisos WHERE idpermiso = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Actualizar un permiso
+     */
+    public function actualizarPermiso($id, $idempleado, $tipo, $fecha_inicio, $fecha_fin, $estado) {
+        if (!$fecha_inicio || !$fecha_fin || strtotime($fecha_inicio) > strtotime($fecha_fin)) {
+            throw new Exception('Fechas inválidas.');
+        }
+        $stmt = $this->conn->prepare("UPDATE permisos SET idempleado = ?, tipo = ?, fecha_inicio = ?, fecha_fin = ?, estado = ? WHERE idpermiso = ?");
+        return $stmt->execute([$idempleado, $tipo, $fecha_inicio, $fecha_fin, $estado, $id]);
+    }
+
+    /**
+     * Eliminar un permiso
+     */
+    public function eliminarPermiso($id) {
+        $stmt = $this->conn->prepare("DELETE FROM permisos WHERE idpermiso = ?");
+        return $stmt->execute([$id]);
+    }
+
+    // ========================================
+    // MÉTODOS PARA GESTIÓN DE TURNOS
+    // ========================================
+
+    /**
      * Obtener turnos de empleados
      */
     public function getTurnosEmpleados() {
@@ -513,6 +457,80 @@ class Mdgemp {
     }
 
     /**
+     * Crear un turno para un empleado
+     */
+    public function crearTurno($empleado_id, $fecha_inicio, $fecha_fin, $horario, $tipo_temporada, $turno, $observaciones) {
+        if (!$fecha_inicio || !$fecha_fin || strtotime($fecha_inicio) > strtotime($fecha_fin)) {
+            throw new Exception('Fechas inválidas.');
+        }
+        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM turnos WHERE idempleado = ? AND (
+            (fecha_inicio <= ? AND fecha_fin >= ?) OR
+            (fecha_inicio <= ? AND fecha_fin >= ?) OR
+            (fecha_inicio >= ? AND fecha_fin <= ?)
+        )");
+        $stmt->execute([
+            $empleado_id,
+            $fecha_inicio, $fecha_inicio,
+            $fecha_fin, $fecha_fin,
+            $fecha_inicio, $fecha_fin
+        ]);
+        if ($stmt->fetchColumn() > 0) {
+            throw new Exception('Ya existe un turno que se solapa con las fechas seleccionadas.');
+        }
+        $stmt = $this->conn->prepare("INSERT INTO turnos (idempleado, fecha_inicio, fecha_fin, horario, tipo_temporada, turno, observaciones) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$empleado_id, $fecha_inicio, $fecha_fin, $horario, $tipo_temporada, $turno, $observaciones]);
+        return $this->conn->lastInsertId();
+    }
+
+    /**
+     * Obtener un turno por ID
+     */
+    public function getTurnoById($id) {
+        $stmt = $this->conn->prepare("SELECT * FROM turnos WHERE idturno = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Actualizar un turno
+     */
+    public function actualizarTurno($id, $idempleado, $fecha_inicio, $fecha_fin, $horario, $tipo_temporada = '', $turno = '', $observaciones = '') {
+        if (!$fecha_inicio || !$fecha_fin || strtotime($fecha_inicio) > strtotime($fecha_fin)) {
+            throw new Exception('Fechas inválidas.');
+        }
+        
+        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM turnos WHERE idempleado = ? AND idturno != ? AND (
+            (fecha_inicio <= ? AND fecha_fin >= ?) OR
+            (fecha_inicio <= ? AND fecha_fin >= ?) OR
+            (fecha_inicio >= ? AND fecha_fin <= ?)
+        )");
+        $stmt->execute([
+            $idempleado, $id,
+            $fecha_inicio, $fecha_inicio,
+            $fecha_fin, $fecha_fin,
+            $fecha_inicio, $fecha_fin
+        ]);
+        if ($stmt->fetchColumn() > 0) {
+            throw new Exception('Ya existe un turno que se solapa con las fechas seleccionadas.');
+        }
+        
+        $stmt = $this->conn->prepare("UPDATE turnos SET idempleado = ?, fecha_inicio = ?, fecha_fin = ?, horario = ?, tipo_temporada = ?, turno = ?, observaciones = ? WHERE idturno = ?");
+        return $stmt->execute([$idempleado, $fecha_inicio, $fecha_fin, $horario, $tipo_temporada, $turno, $observaciones, $id]);
+    }
+
+    /**
+     * Eliminar un turno
+     */
+    public function eliminarTurno($id) {
+        $stmt = $this->conn->prepare("DELETE FROM turnos WHERE idturno = ?");
+        return $stmt->execute([$id]);
+    }
+
+    // ========================================
+    // MÉTODOS PARA GESTIÓN DE VACACIONES
+    // ========================================
+
+    /**
      * Obtener vacaciones de empleados
      */
     public function getVacacionesEmpleados() {
@@ -521,15 +539,9 @@ class Mdgemp {
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
     /**
-     * Crear una vacación para un empleado, validando solapamiento de fechas
-     * @param int $empleado_id
-     * @param string $fecha_inicio (Y-m-d)
-     * @param string $fecha_fin (Y-m-d)
-     * @param string $motivo
-     * @param string $estado
-     * @throws Exception Si hay solapamiento o error de datos
-     * @return int ID de la vacación creada
+     * Crear una vacación para un empleado
      */
     public function crearVacacion($empleado_id, $fecha_inicio, $fecha_fin, $motivo, $estado) {
         if (!$fecha_inicio || !$fecha_fin || strtotime($fecha_inicio) > strtotime($fecha_fin)) {
@@ -555,37 +567,46 @@ class Mdgemp {
     }
 
     /**
-     * Crear un turno para un empleado, validando solapamiento de fechas
-     * @param int $empleado_id
-     * @param string $fecha_inicio (Y-m-d)
-     * @param string $fecha_fin (Y-m-d)
-     * @param string $horario
-     * @param string $tipo_temporada
-     * @param string $turno
-     * @param string $observaciones
-     * @throws Exception Si hay solapamiento o error de datos
-     * @return int ID del turno creado
+     * Obtener una vacación por ID
      */
-    public function crearTurno($empleado_id, $fecha_inicio, $fecha_fin, $horario, $tipo_temporada, $turno, $observaciones) {
+    public function getVacacionById($id) {
+        $stmt = $this->conn->prepare("SELECT * FROM vacaciones WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Actualizar una vacación
+     */
+    public function actualizarVacacionCompleta($id, $id_empleado, $fecha_inicio, $fecha_fin, $motivo, $estado) {
         if (!$fecha_inicio || !$fecha_fin || strtotime($fecha_inicio) > strtotime($fecha_fin)) {
             throw new Exception('Fechas inválidas.');
         }
-        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM turnos WHERE idempleado = ? AND (
+        
+        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM vacaciones WHERE id_empleado = ? AND id != ? AND (
             (fecha_inicio <= ? AND fecha_fin >= ?) OR
             (fecha_inicio <= ? AND fecha_fin >= ?) OR
             (fecha_inicio >= ? AND fecha_fin <= ?)
         )");
         $stmt->execute([
-            $empleado_id,
+            $id_empleado, $id,
             $fecha_inicio, $fecha_inicio,
             $fecha_fin, $fecha_fin,
             $fecha_inicio, $fecha_fin
         ]);
         if ($stmt->fetchColumn() > 0) {
-            throw new Exception('Ya existe un turno que se solapa con las fechas seleccionadas.');
+            throw new Exception('Ya existe una vacación que se solapa con las fechas seleccionadas.');
         }
-        $stmt = $this->conn->prepare("INSERT INTO turnos (idempleado, fecha_inicio, fecha_fin, horario, tipo_temporada, turno, observaciones) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$empleado_id, $fecha_inicio, $fecha_fin, $horario, $tipo_temporada, $turno, $observaciones]);
-        return $this->conn->lastInsertId();
+        
+        $stmt = $this->conn->prepare("UPDATE vacaciones SET id_empleado = ?, fecha_inicio = ?, fecha_fin = ?, motivo = ?, estado = ? WHERE id = ?");
+        return $stmt->execute([$id_empleado, $fecha_inicio, $fecha_fin, $motivo, $estado, $id]);
+    }
+
+    /**
+     * Eliminar una vacación
+     */
+    public function eliminarVacacion($id) {
+        $stmt = $this->conn->prepare("DELETE FROM vacaciones WHERE id = ?");
+        return $stmt->execute([$id]);
     }
 }

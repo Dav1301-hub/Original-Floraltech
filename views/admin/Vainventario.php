@@ -318,7 +318,12 @@
         </div>
     <?php endif; ?>
 
-    <h2 class="mb-4 fw-bold">Gestión de Inventario</h2> 
+    <div class="d-flex align-items-center mb-4 py-3 px-3 rounded-4 shadow-sm text-white" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%);">
+        <div>
+            <p class="mb-1 opacity-75" style="letter-spacing:1px;text-transform:uppercase;"><i class="fas fa-cube me-2"></i>FloralTech Admin</p>
+            <h2 class="mb-0 fw-bold">Gestión de Inventario</h2>
+        </div>
+    </div> 
     <!-- Cards de resumen funcionales -->
     <div class="row mb-4 g-3">
         <div class="col-lg-2 col-md-4 col-sm-6">

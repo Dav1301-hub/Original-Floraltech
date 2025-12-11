@@ -4,7 +4,9 @@ require_once __DIR__ . '/../models/mreportes.php';
 // Seleccionar motor PDF disponible (mPDF si existe, FPDF si no)
 $mpdfPath = dirname(__DIR__) . '/vendor/autoload.php';
 $fpdfPath = __DIR__ . '/../libs/FPDF/fpdf.php';
-$pdfEngine = file_exists($mpdfPath) ? 'mpdf' : (file_exists($fpdfPath) ? 'fpdf' : null);
+$mpdfClassPath = dirname(__DIR__) . '/vendor/mpdf/mpdf/src/Mpdf.php';
+// Check if both autoload exists AND mpdf is actually installed
+$pdfEngine = (file_exists($mpdfPath) && file_exists($mpdfClassPath)) ? 'mpdf' : (file_exists($fpdfPath) ? 'fpdf' : null);
 
 if ($pdfEngine === 'mpdf') {
     require_once $mpdfPath;

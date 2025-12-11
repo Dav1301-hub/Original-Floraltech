@@ -1,49 +1,18 @@
-/* Botón hamburguesa para mostrar/ocultar sidebar */
-.sidebar-toggle {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 1100;
-    background: var(--primary);
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    transition: background 0.2s;
-}
-.sidebar-toggle:hover {
-    background: var(--dark);
-}
 
-/* Sidebar oculto */
-.sidebar.sidebar-collapsed {
-    width: 0;
-    min-width: 0;
-    padding: 0;
-    overflow: hidden;
-    transition: width 0.3s, padding 0.3s;
-}
-.main-content.sidebar-collapsed {
-    margin-left: 0 !important;
-    transition: margin-left 0.3s;
-}
+
 :root {
-    --primary: #4CAF50;
-    --secondary: #8BC34A;
-    --accent: #FF9800;
-    --light: #F1F8E9;
-    --dark: #1B5E20;
-    --text: #212121;
-    --text-light: #757575;
-    --card-shadow: 0 4px 12px rgba(139, 195, 74, 0.15);
-    --sidebar-width: 280px;
+    --primary: #6a5af9;
+    --sidebar-width: 260px;
+    --gray-900: #0f172a;
+    --gray-700: #475569;
+    --gray-200: #e5e7eb;
+    --gray-50: #f8fafc;
+    --success: #10b981;
+    --dark: #0f172a;
+    --light: #f8fafc;
+    --text: #0f172a;
+    --text-light: #6b7280;
+    --card-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
 }
 
 * {
@@ -104,50 +73,49 @@ body {
 
 .sidebar-menu {
     padding: 15px 0;
-    .sidebar-menu {
-        padding: 18px 0;
-        margin: 0;
-    }
-    .sidebar-menu ul {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-    }
-    .sidebar-menu li {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-    }
-    .sidebar-menu li a {
-        display: flex;
-        align-items: center;
-        padding: 14px 28px;
-        color: var(--gray-700);
-        text-decoration: none;
-        transition: all 0.2s;
-        font-weight: 500;
-        border-left: 4px solid transparent;
-        border-radius: 8px;
-        margin: 4px 12px;
-        background: none;
-        box-shadow: none;
-    }
-    .sidebar-menu li a:hover,
-    .sidebar-menu li a.active {
-        background-color: var(--gray-50);
-        color: var(--primary);
-        border-left: 4px solid var(--primary);
-        box-shadow: 0 2px 8px rgba(59,130,246,0.08);
-    }
-    .sidebar-menu li a i {
-        margin-right: 12px;
-        font-size: 18px;
-        width: 24px;
-        text-align: center;
-        color: var(--primary);
-    }
+}
+
+.sidebar-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar-menu li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar-menu li a {
+    display: flex;
+    align-items: center;
+    padding: 14px 28px;
+    color: var(--gray-700);
+    text-decoration: none;
+    transition: all 0.2s;
+    font-weight: 500;
+    border-left: 4px solid transparent;
+    border-radius: 8px;
+    margin: 4px 12px;
+    background: none;
+    box-shadow: none;
+}
+
+.sidebar-menu li a:hover,
+.sidebar-menu li a.active {
+    background-color: var(--gray-50);
+    color: var(--primary);
+    border-left: 4px solid var(--primary);
+    box-shadow: 0 2px 8px rgba(59,130,246,0.08);
+}
+
+.sidebar-menu li a i {
+    margin-right: 12px;
+    font-size: 18px;
     width: 24px;
     text-align: center;
+    color: var(--primary);
 }
 
 /* Contenido principal */
@@ -240,6 +208,11 @@ body {
     margin-bottom: 20px;
 }
 
+.modal-dialog-scrollable .modal-body {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+}
+
 .card-header {
     background-color: white;
     border-bottom: 1px solid rgba(0,0,0,0.1);
@@ -277,6 +250,20 @@ body {
     color: var(--dark);
     font-weight: 600;
     border-top: none;
+}
+
+.table {
+    background-color: #fff;
+    color: var(--text);
+    border-radius: 12px;
+    border-collapse: separate;
+    border-spacing: 0;
+    overflow: hidden;
+    box-shadow: 0 0 0.5rem rgba(15, 23, 42, 0.08);
+}
+
+.table tbody tr {
+    background-color: #fff;
 }
 
 .badge-success {
@@ -369,7 +356,6 @@ body {
     .sidebar-toggle:hover {
         background: #2563eb;
     }
-    }
 
     .header {
         flex-direction: column;
@@ -381,5 +367,4 @@ body {
         width: 100%;
         justify-content: flex-end;
     }
-
-        
+}
