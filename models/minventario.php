@@ -141,20 +141,24 @@ class Minventario {
             $stmt_bajo->execute();
             $stock_bajo = $stmt_bajo->fetch(PDO::FETCH_ASSOC)['bajo'];
             
-            // Productos con stock crítico (1-9 unidades)
-            $sql_critico = "SELECT COUNT(*) as critico FROM inv WHERE stock > 0 AND stock < 10";
+            // Productos con stock crítico (0-9 unidades, incluyendo sin stock)
+            $sql_critico = "SELECT COUNT(*) as critico FROM inv WHERE stock <= 9";
             $stmt_critico = $this->db->prepare($sql_critico);
             $stmt_critico->execute();
-            $stock_critico = $stmt_critico->fetch(PDO::FETCH_ASSOC)['critico'];
+            $result_critico = $stmt_critico->fetch(PDO::FETCH_ASSOC);
+            $stock_critico = $result_critico['critico'] ?? 0;
+            
+            // Debug logging
+            error_log("DEBUG getEstadisticasInventario - SQL: $sql_critico | Resultado: $stock_critico");
             
             // Productos sin stock
-            $sql_sin = "SELECT COUNT(*) as sin_stock FROM inv WHERE stock = 0";
+            $sql_sin = "SELECT COUNT(*) as sin_stock FROM inv WHERE stock = 0 OR stock IS NULL";
             $stmt_sin = $this->db->prepare($sql_sin);
             $stmt_sin->execute();
             $sin_stock = $stmt_sin->fetch(PDO::FETCH_ASSOC)['sin_stock'];
             
             // Valor total del inventario
-            $sql_valor = "SELECT SUM(stock * precio) as valor_total FROM inv";
+            $sql_valor = "SELECT SUM(stock * precio) as valor_total FROM inv WHERE stock > 0";
             $stmt_valor = $this->db->prepare($sql_valor);
             $stmt_valor->execute();
             $valor_total = $stmt_valor->fetch(PDO::FETCH_ASSOC)['valor_total'] ?? 0;
