@@ -97,8 +97,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_soporte'])) {
                 $descripcion,
                 $archivo
             );
+            error_log("Email de ticket enviado exitosamente a epymes270@gmail.com para ticket #$id_ticket");
         } catch (Exception $e) {
-            error_log("Error enviando email: " . $e->getMessage());
+            $error_msg = "Error enviando email: " . $e->getMessage();
+            error_log($error_msg);
+            // No mostrar error al usuario, pero registrar en logs
         }
         
         $mensaje_exito = 'Ticket enviado exitosamente. Te responderemos pronto.';
