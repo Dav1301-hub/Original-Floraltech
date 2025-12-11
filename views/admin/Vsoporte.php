@@ -32,6 +32,36 @@ try {
     // Tabla no existe aún
 }
 
+// Procesar eliminación de ticket
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eliminar_ticket'])) {
+    try {
+        $id_ticket = (int)$_POST['id_ticket'];
+        
+        // Verificar que el ticket perteneza al usuario actual
+        $stmt_verificar = $conexion->prepare("SELECT id FROM tickets_soporte WHERE id = :id AND admin_id = :admin_id");
+        $stmt_verificar->execute([':id' => $id_ticket, ':admin_id' => $id_admin]);
+        
+        if ($stmt_verificar->fetch(PDO::FETCH_ASSOC)) {
+            // Eliminar el ticket
+            $stmt_eliminar = $conexion->prepare("DELETE FROM tickets_soporte WHERE id = :id AND admin_id = :admin_id");
+            $stmt_eliminar->execute([':id' => $id_ticket, ':admin_id' => $id_admin]);
+            
+            $mensaje_exito = 'Ticket eliminado correctamente';
+            
+            // Recargar tickets
+            try {
+                $stmt_tickets = $conexion->prepare("SELECT id, asunto, estado, fecha_creacion, respuesta FROM tickets_soporte WHERE admin_id = :id ORDER BY fecha_creacion DESC");
+                $stmt_tickets->execute([':id' => $id_admin]);
+                $tickets = $stmt_tickets->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $e) {}
+        } else {
+            $mensaje_error = 'No tienes permiso para eliminar este ticket';
+        }
+    } catch (Exception $e) {
+        $mensaje_error = 'Error al eliminar el ticket: ' . $e->getMessage();
+    }
+}
+
 // Procesar formulario de soporte
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_soporte'])) {
     try {
@@ -97,8 +127,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_soporte'])) {
                 $descripcion,
                 $archivo
             );
+            error_log("Email de ticket enviado exitosamente a epymes270@gmail.com para ticket #$id_ticket");
         } catch (Exception $e) {
-            error_log("Error enviando email: " . $e->getMessage());
+            $error_msg = "Error enviando email: " . $e->getMessage();
+            error_log($error_msg);
+            // No mostrar error al usuario, pero registrar en logs
         }
         
         $mensaje_exito = 'Ticket enviado exitosamente. Te responderemos pronto.';
@@ -170,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_soporte'])) {
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label fw-600">Descripción detallada</label>
+                                <label class="form-label fw-600">Tu Mensaje</label>
                                 <textarea class="form-control" name="descripcion_soporte" rows="5" placeholder="Cuéntanos qué está pasando, qué pasos tomaste, etc." required style="resize: vertical;"></textarea>
                                 <small class="text-muted">Sé lo más específico posible para una respuesta más rápida</small>
                             </div>
@@ -244,9 +277,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_soporte'])) {
                                                     </div>
                                                 <?php endif; ?>
                                             </div>
-                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detalleTicket<?= $ticket['id'] ?>" title="Ver detalles">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detalleTicket<?= $ticket['id'] ?>" title="Ver detalles">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este ticket? Esta acción no se puede deshacer.');">
+                                                    <input type="hidden" name="id_ticket" value="<?= $ticket['id'] ?>">
+                                                    <button type="submit" name="eliminar_ticket" class="btn btn-sm btn-outline-danger" title="Eliminar ticket">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
                                     </div>
 
