@@ -32,6 +32,36 @@ try {
     // Tabla no existe aún
 }
 
+// Procesar eliminación de ticket
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eliminar_ticket'])) {
+    try {
+        $id_ticket = (int)$_POST['id_ticket'];
+        
+        // Verificar que el ticket perteneza al usuario actual
+        $stmt_verificar = $conexion->prepare("SELECT id FROM tickets_soporte WHERE id = :id AND admin_id = :admin_id");
+        $stmt_verificar->execute([':id' => $id_ticket, ':admin_id' => $id_admin]);
+        
+        if ($stmt_verificar->fetch(PDO::FETCH_ASSOC)) {
+            // Eliminar el ticket
+            $stmt_eliminar = $conexion->prepare("DELETE FROM tickets_soporte WHERE id = :id AND admin_id = :admin_id");
+            $stmt_eliminar->execute([':id' => $id_ticket, ':admin_id' => $id_admin]);
+            
+            $mensaje_exito = 'Ticket eliminado correctamente';
+            
+            // Recargar tickets
+            try {
+                $stmt_tickets = $conexion->prepare("SELECT id, asunto, estado, fecha_creacion, respuesta FROM tickets_soporte WHERE admin_id = :id ORDER BY fecha_creacion DESC");
+                $stmt_tickets->execute([':id' => $id_admin]);
+                $tickets = $stmt_tickets->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $e) {}
+        } else {
+            $mensaje_error = 'No tienes permiso para eliminar este ticket';
+        }
+    } catch (Exception $e) {
+        $mensaje_error = 'Error al eliminar el ticket: ' . $e->getMessage();
+    }
+}
+
 // Procesar formulario de soporte
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_soporte'])) {
     try {
@@ -247,9 +277,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_soporte'])) {
                                                     </div>
                                                 <?php endif; ?>
                                             </div>
-                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detalleTicket<?= $ticket['id'] ?>" title="Ver detalles">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detalleTicket<?= $ticket['id'] ?>" title="Ver detalles">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este ticket? Esta acción no se puede deshacer.');">
+                                                    <input type="hidden" name="id_ticket" value="<?= $ticket['id'] ?>">
+                                                    <button type="submit" name="eliminar_ticket" class="btn btn-sm btn-outline-danger" title="Eliminar ticket">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
                                     </div>
 
