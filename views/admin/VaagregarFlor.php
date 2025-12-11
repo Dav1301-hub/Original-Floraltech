@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 if (!isset($_SESSION['user']) || $_SESSION['user']['tpusu_idtpusu'] != 1) {
     header('Location: index.php?ctrl=login&action=index');
     exit();
@@ -42,3 +42,4 @@ if (!isset($_SESSION['user']) || $_SESSION['user']['tpusu_idtpusu'] != 1) {
     </div>
 </body>
 </html>
+

@@ -1,7 +1,7 @@
 <?php
 // Obtener datos reales del dashboard general mediante el controller
 if (!isset($dashboardData) || !is_array($dashboardData)) {
-    // Solo ejecutar el controller si no tenemos datos (evitar duplicación)
+    // Solo ejecutar el controller si no tenemos datos (evitar duplicaci+�n)
     require_once __DIR__ . '/../../controllers/CDashboardGeneral.php';
     
     try {
@@ -73,7 +73,7 @@ $entregasProximas = $dashboardData['entregasProximas'];
 $tendenciaVentas = $dashboardData['tendenciaVentas'];
 $topProductos = $dashboardData['topProductos'] ?? [];
 
-// Obtener lotes próximos a caducar
+// Obtener lotes pr+�ximos a caducar
 require_once __DIR__ . '/../../models/Mlotes.php';
 $lotesModel = new Mlotes();
 $lotesProximosCaducar = $lotesModel->getLotesProximosCaducar(7);
@@ -250,7 +250,7 @@ $cantidadAlertasLotes = count($lotesProximosCaducar);
             background: linear-gradient(135deg, #fff8e1 0%, #fffbf0 100%);
         }
         
-        /* Responsive: Alerta de caducidad en móviles */
+        /* Responsive: Alerta de caducidad en m+�viles */
         @media (max-width: 768px) {
             .alert.alert-danger {
                 flex-direction: column !important;
@@ -338,12 +338,18 @@ $cantidadAlertasLotes = count($lotesProximosCaducar);
 </head>
 <body>
 <div id="general-dashboard" class="dashboard-main">
-    <header>
-        <h1>Dashboard General</h1>
-        <p class="welcome-text">Bienvenido al sistema de administración de FloralTech</p>
+    <header class="d-flex flex-wrap align-items-start align-items-md-center justify-content-between mb-4 p-4 rounded-4 shadow-sm text-white" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 50%, #1e1b4b 100%);">
+        <div>
+            <p class="mb-1 text-uppercase fw-semibold small opacity-75" style="color: #ffff">Panel general</p>
+            <h1 class="mb-1 fw-bold" style="color: #ffff">Dashboard General</h1>
+            <p class="welcome-text mb-0 opacity-75" style="color: #ffff">Bienvenido al sistema de administracion de FloralTech</p>
+        </div>
+        <div class="d-flex gap-2 mt-3 mt-md-0">
+            <a class="btn btn-light btn-sm text-primary fw-semibold" href="index.php?ctrl=cinventario"><i class="fas fa-boxes me-2"></i>Inventario</a>
+            <a class="btn btn-outline-light btn-sm" href="#calendar-pedidos"><i class="fas fa-calendar-alt me-2"></i>Agenda</a>
+        </div>
     </header>
 
-    <!-- Métricas visuales modernas -->
     <div class="row mb-4 g-3">
         <div class="col-lg col-md-4 col-sm-6">
             <div class="metric-card metric-purple h-100">
@@ -429,197 +435,248 @@ $cantidadAlertasLotes = count($lotesProximosCaducar);
         </div>
     </div>
 
-    <!-- Alerta Compacta de Caducidad -->
     <?php if ($cantidadAlertasLotes > 0): ?>
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="alert alert-danger d-flex align-items-center justify-content-between shadow-sm border-0" style="border-left: 5px solid #dc3545 !important;">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; background: rgba(220, 53, 69, 0.1); border-radius: 50%;">
-                        <i class="fas fa-exclamation-triangle text-danger" style="font-size: 1.8rem;"></i>
-                    </div>
-                    <div>
-                        <h5 class="mb-1 fw-bold text-danger">
-                            <i class="fas fa-box-open me-2"></i><?= $cantidadAlertasLotes ?> 
-                            <?= $cantidadAlertasLotes === 1 ? 'Lote próximo a caducar' : 'Lotes próximos a caducar' ?>
-                        </h5>
-                        <p class="mb-0 text-dark" style="font-size: 0.95rem;">
-                            <?= $cantidadAlertasLotes === 1 
-                                ? 'Caduca en los próximos 7 días' 
-                                : "Caducan en los próximos 7 días" 
-                            ?> • Revisa el inventario para evitar pérdidas
-                        </p>
-                    </div>
+    <div class="dash-card p-3 mb-4 shadow-sm border-0" style="border-left: 6px solid #dc3545;">
+        <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 56px; height: 56px; background: rgba(220,53,69,.12);">
+                    <i class="fas fa-exclamation-triangle text-danger fs-4"></i>
                 </div>
-                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modal-alertas-caducidad" style="white-space: nowrap;">
-                    <i class="fas fa-list-ul me-1"></i>Ver Detalles
+                <div>
+                    <h5 class="mb-1 fw-bold text-danger"><?= $cantidadAlertasLotes ?> <?= $cantidadAlertasLotes === 1 ? 'lote proximo a caducar' : 'lotes proximos a caducar' ?></h5>
+                    <p class="mb-0 text-muted">Caducan en los proximos 7 dias. Revisa inventario para evitar perdidas.</p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-danger-subtle text-danger fw-semibold"><?= $cantidadAlertasLotes ?> alertas</span>
+                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modal-alertas-caducidad">
+                    <i class="fas fa-list-ul me-1"></i>Ver detalles
                 </button>
             </div>
         </div>
     </div>
     <?php endif; ?>
 
-    <!-- Sección media: Calendario + Gráfico -->
-    <div class="row mb-4">
-        <!-- Calendario de Pedidos (Izquierda) -->
+    <div class="row g-4 mb-4">
         <div class="col-lg-8">
-            <div class="card card-calendario mb-3">
-                <div class="card-header bg-success text-white"><i class="fas fa-calendar me-2"></i>Calendario de Pedidos</div>
-                <div class="card-body">
-                    <div id="calendar-pedidos"></div>
+            <div class="dash-card p-3 h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <div class="section-title mb-1">Ventas y pedidos</div>
+                        <small class="text-muted">Mes <?= $mesReferencia ?></small>
+                    </div>
+                    <span class="badge bg-light text-dark">Actualizado hoy</span>
+                </div>
+                <div style="height: 320px;">
+                    <canvas id="chartVentas"></canvas>
+                </div>
+                <div class="row g-3 pt-3">
+                    <div class="col-sm-4">
+                        <div class="mini-stat">
+                            <span class="text-muted">Ingresos mes</span>
+                            <span class="fw-bold">$<?= number_format($ingresosMes, 0, ',', '.') ?></span>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="mini-stat">
+                            <span class="text-muted">Pedidos mes</span>
+                            <span class="fw-bold"><?= $pedidosMes ?></span>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="mini-stat">
+                            <span class="text-muted">Conversion</span>
+                            <span class="fw-bold"><?= $tasaConversion ?>%</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <!-- Gráfico de Tendencia (Derecha) -->
         <div class="col-lg-4">
-            <div class="card mb-3">
-                <div class="card-header bg-dark text-white"><i class="fas fa-chart-line me-2"></i>Tendencia de Ventas</div>
-                <div class="card-body">
-                    <canvas id="chartVentas" height="400"></canvas>
+            <?php $totalPedidosBase = $pedidosMes > 0 ? $pedidosMes : 1; ?>
+            <div class="dash-card p-3 h-100">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="section-title mb-0">Estado de pedidos</div>
+                    <span class="badge bg-light text-dark">Mes <?= $mesReferencia ?></span>
                 </div>
+                <div class="mini-stat">
+                    <div><i class="fas fa-check-circle text-success me-2"></i>Completados</div>
+                    <div class="fw-bold"><?= $pedidosCompletados ?></div>
+                </div>
+                <div class="progress-slim mb-2"><div class="progress-slim-bar" style="width: <?= min(100, ($pedidosCompletados / $totalPedidosBase) * 100) ?>%;"></div></div>
+
+                <div class="mini-stat">
+                    <div><i class="fas fa-clock text-warning me-2"></i>Pendientes</div>
+                    <div class="fw-bold"><?= $pedidosPendientesMes ?></div>
+                </div>
+                <div class="progress-slim mb-2"><div class="progress-slim-bar" style="width: <?= min(100, ($pedidosPendientesMes / $totalPedidosBase) * 100) ?>%; background: linear-gradient(90deg, #f97316, #f59e0b);"></div></div>
+
+                <div class="mini-stat">
+                    <div><i class="fas fa-cog text-info me-2"></i>En proceso</div>
+                    <div class="fw-bold"><?= $pedidosEnProcesoMes ?></div>
+                </div>
+                <div class="progress-slim mb-2"><div class="progress-slim-bar" style="width: <?= min(100, ($pedidosEnProcesoMes / $totalPedidosBase) * 100) ?>%; background: linear-gradient(90deg, #06b6d4, #0ea5e9);"></div></div>
+
+                <div class="mini-stat">
+                    <div><i class="fas fa-ban text-danger me-2"></i>Cancelados</div>
+                    <div class="fw-bold"><?= $pedidosCanceladosMes ?></div>
+                </div>
+                <div class="progress-slim"><div class="progress-slim-bar" style="width: <?= min(100, ($pedidosCanceladosMes / $totalPedidosBase) * 100) ?>%; background: linear-gradient(90deg, #ef4444, #b91c1c);"></div></div>
             </div>
         </div>
     </div>
 
-    <!-- Sección de Alertas: Entregas Próximas -->
-    <?php if ($entregasProximas['cantidadHoy'] > 0 || $entregasProximas['cantidadManana'] > 0): ?>
-    <div class="row mb-4">
-        <div class="col-12">
-            <?php if ($entregasProximas['cantidadHoy'] > 0): ?>
-            <div class="alert alert-entregas alert-success border-0 shadow-sm mb-3">
-                <div class="d-flex align-items-center mb-2">
-                    <i class="fas fa-truck fa-2x me-3"></i>
-                    <div>
-                        <h5 class="mb-0"><strong><?= $entregasProximas['cantidadHoy'] ?></strong> Entrega<?= $entregasProximas['cantidadHoy'] > 1 ? 's' : '' ?> para HOY</h5>
-                        <small class="text-muted"><?= date('d/m/Y') ?></small>
-                    </div>
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="dash-card p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="section-title mb-0">Agenda de pedidos</div>
+                    <span class="badge bg-light text-dark d-flex align-items-center gap-2"><i class="fas fa-calendar-week text-primary"></i>Vista mensual</span>
                 </div>
-                <div class="mt-2">
-                    <?php foreach ($entregasProximas['hoy'] as $entrega): ?>
-                    <div class="entrega-item">
-                        <strong>Pedido #<?= $entrega['numped'] ?></strong> - <?= htmlspecialchars($entrega['cliente']) ?>
-                        <span class="badge bg-<?= $entrega['estado'] == 'Completado' ? 'success' : ($entrega['estado'] == 'Pendiente' ? 'warning' : 'info') ?> ms-2"><?= $entrega['estado'] ?></span>
-                        <span class="text-muted ms-2">$<?= number_format($entrega['monto_total'], 2) ?></span>
+                <div id="calendar-pedidos"></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="dash-card p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="section-title mb-0">Entregas proximas</div>
+                    <span class="badge bg-success-subtle text-success"><?= $entregasProximas['cantidadHoy'] + $entregasProximas['cantidadManana'] ?> en cola</span>
+                </div>
+                <?php if ($entregasProximas['cantidadHoy'] == 0 && $entregasProximas['cantidadManana'] == 0): ?>
+                    <p class="text-muted mb-0">No hay entregas programadas.</p>
+                <?php endif; ?>
+
+                <?php if ($entregasProximas['cantidadHoy'] > 0): ?>
+                    <div class="mb-3">
+                        <div class="fw-semibold mb-1"><i class="fas fa-truck text-success me-2"></i>Hoy (<?= date('d/m') ?>)</div>
+                        <?php foreach ($entregasProximas['hoy'] as $entrega): ?>
+                            <div class="lote-alert mb-2 d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>#<?= $entrega['numped'] ?></strong> - <?= htmlspecialchars($entrega['cliente']) ?>
+                                    <div class="small text-muted">Estado: <span class="badge bg-<?= $entrega['estado'] == 'Completado' ? 'success' : ($entrega['estado'] == 'Pendiente' ? 'warning text-dark' : 'info') ?>"><?= $entrega['estado'] ?></span></div>
+                                </div>
+                                <span class="fw-bold text-success">$<?= number_format($entrega['monto_total'], 0, ',', '.') ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($entregasProximas['cantidadManana'] > 0): ?>
+                    <div>
+                        <div class="fw-semibold mb-1"><i class="fas fa-clock text-warning me-2"></i>Manana (<?= date('d/m', strtotime('+1 day')) ?>)</div>
+                        <?php foreach ($entregasProximas['manana'] as $entrega): ?>
+                            <div class="lote-alert mb-2 d-flex justify-content-between align-items-start" style="background: #fffbea; border-color: #facc15;">
+                                <div>
+                                    <strong>#<?= $entrega['numped'] ?></strong> - <?= htmlspecialchars($entrega['cliente']) ?>
+                                    <div class="small text-muted">Estado: <span class="badge bg-<?= $entrega['estado'] == 'Completado' ? 'success' : ($entrega['estado'] == 'Pendiente' ? 'warning text-dark' : 'info') ?>"><?= $entrega['estado'] ?></span></div>
+                                </div>
+                                <span class="fw-bold text-warning">$<?= number_format($entrega['monto_total'], 0, ',', '.') ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <div class="dash-card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="section-title mb-0">Lotes por vencer (7 dias)</div>
+                    <span class="badge bg-danger-subtle text-danger"><?= $cantidadAlertasLotes ?> alerta<?= $cantidadAlertasLotes == 1 ? '' : 's' ?></span>
+                </div>
+                <?php if (empty($lotesProximosCaducar)): ?>
+                    <p class="text-muted mb-0">Sin lotes proximos a caducar.</p>
+                <?php else: ?>
+                    <?php foreach (array_slice($lotesProximosCaducar, 0, 3) as $lote): 
+                        $fechaCad = new DateTime($lote['fecha_caducidad']);
+                        $hoy = new DateTime();
+                        $diff = $hoy->diff($fechaCad);
+                        $diasRest = $diff->invert ? 0 : $diff->days;
+                    ?>
+                    <div class="lote-alert">
+                        <div class="d-flex justify-content-between">
+                            <strong><?= htmlspecialchars($lote['producto'] ?? 'Producto') ?></strong>
+                            <span class="badge <?= $diasRest <= 3 ? 'bg-danger' : ($diasRest <= 5 ? 'bg-warning text-dark' : 'bg-info') ?>"><?= $diasRest ?> dia<?= $diasRest == 1 ? '' : 's' ?></span>
+                        </div>
+                        <div class="small text-muted">Lote <?= htmlspecialchars($lote['numero_lote']) ?> - <?= $fechaCad->format('d/m/Y') ?></div>
                     </div>
                     <?php endforeach; ?>
-                </div>
-            </div>
-            <?php endif; ?>
-            
-            <?php if ($entregasProximas['cantidadManana'] > 0): ?>
-            <div class="alert alert-entregas alert-warning border-0 shadow-sm mb-3">
-                <div class="d-flex align-items-center mb-2">
-                    <i class="fas fa-clock fa-2x me-3"></i>
-                    <div>
-                        <h5 class="mb-0"><strong><?= $entregasProximas['cantidadManana'] ?></strong> Entrega<?= $entregasProximas['cantidadManana'] > 1 ? 's' : '' ?> para MAÑANA</h5>
-                        <small class="text-muted"><?= date('d/m/Y', strtotime('+1 day')) ?></small>
+                    <div class="text-end mt-2">
+                        <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modal-alertas-caducidad">
+                            <i class="fas fa-eye me-1"></i>Ver todos
+                        </button>
                     </div>
-                </div>
-                <div class="mt-2">
-                    <?php foreach ($entregasProximas['manana'] as $entrega): ?>
-                    <div class="entrega-item" style="border-left-color: #ffc107;">
-                        <strong>Pedido #<?= $entrega['numped'] ?></strong> - <?= htmlspecialchars($entrega['cliente']) ?>
-                        <span class="badge bg-<?= $entrega['estado'] == 'Completado' ? 'success' : ($entrega['estado'] == 'Pendiente' ? 'warning' : 'info') ?> ms-2"><?= $entrega['estado'] ?></span>
-                        <span class="text-muted ms-2">$<?= number_format($entrega['monto_total'], 2) ?></span>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
+                <?php endif; ?>
             </div>
-            <?php endif; ?>
         </div>
     </div>
-    <?php endif; ?>
 
-    <!-- Sección inferior: Resumen + Top Productos + Actividad Reciente -->
-    <div class="row">
-        <!-- Resumen Mensual -->
-        <div class="col-lg-4">
-            <div class="card card-resumen mb-3">
-                <div class="card-header bg-primary text-white"><i class="fas fa-calendar-alt me-2"></i>Resumen Mensual de Pedidos (<?= $mesReferencia ?>)</div>
-                <div class="card-body">
-                    <ul class="list-group">
-                        <li class="list-group-item"><span class="icon text-primary"><i class="fas fa-shopping-bag"></i></span>Pedidos este mes: <strong><?= $pedidosMes ?></strong></li>
-                        <li class="list-group-item"><span class="icon text-success"><i class="fas fa-check"></i></span>Completados: <strong><?= $pedidosCompletados ?></strong></li>
-                        <li class="list-group-item"><span class="icon text-warning"><i class="fas fa-clock"></i></span>Pendientes: <strong><?= $pedidosPendientesMes ?></strong></li>
-                        <li class="list-group-item"><span class="icon text-info"><i class="fas fa-cog"></i></span>En proceso: <strong><?= $pedidosEnProcesoMes ?></strong></li>
-                        <li class="list-group-item"><span class="icon text-danger"><i class="fas fa-ban"></i></span>Cancelados: <strong><?= $pedidosCanceladosMes ?></strong></li>
-                    </ul>
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="dash-card p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="section-title mb-0">Top productos (30 dias)</div>
+                    <span class="badge bg-light text-dark"><?= count($topProductos) ?> items</span>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Top 5 Productos Más Vendidos -->
-        <div class="col-lg-4">
-            <div class="card mb-3">
-                <div class="card-header bg-warning text-dark"><i class="fas fa-trophy me-2"></i>Top 5 Productos (Últimos 30 días)</div>
-                <div class="card-body">
-                    <?php if (empty($topProductos)): ?>
-                        <p class="text-muted text-center mb-0">No hay datos de ventas en este período</p>
-                    <?php else: ?>
-                        <?php foreach ($topProductos as $index => $producto): 
-                            $medallas = ['🥇', '🥈', '🥉'];
-                            $emoji = $index < 3 ? $medallas[$index] : ($index + 1);
-                        ?>
-                        <div class="producto-item">
-                            <div class="d-flex align-items-start">
-                                <span class="producto-ranking"><?= $emoji ?></span>
-                                <div class="flex-grow-1">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="producto-nombre"><?= htmlspecialchars($producto['nombre']) ?></span>
-                                        <span class="producto-porcentaje"><?= $producto['porcentaje'] ?>%</span>
-                                    </div>
-                                    <div class="producto-stats">
-                                        <i class="fas fa-box me-1"></i><?= $producto['total_vendido'] ?> unidades
-                                        <span class="ms-2"><i class="fas fa-shopping-cart me-1"></i><?= $producto['num_pedidos'] ?> pedidos</span>
-                                        <span class="ms-2"><i class="fas fa-dollar-sign me-1"></i>$<?= number_format($producto['ingresos_total'], 0, ',', '.') ?></span>
-                                    </div>
-                                    <div class="producto-progress">
-                                        <div class="producto-progress-bar" style="width: <?= $producto['porcentaje'] ?>%"></div>
-                                    </div>
+                <?php if (empty($topProductos)): ?>
+                    <p class="text-muted mb-0 text-center py-3">No hay datos de ventas en este periodo.</p>
+                <?php else: ?>
+                    <?php foreach ($topProductos as $index => $producto): 
+                        $posicion = $index + 1;
+                        $rango = "#" . $posicion;
+                    ?>
+                    <div class="producto-item">
+                        <div class="d-flex align-items-start">
+                            <span class="producto-ranking"><?= $rango ?></span>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="producto-nombre"><?= htmlspecialchars($producto['nombre']) ?></span>
+                                    <span class="producto-porcentaje"><?= $producto['porcentaje'] ?>%</span>
+                                </div>
+                                <div class="producto-stats">
+                                    <i class="fas fa-box me-1"></i><?= $producto['total_vendido'] ?> unidades
+                                    <span class="ms-2"><i class="fas fa-shopping-cart me-1"></i><?= $producto['num_pedidos'] ?> pedidos</span>
+                                    <span class="ms-2"><i class="fas fa-dollar-sign me-1"></i>$<?= number_format($producto['ingresos_total'], 0, ',', '.') ?></span>
+                                </div>
+                                <div class="producto-progress">
+                                    <div class="producto-progress-bar" style="width: <?= $producto['porcentaje'] ?>%"></div>
                                 </div>
                             </div>
                         </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </div>
+                    </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </div>
-        
-        <!-- Actividad Reciente -->
-        <div class="col-lg-4">
-            <div class="card card-noti mb-3">
-                <div class="card-header bg-info text-white"><i class="fas fa-bell me-2"></i>Pedidos Recientes</div>
-                <div class="card-body" id="actividad-reciente-body">
-                    <ul class="list-group" id="actividad-reciente-list">
-                        <?php foreach ($actividadReciente as $item): ?>
-                            <li class="list-group-item">
-                                <span class="icon"><i class="fas fa-history"></i></span>
-                                <span><?= date('d/m/Y H:i', strtotime($item['fecha'])) ?> - <?= htmlspecialchars($item['descripcion']) ?></span>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
+        <div class="col-lg-5">
+            <div class="dash-card p-3 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="section-title mb-0">Actividad reciente</div>
+                    <span class="badge bg-primary-subtle text-primary"><i class="fas fa-bolt me-1"></i>Tiempo real</span>
                 </div>
+                <ul class="list-group" id="actividad-reciente-list">
+                    <?php foreach ($actividadReciente as $item): ?>
+                        <li class="list-group-item d-flex align-items-start gap-2">
+                            <span class="text-primary mt-1"><i class="fas fa-history"></i></span>
+                            <span><?= date('d/m/Y H:i', strtotime($item['fecha'])) ?> - <?= htmlspecialchars($item['descripcion']) ?></span>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
             </div>
         </div>
     </div>
 
-    <!-- Modal para mostrar pedidos del día -->
     <div class="modal fade" id="modalPedidosDia" tabindex="-1" aria-labelledby="modalPedidosDiaLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalPedidosDiaLabel">Pedidos del día</h5>
+                    <h5 class="modal-title" id="modalPedidosDiaLabel">Pedidos del dia</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-                <div class="modal-body" id="modalPedidosDiaBody">
-                    <!-- Aquí se cargan los pedidos -->
-                </div>
+                <div class="modal-body" id="modalPedidosDiaBody"></div>
             </div>
         </div>
     </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
+</div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
+
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <!-- FullCalendar -->
@@ -627,7 +684,7 @@ $cantidadAlertasLotes = count($lotesProximosCaducar);
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ========== GRÁFICO DE TENDENCIA DE VENTAS ==========
+    // ========== GR+�FICO DE TENDENCIA DE VENTAS ==========
     var ctxVentas = document.getElementById('chartVentas');
     if (ctxVentas) {
         var tendenciaData = <?= json_encode($tendenciaVentas) ?>;
@@ -729,16 +786,73 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ========== CALENDARIO DE PEDIDOS ==========
-    // Función helper para formatear fecha sin problemas de zona horaria
+    // Funci+�n helper para formatear fecha sin problemas de zona horaria
     window.formatearFechaSinZona = function(fechaStr) {
         if (!fechaStr) return '<em>No especificada</em>';
         var partes = fechaStr.split('-');
         var fechaObj = new Date(partes[0], partes[1] - 1, partes[2]);
         return fechaObj.toLocaleDateString('es-CO', {day: '2-digit', month: '2-digit', year: 'numeric'});
     };
-    
     var calendarEl = document.getElementById('calendar-pedidos');
     if (calendarEl) {
+        function mostrarPedidosDeFecha(fecha) {
+            var partes = fecha.split('-');
+            var fechaObj = new Date(partes[0], partes[1] - 1, partes[2]);
+            var fechaFormateada = fechaObj.toLocaleDateString('es-CO', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
+            var modalLabel = document.getElementById('modalPedidosDiaLabel');
+            var modalBody = document.getElementById('modalPedidosDiaBody');
+            
+            if (modalLabel) {
+                modalLabel.textContent = 'Pedidos para: ' + fechaFormateada.charAt(0).toUpperCase() + fechaFormateada.slice(1);
+            }
+            
+            fetch('/Original-Floraltech/controllers/ccalendar_api.php?fecha=' + fecha)
+                .then(response => response.json())
+                .then(data => {
+                    var html = '';
+                    if (!data || typeof data !== 'object' || data.error) {
+                        html = '<p class="text-danger">No se pudieron cargar los pedidos.</p>';
+                    } else {
+                        html += '<h6>Resumen:</h6>';
+                        html += '<ul>';
+                        html += '<li>Total: ' + (data.resumen && data.resumen.total !== undefined ? data.resumen.total : 0) + '</li>';
+                        html += '<li>Completados: ' + (data.resumen && data.resumen.completados !== undefined ? data.resumen.completados : 0) + '</li>';
+                        html += '<li>Pendientes: ' + (data.resumen && data.resumen.pendientes !== undefined ? data.resumen.pendientes : 0) + '</li>';
+                        html += '<li>Rechazados: ' + (data.resumen && data.resumen.rechazados !== undefined ? data.resumen.rechazados : 0) + '</li>';
+                        html += '</ul>';
+                        html += '<h6>Pedidos:</h6>';
+                        if (!data.pedidos || !Array.isArray(data.pedidos) || data.pedidos.length === 0) {
+                            html += '<p>No hay pedidos para este dia.</p>';
+                        } else {
+                            html += '<table class="table table-bordered table-sm"><thead><tr><th>Numero</th><th>Cliente</th><th>Estado</th><th>Monto</th><th>Creacion</th><th>Entrega</th></tr></thead><tbody>';
+                            data.pedidos.forEach(function(p) {
+                                html += '<tr>';
+                                html += '<td><strong>' + (p.numped || '-') + '</strong></td>';
+                                html += '<td>' + (p.cliente || '-') + '</td>';
+                                html += '<td><span class="badge ' + getStatusBadgeClass(p.estado) + '">' + (p.estado || '-') + '</span></td>';
+                                html += '<td>$' + (p.monto !== undefined ? parseFloat(p.monto).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-') + '</td>';
+                                html += '<td><small>' + (p.fecha_pedido ? new Date(p.fecha_pedido.replace(' ', 'T')).toLocaleString('es-CO', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : '-') + '</small></td>';
+                                html += '<td><small>' + formatearFechaSinZona(p.fecha_entrega_solicitada) + '</small></td>';
+                                html += '</tr>';
+                            });
+                            html += '</tbody></table>';
+                        }
+                    }
+                    if (modalBody) {
+                        modalBody.innerHTML = html;
+                    }
+                    var modal = new bootstrap.Modal(document.getElementById('modalPedidosDia'));
+                    modal.show();
+                })
+                .catch(() => {
+                    if (modalBody) {
+                        modalBody.innerHTML = '<p class="text-danger">No se pudieron cargar los pedidos.</p>';
+                    }
+                    var modal = new bootstrap.Modal(document.getElementById('modalPedidosDia'));
+                    modal.show();
+                });
+        }
+        
         var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             locale: 'es',
@@ -767,155 +881,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
             },
             eventDidMount: function(info) {
-                // Ícono de flor para pedidos
+                console.log('Evento montado:', info.event.title, info.el);
+                // Reemplazar el contenido del evento con solo el icono
                 if (info.el) {
+                    // Buscar el contenedor del titulo
                     var eventMain = info.el.querySelector('.fc-event-main');
                     var eventTitle = info.el.querySelector('.fc-event-title');
+                    
                     if (eventMain) {
-                        eventMain.innerHTML = '<span style="font-size: 18px; display: block; text-align: center; line-height: 1;">💐</span>';
+                        // Limpiar y agregar solo el icono
+                        eventMain.innerHTML = '<span style="font-size: 18px; display: block; text-align: center; line-height: 1;">&#128144;</span>';
                     } else if (eventTitle) {
-                        eventTitle.innerHTML = '<span style="font-size: 18px;">💐</span>';
+                        eventTitle.innerHTML = '<span style="font-size: 18px;">&#128144;</span>';
                     }
+                    
+                    // Agregar clase para estilo
                     info.el.classList.add('evento-pedido-con-flores');
                 }
             },
             eventClick: function(info) {
-                // Mostrar modal con detalle del pedido al hacer click en un evento
-                var fecha = info.event.startStr;
-                // Usar la fecha directamente sin conversión de zona horaria
-                var partes = fecha.split('-');
-                var fechaObj = new Date(partes[0], partes[1] - 1, partes[2]);
-                var fechaFormateada = fechaObj.toLocaleDateString('es-CO', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
-                document.getElementById('modalPedidosDiaLabel').textContent = 'Pedidos para: ' + fechaFormateada.charAt(0).toUpperCase() + fechaFormateada.slice(1);
-                
-                fetch('/Original-Floraltech/controllers/ccalendar_api.php?fecha=' + fecha)
-                    .then(response => response.json())
-                    .then(data => {
-                        var html = '';
-                        if (!data || typeof data !== 'object' || data.error) {
-                            html = '<p class="text-danger">No se pudieron cargar los pedidos.</p>';
-                        } else {
-                            html += '<h6>Resumen:</h6>';
-                            html += '<ul>';
-                            html += '<li>Total: ' + (data.resumen && data.resumen.total !== undefined ? data.resumen.total : 0) + '</li>';
-                            html += '<li>Completados: ' + (data.resumen && data.resumen.completados !== undefined ? data.resumen.completados : 0) + '</li>';
-                            html += '<li>Pendientes: ' + (data.resumen && data.resumen.pendientes !== undefined ? data.resumen.pendientes : 0) + '</li>';
-                            html += '<li>Rechazados: ' + (data.resumen && data.resumen.rechazados !== undefined ? data.resumen.rechazados : 0) + '</li>';
-                            html += '</ul>';
-                            html += '<button class="btn btn-success mb-3" id="btnNuevoPedido" data-fecha="' + fecha + '">Crear nuevo pedido</button>';
-                            html += '<h6>Pedidos:</h6>';
-                            if (!data.pedidos || !Array.isArray(data.pedidos) || data.pedidos.length === 0) {
-                                html += '<p>No hay pedidos para este día.</p>';
-                            } else {
-                                html += '<table class="table table-bordered table-sm"><thead><tr><th>Número</th><th>Cliente</th><th>Estado</th><th>Monto</th><th>Creación</th><th>Entrega</th></tr></thead><tbody>';
-                                data.pedidos.forEach(function(p) {
-                                    html += '<tr>';
-                                    html += '<td><strong>' + (p.numped || '-') + '</strong></td>';
-                                    html += '<td>' + (p.cliente || '-') + '</td>';
-                                    html += '<td><span class="badge ' + getStatusBadgeClass(p.estado) + '">' + (p.estado || '-') + '</span></td>';
-                                    html += '<td>$' + (p.monto !== undefined ? parseFloat(p.monto).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-') + '</td>';
-                                    html += '<td><small>' + (p.fecha_pedido ? new Date(p.fecha_pedido.replace(' ', 'T')).toLocaleString('es-CO', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : '-') + '</small></td>';
-                                    html += '<td><small>' + formatearFechaSinZona(p.fecha_entrega_solicitada) + '</small></td>';
-                                    html += '</tr>';
-                                });
-                                html += '</tbody></table>';
-                            }
-                        }
-                        document.getElementById('modalPedidosDiaBody').innerHTML = html;
-                        var modal = new bootstrap.Modal(document.getElementById('modalPedidosDia'));
-                        modal.show();
-                        setTimeout(function() {
-                            var btn = document.getElementById('btnNuevoPedido');
-                            if (btn) {
-                                btn.onclick = function() {
-                                    var fecha = btn.getAttribute('data-fecha');
-                                    document.getElementById('modalPedidosDiaBody').innerHTML = '<div class="text-center"><div class="spinner-border text-success" role="status"></div><p>Cargando formulario...</p></div>';
-                                    fetch('/Original-Floraltech/controllers/ajax_nuevo_pedido.php?fecha=' + fecha)
-                                        .then(resp => resp.text())
-                                        .then(formHtml => {
-                                            document.getElementById('modalPedidosDiaBody').innerHTML = formHtml;
-                                        })
-                                        .catch(() => {
-                                            document.getElementById('modalPedidosDiaBody').innerHTML = '<p class="text-danger">No se pudo cargar el formulario.</p>';
-                                        });
-                                };
-                            }
-                        }, 300);
-                    })
-                    .catch((err) => {
-                        document.getElementById('modalPedidosDiaBody').innerHTML = '<p class="text-danger">No se pudieron cargar los pedidos.</p>';
-                        var modal = new bootstrap.Modal(document.getElementById('modalPedidosDia'));
-                        modal.show();
-                    });
+                // Mostrar pedidos del dia seleccionado sin crear pedidos nuevos
+                mostrarPedidosDeFecha(info.event.startStr);
             },
             dateClick: function(info) {
-                // También permitir crear pedido desde un día vacío
-                var fecha = info.dateStr;
-                // Usar la fecha directamente sin conversión de zona horaria
-                var partes = fecha.split('-');
-                var fechaObj = new Date(partes[0], partes[1] - 1, partes[2]);
-                var fechaFormateada = fechaObj.toLocaleDateString('es-CO', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
-                document.getElementById('modalPedidosDiaLabel').textContent = 'Pedidos para: ' + fechaFormateada.charAt(0).toUpperCase() + fechaFormateada.slice(1);
-                
-                fetch('/Original-Floraltech/controllers/ccalendar_api.php?fecha=' + fecha)
-                    .then(response => response.json())
-                    .then(data => {
-                        var html = '';
-                        if (!data || typeof data !== 'object' || data.error) {
-                            html = '<p class="text-danger">No se pudieron cargar los pedidos.</p>';
-                        } else {
-                            html += '<h6>Resumen:</h6>';
-                            html += '<ul>';
-                            html += '<li>Total: ' + (data.resumen && data.resumen.total !== undefined ? data.resumen.total : 0) + '</li>';
-                            html += '<li>Completados: ' + (data.resumen && data.resumen.completados !== undefined ? data.resumen.completados : 0) + '</li>';
-                            html += '<li>Pendientes: ' + (data.resumen && data.resumen.pendientes !== undefined ? data.resumen.pendientes : 0) + '</li>';
-                            html += '<li>Rechazados: ' + (data.resumen && data.resumen.rechazados !== undefined ? data.resumen.rechazados : 0) + '</li>';
-                            html += '</ul>';
-                            html += '<button class="btn btn-success mb-3" id="btnNuevoPedido" data-fecha="' + info.dateStr + '">Crear nuevo pedido</button>';
-                            html += '<h6>Pedidos:</h6>';
-                            if (!data.pedidos || !Array.isArray(data.pedidos) || data.pedidos.length === 0) {
-                                html += '<p>No hay pedidos para este día.</p>';
-                            } else {
-                                html += '<table class="table table-bordered table-sm"><thead><tr><th>Número</th><th>Cliente</th><th>Estado</th><th>Monto</th><th>Creación</th><th>Entrega</th></tr></thead><tbody>';
-                                data.pedidos.forEach(function(p) {
-                                    html += '<tr>';
-                                    html += '<td><strong>' + (p.numped || '-') + '</strong></td>';
-                                    html += '<td>' + (p.cliente || '-') + '</td>';
-                                    html += '<td><span class="badge ' + getStatusBadgeClass(p.estado) + '">' + (p.estado || '-') + '</span></td>';
-                                    html += '<td>$' + (p.monto !== undefined ? parseFloat(p.monto).toLocaleString('es-CO', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-') + '</td>';
-                                    html += '<td><small>' + (p.fecha_pedido ? new Date(p.fecha_pedido.replace(' ', 'T')).toLocaleString('es-CO', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : '-') + '</small></td>';
-                                    html += '<td><small>' + formatearFechaSinZona(p.fecha_entrega_solicitada) + '</small></td>';
-                                    html += '</tr>';
-                                });
-                                html += '</tbody></table>';
-                            }
-                        }
-                        document.getElementById('modalPedidosDiaBody').innerHTML = html;
-                        var modal = new bootstrap.Modal(document.getElementById('modalPedidosDia'));
-                        modal.show();
-                        setTimeout(function() {
-                            var btn = document.getElementById('btnNuevoPedido');
-                            if (btn) {
-                                btn.onclick = function() {
-                                    var fecha = btn.getAttribute('data-fecha');
-                                    document.getElementById('modalPedidosDiaBody').innerHTML = '<div class="text-center"><div class="spinner-border text-success" role="status"></div><p>Cargando formulario...</p></div>';
-                                    fetch('/Original-Floraltech/controllers/ajax_nuevo_pedido.php?fecha=' + fecha)
-                                        .then(resp => resp.text())
-                                        .then(formHtml => {
-                                            document.getElementById('modalPedidosDiaBody').innerHTML = formHtml;
-                                        })
-                                        .catch(() => {
-                                            document.getElementById('modalPedidosDiaBody').innerHTML = '<p class="text-danger">No se pudo cargar el formulario.</p>';
-                                        });
-                                };
-                            }
-                        }, 300);
-                    })
-                    .catch((err) => {
-                        document.getElementById('modalPedidosDiaBody').innerHTML = '<p class="text-danger">No se pudieron cargar los pedidos.</p>';
-                        var modal = new bootstrap.Modal(document.getElementById('modalPedidosDia'));
-                        modal.show();
-                    });
+                // Mostrar pedidos del dia al hacer click en cualquier fecha
+                mostrarPedidosDeFecha(info.dateStr);
             }
         });
         calendar.render();
@@ -933,7 +923,7 @@ function getStatusBadgeClass(estado) {
 }
 </script>
 <script>
-// Actualización automática de Actividad Reciente cada 30 segundos
+// Actualizaci+�n autom+�tica de Actividad Reciente cada 30 segundos
 function actualizarActividadReciente() {
     fetch('/Original-Floraltech/controllers/CDashboardGeneral.php?action=actividadReciente')
         .then(res => res.json())
@@ -962,7 +952,7 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title" id="modalAlertasCaducidadLabel">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Lotes Próximos a Caducar
+                    <i class="fas fa-exclamation-triangle me-2"></i>Lotes Pr+�ximos a Caducar
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -970,7 +960,7 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
                 <?php if (!empty($lotesProximosCaducar)): ?>
                 <div class="alert alert-warning">
                     <i class="fas fa-info-circle me-2"></i>
-                    <strong>Atención:</strong> Los siguientes lotes <strong>con stock disponible</strong> caducan en los próximos 7 días. 
+                    <strong>Atenci+�n:</strong> Los siguientes lotes <strong>con stock disponible</strong> caducan en los pr+�ximos 7 d+�as. 
                     Se recomienda priorizar su venta o uso inmediato.
                     <br><small class="mt-1 d-block"><i class="fas fa-lightbulb me-1"></i>Los lotes sin stock (cantidad = 0) no se muestran en esta lista.</small>
                 </div>
@@ -984,7 +974,7 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
                                 <th>Lote</th>
                                 <th>Cantidad</th>
                                 <th>Fecha Caducidad</th>
-                                <th>Días Restantes</th>
+                                <th>D+�as Restantes</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -994,11 +984,11 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
                                 $diferencia = $hoy->diff($fechaCaducidad);
                                 $diasRestantes = $diferencia->invert ? 0 : $diferencia->days;
                                 
-                                // Determinar color según días restantes
+                                // Determinar color seg+�n d+�as restantes
                                 if ($diasRestantes <= 3) {
                                     $colorClase = 'text-danger';
                                     $iconoEstado = '<i class="fas fa-circle text-danger"></i>';
-                                    $nivelUrgencia = 'CRÍTICO';
+                                    $nivelUrgencia = 'CR+�TICO';
                                 } elseif ($diasRestantes <= 5) {
                                     $colorClase = 'text-warning';
                                     $iconoEstado = '<i class="fas fa-circle text-warning"></i>';
@@ -1017,35 +1007,28 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
                                 <td><?= $fechaCaducidad->format('d/m/Y') ?></td>
                                 <td>
                                     <span class="badge <?= $diasRestantes <= 3 ? 'bg-danger' : ($diasRestantes <= 5 ? 'bg-warning text-dark' : 'bg-info') ?>">
-                                        <?= $diasRestantes ?> <?= $diasRestantes === 1 ? 'día' : 'días' ?>
+                                        <?= $diasRestantes ?> <?= $diasRestantes === 1 ? 'd+�a' : 'd+�as' ?>
                                     </span>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
-                        <body>
-                        <div id="general-dashboard" class="dashboard-main">
-                            <header class="d-flex flex-wrap align-items-start align-items-md-center justify-content-between mb-4 p-4 rounded-4 shadow-sm text-white" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 50%, #1e1b4b 100%);">
-                                <div>
-                                    <p class="mb-1 text-uppercase fw-semibold small opacity-75">Panel general</p>
-                                    <h1 class="mb-1 fw-bold">Dashboard General</h1>
-                                    <p class="welcome-text mb-0 opacity-75">Bienvenido al sistema de administración de FloralTech</p>
-                                </div>
-                                <div class="d-flex gap-2 mt-3 mt-md-0">
-                                    <a class="btn btn-light btn-sm text-primary fw-semibold" href="index.php?ctrl=cinventario"><i class="fas fa-boxes me-2"></i>Inventario</a>
-                                    <a class="btn btn-outline-light btn-sm" href="#calendar-pedidos"><i class="fas fa-calendar-alt me-2"></i>Agenda</a>
-                                </div>
-                            </header>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Leyenda -->
+                <div class="mt-3">
                     <h6 class="fw-bold">Leyenda de Niveles de Urgencia:</h6>
                     <div class="d-flex gap-3 flex-wrap">
-                        <div><i class="fas fa-circle text-danger"></i> <strong>CRÍTICO:</strong> 1-3 días</div>
-                        <div><i class="fas fa-circle text-warning"></i> <strong>URGENTE:</strong> 4-5 días</div>
-                        <div><i class="fas fa-circle text-info"></i> <strong>ALERTA:</strong> 6-7 días</div>
+                        <div><i class="fas fa-circle text-danger"></i> <strong>CR+�TICO:</strong> 1-3 d+�as</div>
+                        <div><i class="fas fa-circle text-warning"></i> <strong>URGENTE:</strong> 4-5 d+�as</div>
+                        <div><i class="fas fa-circle text-info"></i> <strong>ALERTA:</strong> 6-7 d+�as</div>
                     </div>
                 </div>
                 <?php else: ?>
                 <div class="alert alert-success">
                     <i class="fas fa-check-circle me-2"></i>
-                    No hay lotes próximos a caducar en los próximos 7 días.
+                    No hay lotes pr+�ximos a caducar en los pr+�ximos 7 d+�as.
                 </div>
                 <?php endif; ?>
             </div>

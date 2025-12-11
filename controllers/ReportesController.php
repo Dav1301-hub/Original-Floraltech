@@ -14,7 +14,7 @@ class ReportesController {
         $modalPedidos = $this->filtrarPedidos($dtAll, $_GET);
 
         // Usuarios
-        $dtAllUsu = $this->model->getAllusu();
+        $dtAllUsu = $this->model->getAllUsuariosCombinados();
         $modalUsuarios = $this->filtrarUsuarios($dtAllUsu, $_GET);
         $totalUsuarios = count($dtAllUsu);
         $datos['usuarios']['activos'] = count(array_filter($dtAllUsu, fn($u) => $u['activo'] == 1));
@@ -95,6 +95,10 @@ class ReportesController {
         if (!empty($params['color'])) {
             $color = strtolower($params['color']);
             $filtered = array_filter($filtered, fn($f) => strtolower($f['color']) === $color);
+        }
+        if (!empty($params['categoria'])) {
+            $cat = strtolower($params['categoria']);
+            $filtered = array_filter($filtered, fn($f) => strtolower($f['categoria'] ?? '') === $cat);
         }
         return $filtered;
     }

@@ -1,24 +1,41 @@
 <?php
-$vacaciones = isset($vacaciones) && is_array($vacaciones) ? $vacaciones : [];
-// Evitar warnings por variables indefinidas y que se impriman en la UI
-$vacaciones_activas = isset($vacaciones_activas) ? $vacaciones_activas : 0;
-$empleados_activos = isset($empleados_activos) ? $empleados_activos : 0;
-$permisos_pendientes = isset($permisos_pendientes) ? $permisos_pendientes : 0;
-$permisos = isset($permisos) && is_array($permisos) ? $permisos : [];
-$turnos = isset($turnos) && is_array($turnos) ? $turnos : [];
-$mensaje = isset($mensaje) ? $mensaje : '';
-// ...existing code...
+// Gestión de Empleados, Permisos, Turnos y Vacaciones
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-// Procesar formulario de nuevo empleado antes de cualquier salida
 
-// Generar token CSRF si no existe
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+require_once __DIR__ . '/../../models/Mdgemp.php';
+$userModel = new Mdgemp();
+
+// Procesar formulario de nuevo empleado
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_empleado'])) {
+    try {
+        $userModel->crearEmpleado($_POST);
+        $mensaje = 'Empleado creado exitosamente.';
+        $tipo_mensaje = 'success';
+        header('Location: ' . $_SERVER['REQUEST_URI'] . '?msg=success');
+        exit();
+    } catch (Exception $e) {
+        $mensaje = $e->getMessage();
+        $tipo_mensaje = 'danger';
+    }
 }
 
-// Los datos deben ser pasados desde el controlador, no cargados ni procesados aquí.
+// Obtener datos usando el modelo
+$empleados = $userModel->getAllEmpleados();
+$tipos_usuario = $userModel->getTiposUsuario();
+$empleados_activos = $userModel->getEmpleadosActivos();
+$permisos = $userModel->getPermisosEmpleados();
+$turnos = $userModel->getTurnosEmpleados();
+$vacaciones = $userModel->getVacacionesEmpleados();
+
+// Estadísticas
+$vacaciones_activas = 0;
+foreach ($vacaciones as $vacacion) {
+    if ($vacacion['estado'] == 'En curso') $vacaciones_activas++;
+}
+
+$permisos_pendientes = 0;
 foreach ($permisos as $permiso) {
     if ($permiso['estado'] == 'Pendiente') $permisos_pendientes++;
 }
@@ -29,7 +46,12 @@ $fin_semana = date('Y-m-d', strtotime('sunday this week'));
 foreach ($turnos as $turno) {
     if ($turno['fecha_inicio'] >= $inicio_semana && $turno['fecha_inicio'] <= $fin_semana) $turnos_semana++;
 }
+
+$mensaje = $mensaje ?? '';
+$tipo_mensaje = $tipo_mensaje ?? '';
+$total_empleados = count($empleados);
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -40,36 +62,26 @@ foreach ($turnos as $turno) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/Original-Floraltech/assets/dgemp.css">
-    <style>
-        .debug-info {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            background: #f8f9fa;
-            padding: 10px;
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
-            font-size: 12px;
-            z-index: 9999;
-        }
-    </style>
 </head>
 <body>
-    <div class="container-fluid">
+    <div class="container-fluid py-4">
+        <!-- Encabezado con gradiente -->
+        <div class="d-flex align-items-center justify-content-between mb-4 py-3 px-3 rounded-4 shadow-sm text-white" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%);">
+            <div>
+                <p class="mb-1 opacity-75" style="letter-spacing:1px;text-transform:uppercase; color: #ffff" ><i class="fas fa-users me-2"></i>FloralTech Admin</p>
+                <h2 class="mb-0 fw-bold" style="color: #ffff">Gestión de Empleados</h2>
+            </div>
+            <button class="btn btn-light text-primary fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#nuevoEmpleadoModal">
+                <i class="fas fa-plus me-2"></i>Nuevo Empleado
+            </button>
+        </div>
+
         <?php if ($mensaje): ?>
             <div class="alert alert-<?= $tipo_mensaje ?> alert-dismissible fade show" role="alert">
                 <?= htmlspecialchars($mensaje) ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         <?php endif; ?>
-
-        <!-- Encabezado principal con título y botón -->
-        <div class="d-flex align-items-center justify-content-between mb-4">
-            <div class="section-title mb-0"><i class="fas fa-users me-2"></i>Gestión de Empleados</div>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoEmpleadoModal">
-                <i class="fas fa-plus me-1"></i> Nuevo Empleado
-            </button>
-        </div>
 
         <!-- Tarjetas de estadísticas -->
         <div class="row mb-4">
@@ -82,902 +94,792 @@ foreach ($turnos as $turno) {
             </div>
             <div class="col-md-3">
                 <div class="stats-card">
-                    <i class="fas fa-calendar-day"></i>
-                    <h3><?= $vacaciones_activas ?></h3>
-                    <p>Vacaciones Activas</p>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <i class="fas fa-user-clock"></i>
+                    <i class="fas fa-calendar-check"></i>
                     <h3><?= $permisos_pendientes ?></h3>
                     <p>Permisos Pendientes</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stats-card">
-                    <i class="fas fa-business-time"></i>
+                    <i class="fas fa-calendar-alt"></i>
                     <h3><?= $turnos_semana ?></h3>
                     <p>Turnos Esta Semana</p>
                 </div>
             </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <i class="fas fa-sun"></i>
+                    <h3><?= $vacaciones_activas ?></h3>
+                    <p>Vacaciones Activas</p>
+                </div>
+            </div>
         </div>
-        <!-- Navegación por pestañas -->
-        <ul class="nav nav-tabs mb-4" id="gestionTabs" role="tablist">
+
+        <!-- Tabs de navegación -->
+        <ul class="nav nav-tabs mb-4" id="tabsGestion" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="empleados-tab" data-bs-toggle="tab" data-bs-target="#empleados" type="button" role="tab" aria-controls="empleados" aria-selected="true">
-                    <i class="fas fa-users me-1"></i> Empleados
+                <button class="nav-link active" id="tabEmpleados" data-bs-toggle="tab" data-bs-target="#contenidoEmpleados" type="button" role="tab">
+                    <i class="fas fa-users me-2"></i>Empleados
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="permisos-tab" data-bs-toggle="tab" data-bs-target="#permisos" type="button" role="tab" aria-controls="permisos" aria-selected="false">
-                    <i class="fas fa-user-clock me-1"></i> Permisos
+                <button class="nav-link" id="tabPermisos" data-bs-toggle="tab" data-bs-target="#contenidoPermisos" type="button" role="tab">
+                    <i class="fas fa-user-clock me-2"></i>Permisos
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="turnos-tab" data-bs-toggle="tab" data-bs-target="#turnos" type="button" role="tab" aria-controls="turnos" aria-selected="false">
-                    <i class="fas fa-business-time me-1"></i> Turnos
+                <button class="nav-link" id="tabTurnos" data-bs-toggle="tab" data-bs-target="#contenidoTurnos" type="button" role="tab">
+                    <i class="fas fa-business-time me-2"></i>Turnos
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="vacaciones-tab" data-bs-toggle="tab" data-bs-target="#vacaciones" type="button" role="tab" aria-controls="vacaciones" aria-selected="false">
-                    <i class="fas fa-calendar-day me-1"></i> Vacaciones
+                <button class="nav-link" id="tabVacaciones" data-bs-toggle="tab" data-bs-target="#contenidoVacaciones" type="button" role="tab">
+                    <i class="fas fa-calendar-day me-2"></i>Vacaciones
                 </button>
             </li>
         </ul>
-        <div class="tab-content" id="gestionTabsContent">
-            <div class="tab-pane fade show active" id="empleados" role="tabpanel" aria-labelledby="empleados-tab">
-                <!-- Sección Gestión de Empleados -->
-                <div class="section-block">
-                    <div class="row mb-3">
-                        <div class="col-md-3">
-                            <input type="text" id="filtroNombre" class="form-control" placeholder="Buscar por nombre">
-                        </div>
-                        <div class="col-md-3">
-                            <select id="filtroTipo" class="form-select">
-                                <option value="0">Todos los tipos</option>
-                                <?php foreach ($tipos_usuario as $id => $nombre): ?>
-                                    <option value="<?= $id ?>"><?= $nombre ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <select id="filtroEstado" class="form-select">
-                                <option value="">Todos los estados</option>
-                                <option value="activo">Activo</option>
-                                <option value="inactivo">Inactivo</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <button id="btnFiltrarEmpleados" class="btn btn-primary w-100">Filtrar</button>
-                        </div>
+
+        <!-- Contenido de Tabs -->
+        <div class="tab-content" id="tabsContenido">
+            <!-- TAB EMPLEADOS -->
+            <div class="tab-pane fade show active" id="contenidoEmpleados" role="tabpanel">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white border-0">
+                        <h5 class="mb-0">Lista de Empleados</h5>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover" id="tablaEmpleados">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Nombre</th>
-                                    <th>Usuario</th>
-                                    <th>Perfil</th>
-                                    <th>Fecha Ingreso</th>
-                                    <th>Permiso</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Empleados AJAX -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination justify-content-center" id="paginacionEmpleados">
-                            <!-- Paginación AJAX -->
-                        </ul>
-                    </nav>
-                </div>
-            </div>
-            <div class="tab-pane fade" id="permisos" role="tabpanel" aria-labelledby="permisos-tab">
-                <!-- Sección Permisos -->
-                <div class="section-block">
-                    <div class="section-title"><i class="fas fa-user-clock me-2"></i>Gestión de Permisos</div>
-                    <div class="card-header d-flex justify-content-between align-items-center mb-3">
-                        <span>Solicitudes de Permisos</span>
-                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoPermisoModal">
-                            <i class="fas fa-plus me-1"></i> Nuevo Permiso
-                        </button>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Empleado</th>
-                                    <th>Tipo</th>
-                                    <th>Fecha Inicio</th>
-                                    <th>Fecha Fin</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            <?php foreach ($permisos as $permiso): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($permiso['idpermiso']) ?></td>
-                                    <td><?= htmlspecialchars($permiso['empleado']) ?></td>
-                                    <td><?= htmlspecialchars($permiso['tipo']) ?></td>
-                                    <td><?= date('d/m/Y', strtotime($permiso['fecha_inicio'])) ?></td>
-                                    <td><?= date('d/m/Y', strtotime($permiso['fecha_fin'])) ?></td>
-                                    <td>
-                                        <?php 
-                                            $estado = $permiso['estado'];
-                                            $badge_class = '';
-                                            switch ($estado) {
-                                                case 'Pendiente':
-                                                    $badge_class = 'bg-warning text-dark';
-                                                    break;
-                                                case 'Aprobado':
-                                                    $badge_class = 'bg-success text-white';
-                                                    break;
-                                                case 'Rechazado':
-                                                    $badge_class = 'bg-danger text-white';
-                                                    break;
-                                                default:
-                                                    $badge_class = 'bg-secondary text-white';
-                                            }
-                                        ?>
-                                        <span class="badge <?= $badge_class ?>"><?= htmlspecialchars($estado) ?></span>
-                                    </td>
-                                    <td class="actions-column">
-                                        <a href="#" class="btn btn-sm btn-outline-primary" onclick="editarPermiso(<?= $permiso['idpermiso'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar Permiso"><i class="fas fa-edit"></i></a>
-                                        <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarPermiso(<?= $permiso['idpermiso'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar Permiso"><i class="fas fa-trash"></i></a>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Nombre</th>
+                                        <th>Usuario</th>
+                                        <th>Email</th>
+                                        <th>Teléfono</th>
+                                        <th>Estado</th>
+                                        <th>Registro</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (!empty($empleados)): ?>
+                                        <?php foreach ($empleados as $emp): ?>
+                                            <tr>
+                                                <td><?= htmlspecialchars($emp['idusu']) ?></td>
+                                                <td><?= htmlspecialchars($emp['nombre_completo']) ?></td>
+                                                <td><?= htmlspecialchars($emp['username']) ?></td>
+                                                <td><?= htmlspecialchars($emp['email']) ?></td>
+                                                <td><?= htmlspecialchars($emp['telefono']) ?></td>
+                                                <td>
+                                                    <?php if ($emp['activo']): ?>
+                                                        <span class="badge bg-success">Activo</span>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-danger">Inactivo</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td><?= date('d/m/Y', strtotime($emp['fecha_registro'])) ?></td>
+                                                <td class="text-center">
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="editarEmpleado(<?= $emp['idusu'] ?>)" title="Editar"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarEmpleado(<?= $emp['idusu'] ?>)" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted py-4">No hay empleados registrados.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="tab-pane fade" id="turnos" role="tabpanel" aria-labelledby="turnos-tab">
-                <!-- Sección Turnos -->
-                <div class="section-block">
-                    <div class="section-title"><i class="fas fa-business-time me-2"></i>Gestión de Turnos</div>
-                    <div class="card-header d-flex justify-content-between align-items-center mb-3">
-                        <span>Gestión de Turnos</span>
-                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoTurnoModal">
-                            <i class="fas fa-plus me-1"></i> Nuevo Turno
-                        </button>
+
+            <!-- TAB PERMISOS -->
+            <div class="tab-pane fade" id="contenidoPermisos" role="tabpanel">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white border-0 d-flex justify-content-between">
+                        <h5 class="mb-0">Gestión de Permisos</h5>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoPermisoModal"><i class="fas fa-plus me-1"></i>Nuevo Permiso</button>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Empleado</th>
-                                    <th>Fecha Inicio</th>
-                                    <th>Fecha Fin</th>
-                                    <th>Horario</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            <?php foreach ($turnos as $turno): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($turno['idturno']) ?></td>
-                                    <td><?= htmlspecialchars($turno['empleado']) ?></td>
-                                    <td><?= date('d/m/Y', strtotime($turno['fecha_inicio'])) ?></td>
-                                    <td><?= date('d/m/Y', strtotime($turno['fecha_fin'])) ?></td>
-                                    <td><?= htmlspecialchars($turno['horario']) ?></td>
-                                    <td class="actions-column">
-                                        <a href="#" class="btn btn-sm btn-outline-primary" onclick="editarTurno(<?= $turno['idturno'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar Turno">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarTurno(<?= $turno['idturno'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar Turno"><i class="fas fa-trash"></i></a>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Empleado</th>
+                                        <th>Tipo</th>
+                                        <th>Fecha Inicio</th>
+                                        <th>Fecha Fin</th>
+                                        <th>Estado</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (!empty($permisos)): ?>
+                                        <?php foreach ($permisos as $perm): ?>
+                                            <tr>
+                                                <td><?= htmlspecialchars($perm['idpermiso']) ?></td>
+                                                <td><?= htmlspecialchars($perm['empleado']) ?></td>
+                                                <td><?= htmlspecialchars($perm['tipo']) ?></td>
+                                                <td><?= date('d/m/Y', strtotime($perm['fecha_inicio'])) ?></td>
+                                                <td><?= date('d/m/Y', strtotime($perm['fecha_fin'])) ?></td>
+                                                <td>
+                                                    <?php 
+                                                    $badge = match($perm['estado']) {
+                                                        'Aprobado' => 'bg-success',
+                                                        'Rechazado' => 'bg-danger',
+                                                        default => 'bg-warning'
+                                                    };
+                                                    ?>
+                                                    <span class="badge <?= $badge ?>"><?= htmlspecialchars($perm['estado']) ?></span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="editarPermiso(<?= $perm['idpermiso'] ?>)" title="Editar"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarPermiso(<?= $perm['idpermiso'] ?>)" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">No hay permisos registrados.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="tab-pane fade" id="vacaciones" role="tabpanel" aria-labelledby="vacaciones-tab">
-                <!-- Sección Vacaciones -->
-                <div class="section-block">
-                    <div class="section-title"><i class="fas fa-calendar-day me-2"></i>Gestión de Vacaciones</div>
-                    <div class="card-header d-flex justify-content-between align-items-center mb-3">
-                        <span>Gestión de Vacaciones</span>
-                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevaVacacionModal">
-                            <i class="fas fa-plus me-1"></i> Nueva Vacación
-                        </button>
+
+            <!-- TAB TURNOS -->
+            <div class="tab-pane fade" id="contenidoTurnos" role="tabpanel">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white border-0 d-flex justify-content-between">
+                        <h5 class="mb-0">Gestión de Turnos</h5>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoTurnoModal"><i class="fas fa-plus me-1"></i>Nuevo Turno</button>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Empleado</th>
-                                    <th>Fecha Inicio</th>
-                                    <th>Fecha Fin</th>
-                                    <th>Días</th>
-                                    <th>Tipo</th>
-                                    <th>Estado</th>
-                                    <th>Motivo</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            <?php foreach ($vacaciones as $vacacion): 
-                                // Calcular días de vacaciones
-                                $fecha_inicio = new DateTime($vacacion['fecha_inicio']);
-                                $fecha_fin = new DateTime($vacacion['fecha_fin']);
-                                $diferencia = $fecha_inicio->diff($fecha_fin);
-                                $dias_vacaciones = $diferencia->days + 1; // +1 para incluir el día de inicio
-                                
-                                // Calcular el tipo de vacación basado en los días
-                                $tipo_vacacion = $dias_vacaciones <= 3 ? "Cortas" : (
-                                    $dias_vacaciones <= 7 ? "Semanales" : (
-                                        $dias_vacaciones <= 15 ? "Quincenales" : "Extendidas"
-                                    )
-                                );
-                            ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($vacacion['id']) ?></td>
-                                    <td><?= htmlspecialchars($vacacion['empleado']) ?></td>
-                                    <td><?= date('d/m/Y', strtotime($vacacion['fecha_inicio'])) ?></td>
-                                    <td><?= date('d/m/Y', strtotime($vacacion['fecha_fin'])) ?></td>
-                                    <td><span class="badge bg-secondary"><?= $dias_vacaciones ?> día<?= $dias_vacaciones != 1 ? 's' : '' ?></span></td>
-                                    <td><span class="badge bg-primary"><?= $tipo_vacacion ?></span></td>
-                                    <td>
-                                        <?php 
-                                            $estado_vacacion = $vacacion['estado'];
-                                            $badge_class_vacacion = '';
-                                            switch ($estado_vacacion) {
-                                                case 'Programadas':
-                                                    $badge_class_vacacion = 'bg-warning text-dark';
-                                                    break;
-                                                case 'Aprobadas':
-                                                    $badge_class_vacacion = 'bg-success text-white';
-                                                    break;
-                                                case 'Denegadas':
-                                                    $badge_class_vacacion = 'bg-danger text-white';
-                                                    break;
-                                                case 'Finalizadas':
-                                                    $badge_class_vacacion = 'bg-secondary text-white';
-                                                    break;
-                                                case 'En curso':
-                                                    $badge_class_vacacion = 'bg-primary text-white';
-                                                    break;
-                                                default:
-                                                    $badge_class_vacacion = 'bg-info text-white';
-                                            }
-                                        ?>
-                                        <span class="badge <?= $badge_class_vacacion ?>"><?= htmlspecialchars($estado_vacacion) ?></span>
-                                    </td>
-                                    <td><?= htmlspecialchars($vacacion['motivo']) ?></td>
-                                    <td class="actions-column">
-                                        <a href="#" class="btn btn-sm btn-outline-primary" onclick="editarVacacion(<?= $vacacion['id'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Editar Vacación"><i class="fas fa-edit"></i></a>
-                                        <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarVacacion(<?= $vacacion['id'] ?>)" data-bs-toggle="tooltip" data-bs-placement="top" title="Eliminar Vacación"><i class="fas fa-trash"></i></a>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Empleado</th>
+                                        <th>Fecha Inicio</th>
+                                        <th>Fecha Fin</th>
+                                        <th>Horario</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (!empty($turnos)): ?>
+                                        <?php foreach ($turnos as $turno): ?>
+                                            <tr>
+                                                <td><?= htmlspecialchars($turno['idturno']) ?></td>
+                                                <td><?= htmlspecialchars($turno['empleado']) ?></td>
+                                                <td><?= date('d/m/Y', strtotime($turno['fecha_inicio'])) ?></td>
+                                                <td><?= date('d/m/Y', strtotime($turno['fecha_fin'])) ?></td>
+                                                <td><?= htmlspecialchars($turno['horario']) ?></td>
+                                                <td class="text-center">
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="editarTurno(<?= $turno['idturno'] ?>)" title="Editar"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarTurno(<?= $turno['idturno'] ?>)" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted py-4">No hay turnos registrados.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB VACACIONES -->
+            <div class="tab-pane fade" id="contenidoVacaciones" role="tabpanel">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white border-0 d-flex justify-content-between">
+                        <h5 class="mb-0">Gestión de Vacaciones</h5>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoVacacionModal"><i class="fas fa-plus me-1"></i>Nueva Vacación</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Empleado</th>
+                                        <th>Fecha Inicio</th>
+                                        <th>Fecha Fin</th>
+                                        <th>Motivo</th>
+                                        <th>Estado</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (!empty($vacaciones)): ?>
+                                        <?php foreach ($vacaciones as $vac): ?>
+                                            <tr>
+                                                <td><?= htmlspecialchars($vac['id']) ?></td>
+                                                <td><?= htmlspecialchars($vac['empleado']) ?></td>
+                                                <td><?= date('d/m/Y', strtotime($vac['fecha_inicio'])) ?></td>
+                                                <td><?= date('d/m/Y', strtotime($vac['fecha_fin'])) ?></td>
+                                                <td><?= htmlspecialchars($vac['motivo']) ?></td>
+                                                <td>
+                                                    <?php 
+                                                    $badge = match($vac['estado']) {
+                                                        'En curso' => 'bg-info',
+                                                        'Aprobada' => 'bg-success',
+                                                        'Rechazada' => 'bg-danger',
+                                                        default => 'bg-warning'
+                                                    };
+                                                    ?>
+                                                    <span class="badge <?= $badge ?>"><?= htmlspecialchars($vac['estado']) ?></span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="editarVacacion(<?= $vac['id'] ?>)" title="Editar"><i class="fas fa-edit"></i></button>
+                                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarVacacion(<?= $vac['id'] ?>)" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">No hay vacaciones registradas.</td>
+                                        </tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Modal Nuevo Empleado -->
-        <div class="modal fade" id="nuevoEmpleadoModal" tabindex="-1" aria-labelledby="nuevoEmpleadoModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
+    <!-- Modales - Fuera del container-fluid para que Bootstrap los maneje correctamente -->
+    <!-- Modal Nuevo Empleado -->
+    <div class="modal fade" id="nuevoEmpleadoModal" tabindex="-1" aria-labelledby="nuevoEmpleadoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="POST">
                     <div class="modal-header">
                         <h5 class="modal-title" id="nuevoEmpleadoModalLabel">Nuevo Empleado</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <form method="POST" autocomplete="off" onsubmit="return validarNuevoEmpleado();">
-                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-                            <input type="hidden" name="nuevo_empleado" value="1">
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="nombre" class="form-label">Nombre</label>
-                                    <input type="text" class="form-control" id="nombre" name="nombre" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="apellido" class="form-label">Apellido</label>
-                                    <input type="text" class="form-control" id="apellido" name="apellido" required>
-                                </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nombre Completo</label>
+                                <input type="text" class="form-control" name="nombre_completo" required>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="documento" class="form-label">Documento</label>
-                                    <input type="text" class="form-control" id="documento" name="documento" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="cargo" class="form-label">Cargo</label>
-                                    <input type="text" class="form-control" id="cargo" name="cargo" required>
-                                </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Username</label>
+                                <input type="text" class="form-control" name="username" required>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="rol" class="form-label">Rol</label>
-                                    <select class="form-select" id="rol" name="naturaleza" required>
-                                        <option value="">Selecciona un rol</option>
-                                        <option value="Administrador">Administrador</option>
-                                        <option value="Vendedor">Vendedor</option>
-                                        <option value="Inventario">Inventario</option>
-                                        <option value="Repartidor">Repartidor</option>
-                                        <option value="Cliente">Cliente</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="email" class="form-label">Correo electrónico</label>
-                                    <input type="email" class="form-control" id="email" name="email" pattern="^[^@\s]+@[^@\s]+\.[^@\s]+$" title="Correo electrónico válido" required>
-                                </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" required>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="fecha_ingreso" class="form-label">Fecha de Ingreso</label>
-                                    <input type="date" class="form-control" id="fecha_ingreso" name="fecha_ingreso" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="tipo_contrato" class="form-label">Tipo de Contrato</label>
-                                    <select class="form-select" id="tipo_contrato" name="tipo_contrato">
-                                        <option value="indefinido">Indefinido</option>
-                                        <option value="fijo">Fijo</option>
-                                        <option value="obra">Obra</option>
-                                        <option value="temporal">Temporal</option>
-                                    </select>
-                                </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Teléfono</label>
+                                <input type="tel" class="form-control" name="telefono">
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="estado" class="form-label">Estado</label>
-                                    <select class="form-select" id="estado" name="estado">
-                                        <option value="activo">Activo</option>
-                                        <option value="inactivo">Inactivo</option>
-                                        <option value="renuncia">Renuncia</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="password" class="form-label">Contraseña</label>
-                                    <input type="password" class="form-control" id="password" name="password" 
-                                           placeholder="Dejar vacío para contraseña por defecto (123456)">
-                                    <small class="form-text text-muted">Si no se especifica, se usará "123456" como contraseña por defecto</small>
-                                </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Rol</label>
+                                <select class="form-select" name="tpusu_idtpusu" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($tipos_usuario as $id => $nombre): ?>
+                                        <option value="<?= $id ?>"><?= htmlspecialchars($nombre) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                <button type="submit" class="btn btn-primary">Guardar</button>
+                            <div class="col-md-6">
+                                <label class="form-label">Contraseña</label>
+                                <input type="password" class="form-control" name="password">
                             </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal Editar Empleado -->
-        <div class="modal fade" id="editarEmpleadoModal" tabindex="-1" aria-labelledby="editarEmpleadoModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editarEmpleadoModalLabel">Editar Empleado</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form>
-                            <input type="hidden" id="edit_id">
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="edit_nombre" class="form-label">Nombre</label>
-                                    <input type="text" class="form-control" id="edit_nombre" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="edit_apellido" class="form-label">Apellido</label>
-                                    <input type="text" class="form-control" id="edit_apellido" required>
-                                </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Naturaleza / Cargo</label>
+                                <input type="text" class="form-control" name="naturaleza">
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="edit_documento" class="form-label">Documento</label>
-                                    <input type="text" class="form-control" id="edit_documento" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="edit_cargo" class="form-label">Cargo</label>
-                                    <input type="text" class="form-control" id="edit_cargo" required>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="edit_fecha_ingreso" class="form-label">Fecha de Ingreso</label>
-                                    <input type="date" class="form-control" id="edit_fecha_ingreso" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="edit_tipo_contrato" class="form-label">Tipo de Contrato</label>
-                                    <select class="form-select" id="edit_tipo_contrato">
-                                        <option value="indefinido">Indefinido</option>
-                                        <option value="fijo">Fijo</option>
-                                        <option value="obra">Obra</option>
-                                        <option value="temporal">Temporal</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label for="edit_estado" class="form-label">Estado</label>
-                                    <select class="form-select" id="edit_estado">
-                                        <option value="activo">Activo</option>
-                                        <option value="inactivo">Inactivo</option>
-                                        <option value="renuncia">Renuncia</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="edit_password" class="form-label">Nueva Contraseña</label>
-                                    <input type="password" class="form-control" id="edit_password" name="password" 
-                                        placeholder="Dejar vacío para mantener contraseña actual">
-                                    <small class="form-text text-muted">Solo llenar si desea cambiar la contraseña</small>
-                                </div>
-                            </div>
-                        </form>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" onclick="actualizarEmpleado()">Actualizar</button>
+                        <button type="submit" name="nuevo_empleado" value="1" class="btn btn-primary">Guardar</button>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal Ver Detalles Empleado -->
-        <div class="modal fade" id="verEmpleadoModal" tabindex="-1" aria-labelledby="verEmpleadoModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="verEmpleadoModalLabel">Detalles del Empleado</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form>
-                            <input type="hidden" id="ver_id">
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Nombre</label>
-                                    <input type="text" class="form-control" id="ver_nombre" readonly>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Apellido</label>
-                                    <input type="text" class="form-control" id="ver_apellido" readonly>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Documento</label>
-                                    <input type="text" class="form-control" id="ver_documento" readonly>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Cargo</label>
-                                    <input type="text" class="form-control" id="ver_cargo" readonly>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Fecha de Ingreso</label>
-                                    <input type="date" class="form-control" id="ver_fecha_ingreso" readonly>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Tipo de Contrato</label>
-                                    <input type="text" class="form-control" id="ver_tipo_contrato" readonly>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Estado</label>
-                                    <input type="text" class="form-control" id="ver_estado" readonly>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Tipo Usuario</label>
-                                    <input type="text" class="form-control" id="ver_tipo_usuario" readonly>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal Nuevo Permiso -->
-        <div class="modal fade" id="nuevoPermisoModal" tabindex="-1" aria-labelledby="nuevoPermisoModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="nuevoPermisoModalLabel">Nuevo Permiso</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="formNuevoPermiso">
-                            <div class="mb-3">
-                                <label for="permisoEmpleado" class="form-label">Empleado</label>
-                                <select class="form-select" id="permisoEmpleado" name="empleado" required>
-                                    <?php foreach (($empleados ?? []) as $empleado): ?>
-                                        <option value="<?= $empleado['idusu'] ?>"><?= htmlspecialchars($empleado['nombre_completo']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                    <label for="permisoTipo" class="form-label">Tipo</label>
-                                    <select class="form-select" id="permisoTipo" name="tipo" required>
-                                        <option value="Citación judicial/administrativa">Citación judicial/administrativa</option>
-                                        <option value="Citación entidad pública">Citación entidad pública</option>
-                                        <option value="Calamidad doméstica">Calamidad doméstica</option>
-                                        <option value="Maternidad">Maternidad</option>
-                                        <option value="Paternidad">Paternidad</option>
-                                        <option value="Citas médicas">Citas médicas</option>
-                                        <option value="Sindical">Sindical</option>
-                                        <option value="Estudio/capacitación">Estudio/capacitación</option>
-                                        <option value="Personal">Personal</option>
-                                        <option value="Mudanza">Mudanza</option>
-                                        <option value="Licencia no remunerada">Licencia no remunerada</option>
-                                        <option value="Licencia por luto">Licencia por luto</option>
-                                        <option value="Especial (convenio colectivo)">Especial (convenio colectivo)</option>
-                                    </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="permisoFechaInicio" class="form-label">Fecha Inicio</label>
-                                <input type="date" class="form-control" id="permisoFechaInicio" name="fecha_inicio" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="permisoFechaFin" class="form-label">Fecha Fin</label>
-                                <input type="date" class="form-control" id="permisoFechaFin" name="fecha_fin" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="permisoEstado" class="form-label">Estado</label>
-                                <select class="form-select" id="permisoEstado" name="estado">
-                                    <option value="Pendiente">Pendiente</option>
-                                    <option value="Aprobado">Aprobado</option>
-                                    <option value="Rechazado">Rechazado</option>
-                                </select>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                <button type="submit" class="btn btn-primary">Guardar</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal Editar Permiso -->
-        <div class="modal fade" id="editarPermisoModal" tabindex="-1" aria-labelledby="editarPermisoModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editarPermisoModalLabel">Editar Permiso</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="formEditarPermiso">
-                            <input type="hidden" id="edit_permiso_id" name="id">
-                            <div class="mb-3">
-                                <label for="edit_permisoEmpleado" class="form-label">Empleado</label>
-                                <select class="form-select" id="edit_permisoEmpleado" name="empleado" required>
-                                    <?php foreach ($empleados as $empleado): ?>
-                                        <option value="<?= $empleado['idusu'] ?>"><?= htmlspecialchars($empleado['nombre_completo']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                    <label for="edit_permisoTipo" class="form-label">Tipo</label>
-                                    <select class="form-select" id="edit_permisoTipo" name="tipo" required>
-                                        <option value="Citación judicial/administrativa">Citación judicial/administrativa</option>
-                                        <option value="Citación entidad pública">Citación entidad pública</option>
-                                        <option value="Calamidad doméstica">Calamidad doméstica</option>
-                                        <option value="Maternidad">Maternidad</option>
-                                        <option value="Paternidad">Paternidad</option>
-                                        <option value="Citas médicas">Citas médicas</option>
-                                        <option value="Sindical">Sindical</option>
-                                        <option value="Estudio/capacitación">Estudio/capacitación</option>
-                                        <option value="Personal">Personal</option>
-                                        <option value="Mudanza">Mudanza</option>
-                                        <option value="Licencia no remunerada">Licencia no remunerada</option>
-                                        <option value="Licencia por luto">Licencia por luto</option>
-                                        <option value="Especial (convenio colectivo)">Especial (convenio colectivo)</option>
-                                    </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="edit_permisoFechaInicio" class="form-label">Fecha Inicio</label>
-                                <input type="date" class="form-control" id="edit_permisoFechaInicio" name="fecha_inicio" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="edit_permisoFechaFin" class="form-label">Fecha Fin</label>
-                                <input type="date" class="form-control" id="edit_permisoFechaFin" name="fecha_fin" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="edit_permisoEstado" class="form-label">Estado</label>
-                                <select class="form-select" id="edit_permisoEstado" name="estado">
-                                    <option value="Pendiente">Pendiente</option>
-                                    <option value="Aprobado">Aprobado</option>
-                                    <option value="Rechazado">Rechazado</option>
-                                </select>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                <button type="submit" class="btn btn-primary">Actualizar</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal Nuevo Vacación -->
-        <div class="modal fade" id="nuevaVacacionModal" tabindex="-1" aria-labelledby="nuevaVacacionModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="nuevaVacacionModalLabel">Nueva Vacación</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="formNuevaVacacion" autocomplete="off">
-                            <!-- Eliminado campo oculta para evitar doble registro -->
-                            <div class="mb-3">
-                                <label for="vacacionEmpleado" class="form-label">Empleado</label>
-                                <select class="form-select" id="vacacionEmpleado" name="id_empleado" required>
-                                    <?php foreach ($empleados as $empleado): ?>
-                                        <option value="<?= $empleado['idusu'] ?>"><?= htmlspecialchars($empleado['nombre_completo']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="vacacionFechaInicio" class="form-label">Fecha Inicio</label>
-                                <input type="date" class="form-control" id="vacacionFechaInicio" name="fecha_inicio" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="vacacionFechaFin" class="form-label">Fecha Fin</label>
-                                <input type="date" class="form-control" id="vacacionFechaFin" name="fecha_fin" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="vacacionMotivo" class="form-label">Motivo</label>
-                                <input type="text" class="form-control" id="vacacionMotivo" name="motivo" required>
-                            </div>
-                            <!-- Campo Tipo eliminado - se calcula automáticamente según días -->
-                            <div class="mb-3">
-                                <label for="vacacionEstado" class="form-label">Estado</label>
-                                <select class="form-select" id="vacacionEstado" name="estado">
-                                    <option value="Programadas">Programadas</option>
-                                    <option value="Aprobadas">Aprobadas</option>
-                                    <option value="Denegadas">Denegadas</option>
-                                    <option value="Finalizadas">Finalizadas</option>
-                                </select>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                <button type="submit" class="btn btn-primary">Guardar</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal Editar Vacación -->
-        <div class="modal fade" id="editarVacacionModal" tabindex="-1" aria-labelledby="editarVacacionModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editarVacacionModalLabel">Editar Vacación</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="formEditarVacacion">
-                            <input type="hidden" id="edit_vacacion_id" name="id">
-                            <div class="mb-3">
-                                <label for="edit_vacacionEmpleado" class="form-label">Empleado</label>
-                                <select class="form-select" id="edit_vacacionEmpleado" name="id_empleado" required>
-                                    <?php foreach ($empleados as $empleado): ?>
-                                        <option value="<?= $empleado['idusu'] ?>"><?= htmlspecialchars($empleado['nombre_completo']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="edit_vacacionFechaInicio" class="form-label">Fecha Inicio</label>
-                                <input type="date" class="form-control" id="edit_vacacionFechaInicio" name="fecha_inicio" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="edit_vacacionFechaFin" class="form-label">Fecha Fin</label>
-                                <input type="date" class="form-control" id="edit_vacacionFechaFin" name="fecha_fin" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="edit_vacacionMotivo" class="form-label">Motivo</label>
-                                <input type="text" class="form-control" id="edit_vacacionMotivo" name="motivo" required>
-                            </div>
-                            <!-- Campo Tipo eliminado - se calcula automáticamente según días -->
-                            <div class="mb-3">
-                                <label for="edit_vacacionEstado" class="form-label">Estado</label>
-                                <select class="form-select" id="edit_vacacionEstado" name="estado">
-                                    <option value="Programadas">Programadas</option>
-                                    <option value="Aprobadas">Aprobadas</option>
-                                    <option value="Denegadas">Denegadas</option>
-                                    <option value="Finalizadas">Finalizadas</option>
-                                </select>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                <button type="submit" class="btn btn-primary">Actualizar</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal Nuevo Turno -->
-        <div class="modal fade" id="nuevoTurnoModal" tabindex="-1" aria-labelledby="nuevoTurnoModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="nuevoTurnoModalLabel">Nuevo Turno</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="formNuevoTurno">
-                            <div class="mb-3">
-                                <label for="turnoEmpleado" class="form-label">Empleado</label>
-                                <select class="form-select" id="turnoEmpleado" name="empleado" required>
-                                    <?php foreach ($empleados as $empleado): ?>
-                                        <option value="<?= $empleado['idusu'] ?>"><?= htmlspecialchars($empleado['nombre_completo']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="turnoTemporada" class="form-label">Tipo de temporada</label>
-                                <select class="form-select" id="turnoTemporada" name="temporada" required>
-                                    <option value="normal">Temporada normal (baja demanda)</option>
-                                    <option value="alta">Temporada alta (fechas especiales)</option>
-                                    <option value="finsemana">Fines de semana</option>
-                                    <option value="especial">Fechas especiales (eventos, novias, funerales)</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="turnoTipo" class="form-label">Turno</label>
-                                <select class="form-select" id="turnoTipo" name="tipo_turno" required>
-                                    <!-- Opciones dinámicas por JS -->
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="turnoHorario" class="form-label">Horario sugerido</label>
-                                <input type="text" class="form-control" id="turnoHorario" name="horario" readonly required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="turnoObservaciones" class="form-label">Observaciones</label>
-                                <textarea class="form-control" id="turnoObservaciones" name="observaciones" rows="2" readonly></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label for="turnoFechaInicio" class="form-label">Fecha Inicio</label>
-                                <input type="date" class="form-control" id="turnoFechaInicio" name="fecha_inicio" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="turnoFechaFin" class="form-label">Fecha Fin</label>
-                                <input type="date" class="form-control" id="turnoFechaFin" name="fecha_fin" required>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                <button type="submit" class="btn btn-primary">Guardar</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal Editar Turno -->
-        <div class="modal fade" id="editarTurnoModal" tabindex="-1" aria-labelledby="editarTurnoModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editarTurnoModalLabel">Editar Turno</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="formEditarTurno">
-                            <input type="hidden" id="edit_turno_id" name="id">
-                            <div class="mb-3">
-                                <label for="edit_turnoEmpleado" class="form-label">Empleado</label>
-                                <select class="form-select" id="edit_turnoEmpleado" name="empleado" required>
-                                    <?php foreach ($empleados as $empleado): ?>
-                                        <option value="<?= $empleado['idusu'] ?>"><?= htmlspecialchars($empleado['nombre_completo']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="edit_turnoFechaInicio" class="form-label">Fecha Inicio</label>
-                                <input type="date" class="form-control" id="edit_turnoFechaInicio" name="fecha_inicio" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="edit_turnoFechaFin" class="form-label">Fecha Fin</label>
-                                <input type="date" class="form-control" id="edit_turnoFechaFin" name="fecha_fin" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="edit_turnoHorario" class="form-label">Horario</label>
-                                <input type="text" class="form-control" id="edit_turnoHorario" name="horario" required>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                <button type="submit" class="btn btn-primary">Actualizar</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+                </form>
             </div>
         </div>
     </div>
-    
-    <div class="debug-info" id="debugInfo">
-        <small>🔧 Debug: Funciones JS... <span id="debugStatus">Cargando...</span></small>
+
+    <!-- Modal Editar Empleado -->
+    <div class="modal fade" id="editarEmpleadoModal" tabindex="-1" aria-labelledby="editarEmpleadoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formEditarEmpleado">
+                    <input type="hidden" id="edit_empleado_id" name="id">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editarEmpleadoModalLabel">Editar Empleado</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nombre Completo</label>
+                                <input type="text" class="form-control" id="edit_nombre_completo" name="nombre_completo" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Username</label>
+                                <input type="text" class="form-control" id="edit_username" name="username" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="edit_email" name="email" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Teléfono</label>
+                                <input type="tel" class="form-control" id="edit_telefono" name="telefono">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Rol</label>
+                                <select class="form-select" id="edit_tpusu_idtpusu" name="tpusu_idtpusu" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($tipos_usuario as $id => $nombre): ?>
+                                        <option value="<?= $id ?>"><?= htmlspecialchars($nombre) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Naturaleza / Cargo</label>
+                                <input type="text" class="form-control" id="edit_naturaleza" name="naturaleza">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" id="edit_activo" name="activo" required>
+                                    <option value="1">Activo</option>
+                                    <option value="0">Inactivo</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="nuevoPermisoModal" tabindex="-1" aria-labelledby="nuevoPermisoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formNuevoPermiso">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="nuevoPermisoModalLabel">Nuevo Permiso</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Empleado</label>
+                                <select class="form-select" name="idempleado" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($empleados as $emp): ?>
+                                        <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tipo de Permiso</label>
+                                <input type="text" class="form-control" name="tipo" placeholder="Ej: Médico, Familiar" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" class="form-control" name="fecha_inicio" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" class="form-control" name="fecha_fin" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" name="estado" required>
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Aprobado">Aprobado</option>
+                                    <option value="Rechazado">Rechazado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Permiso -->
+    <div class="modal fade" id="editarPermisoModal" tabindex="-1" aria-labelledby="editarPermisoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formEditarPermiso">
+                    <input type="hidden" id="edit_permiso_id" name="id">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editarPermisoModalLabel">Editar Permiso</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Empleado</label>
+                                <select class="form-select" id="edit_permisoEmpleado" name="idempleado" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($empleados as $emp): ?>
+                                        <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tipo de Permiso</label>
+                                <input type="text" class="form-control" id="edit_permisoTipo" name="tipo" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" class="form-control" id="edit_permisoFechaInicio" name="fecha_inicio" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" class="form-control" id="edit_permisoFechaFin" name="fecha_fin" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" id="edit_permisoEstado" name="estado" required>
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Aprobado">Aprobado</option>
+                                    <option value="Rechazado">Rechazado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nuevo Turno -->
+    <div class="modal fade" id="nuevoTurnoModal" tabindex="-1" aria-labelledby="nuevoTurnoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formNuevoTurno">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="nuevoTurnoModalLabel">Nuevo Turno</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Empleado</label>
+                                <select class="form-select" name="idempleado" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($empleados as $emp): ?>
+                                        <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Horario</label>
+                                <input type="text" class="form-control" name="horario" placeholder="Ej: 08:00 - 16:00" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" class="form-control" name="fecha_inicio" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" class="form-control" name="fecha_fin" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Turno -->
+    <div class="modal fade" id="editarTurnoModal" tabindex="-1" aria-labelledby="editarTurnoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formEditarTurno">
+                    <input type="hidden" id="edit_turno_id" name="id">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editarTurnoModalLabel">Editar Turno</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Empleado</label>
+                                <select class="form-select" id="edit_turnoEmpleado" name="idempleado" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($empleados as $emp): ?>
+                                        <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Horario</label>
+                                <input type="text" class="form-control" id="edit_turnoHorario" name="horario" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" class="form-control" id="edit_turnoFechaInicio" name="fecha_inicio" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" class="form-control" id="edit_turnoFechaFin" name="fecha_fin" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Vacación -->
+    <div class="modal fade" id="nuevoVacacionModal" tabindex="-1" aria-labelledby="nuevoVacacionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formNuevaVacacion">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="nuevoVacacionModalLabel">Nueva Vacación</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Empleado</label>
+                                <select class="form-select" name="id_empleado" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($empleados as $emp): ?>
+                                        <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" name="estado" required>
+                                    <option value="Programadas">Programadas</option>
+                                    <option value="En curso">En curso</option>
+                                    <option value="Aprobada">Aprobada</option>
+                                    <option value="Rechazada">Rechazada</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" class="form-control" name="fecha_inicio" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" class="form-control" name="fecha_fin" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Motivo</label>
+                                <textarea class="form-control" name="motivo" rows="2" placeholder="Describir motivo de la vacación"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Vacación -->
+    <div class="modal fade" id="editarVacacionModal" tabindex="-1" aria-labelledby="editarVacacionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="formEditarVacacion">
+                    <input type="hidden" id="edit_vacacion_id" name="id">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editarVacacionModalLabel">Editar Vacación</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Empleado</label>
+                                <select class="form-select" id="edit_vacacionEmpleado" name="id_empleado" required>
+                                    <option value="">Seleccione...</option>
+                                    <?php foreach ($empleados as $emp): ?>
+                                        <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Estado</label>
+                                <select class="form-select" id="edit_vacacionEstado" name="estado" required>
+                                    <option value="Programadas">Programadas</option>
+                                    <option value="En curso">En curso</option>
+                                    <option value="Aprobada">Aprobada</option>
+                                    <option value="Rechazada">Rechazada</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" class="form-control" id="edit_vacacionFechaInicio" name="fecha_inicio" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" class="form-control" id="edit_vacacionFechaFin" name="fecha_fin" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Motivo</label>
+                                <textarea class="form-control" id="edit_vacacionMotivo" name="motivo" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/Original-Floraltech/assets/dgemp.js?v=<?= time() ?>"></script>
-    <script src="/Original-Floraltech/assets/test_vacaciones.js?v=<?= time() ?>"></script>
-    
+    <script src="/Original-Floraltech/assets/js/gestion_empleados_handlers.js?v=<?= time() ?>"></script>
     <script>
-        // Script de debug - verificar que las funciones estén cargadas
-        console.log('=== DEBUG GESTIÓN EMPLEADOS ===');
-        console.log('cargarEmpleado:', typeof cargarEmpleado);
-        console.log('eliminarEmpleado:', typeof eliminarEmpleado);
-        console.log('verEmpleado:', typeof verEmpleado);
-        console.log('editarPermiso:', typeof editarPermiso);
-        console.log('eliminarPermiso:', typeof eliminarPermiso);
-        console.log('editarVacacion:', typeof editarVacacion);
-        console.log('eliminarVacacion:', typeof eliminarVacacion);
-        
-        // Actualizar estado visual
-        const debugStatus = document.getElementById('debugStatus');
-        if (typeof cargarEmpleado !== 'function') {
-            console.error('❌ ERROR: cargarEmpleado no está definida');
-            debugStatus.innerHTML = '❌ ERROR';
-            debugStatus.style.color = 'red';
-            alert('ERROR: Las funciones JavaScript no se cargaron correctamente. Revisa la consola (F12).');
-        } else {
-            console.log('✅ Funciones JavaScript cargadas correctamente');
-            debugStatus.innerHTML = '✅ OK';
-            debugStatus.style.color = 'green';
-            // Ocultar debug después de 3 segundos si todo está bien
-            setTimeout(() => {
-                document.getElementById('debugInfo').style.display = 'none';
-            }, 3000);
-        }
-    </script>
-    <!-- Script de lógica de turnos, debe ir al final -->
-</body>
-<script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-
-            // Solución: destruir tooltips antes de abrir cualquier modal
-            var modalTriggers = document.querySelectorAll('[data-bs-toggle="modal"]');
-            modalTriggers.forEach(function(trigger) {
-                trigger.addEventListener('click', function() {
-                    tooltipList.forEach(function(tooltip) {
-                        tooltip.hide && tooltip.hide();
-                        tooltip.dispose && tooltip.dispose();
-                    });
-                });
+        // Esperar a que Bootstrap cargue completamente
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, Bootstrap modal system ready');
+            
+            // Probar que los modales existan en el DOM
+            const modales = [
+                'nuevoEmpleadoModal',
+                'nuevoPermisoModal',
+                'editarPermisoModal',
+                'nuevoTurnoModal',
+                'editarTurnoModal',
+                'nuevoVacacionModal',
+                'editarVacacionModal'
+            ];
+            
+            modales.forEach(id => {
+                const modal = document.getElementById(id);
+                if (modal) {
+                    console.log(`✓ Modal ${id} encontrado en el DOM`);
+                } else {
+                    console.error(`✗ Modal ${id} NO encontrado`);
+                }
             });
         });
-</script>
+
+        // Funciones para editar y eliminar empleados
+        function editarEmpleado(id) {
+            // Obtener datos del empleado
+            fetch('assets/ajax/ajax_gestion_empleados.php', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    action: 'get_empleado',
+                    id: id
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('edit_empleado_id').value = data.idusu || '';
+                    document.getElementById('edit_nombre_completo').value = data.nombre_completo || '';
+                    document.getElementById('edit_username').value = data.username || '';
+                    document.getElementById('edit_email').value = data.email || '';
+                    document.getElementById('edit_telefono').value = data.telefono || '';
+                    document.getElementById('edit_tpusu_idtpusu').value = data.tpusu_idtpusu || '';
+                    document.getElementById('edit_naturaleza').value = data.naturaleza || '';
+                    document.getElementById('edit_activo').value = data.activo || '1';
+                    new bootstrap.Modal(document.getElementById('editarEmpleadoModal')).show();
+                } else {
+                    alert('Error: ' + (data.error || 'No se pudo cargar el empleado'));
+                }
+            })
+            .catch(err => alert('Error: ' + err));
+        }
+
+        function eliminarEmpleado(id) {
+            if (!confirm('¿Estás seguro de que deseas eliminar este empleado?')) return;
+            
+            fetch('assets/ajax/ajax_gestion_empleados.php', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    action: 'delete_empleado',
+                    id: id
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Empleado eliminado correctamente');
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'No se pudo eliminar'));
+                }
+            })
+            .catch(err => alert('Error: ' + err));
+        }
+
+        // Evento submit para editar empleado
+        document.addEventListener('DOMContentLoaded', function() {
+            const formEditarEmpleado = document.getElementById('formEditarEmpleado');
+            if (formEditarEmpleado) {
+                formEditarEmpleado.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const fd = new FormData(this);
+                    fd.append('action', 'update_empleado');
+                    
+                    fetch('assets/ajax/ajax_gestion_empleados.php', {
+                        method: 'POST',
+                        body: fd
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Empleado actualizado correctamente');
+                            location.reload();
+                        } else {
+                            alert('Error: ' + (data.error || 'No se pudo actualizar'));
+                        }
+                    })
+                    .catch(err => alert('Error: ' + err));
+                });
+            }
+        });
+    </script>
+</body>
 </html>
+
+
+
+

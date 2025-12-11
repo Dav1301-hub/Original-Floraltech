@@ -1,5 +1,5 @@
 <?php
-require_once 'models/Minventario.php';
+require_once 'models/minventario.php';
 
 class Cinventario {
     private $inventarioModel;
@@ -374,26 +374,6 @@ class Cinventario {
             $filtros_perecederos = array_merge($filtros, ['tipo_producto' => 'perecedero']);
             $this->inventario_perecederos = $this->inventarioModel->getInventarioPaginado($this->elementos_por_pagina_perecederos, $this->offset_perecederos, $filtros_perecederos);
             
-            // Enriquecer datos de perecederos con información de lotes
-            require_once 'models/Mlotes.php';
-            $lotesModel = new Mlotes();
-            foreach ($this->inventario_perecederos as &$producto) {
-                $resumen = $lotesModel->getResumenLotesPorProducto($producto['idinv']);
-                $producto['lote_proxima_caducidad'] = $resumen['proxima_caducidad'] ?? null;
-                $producto['lote_cantidad_activa'] = $resumen['cantidad_activa'] ?? 0;
-                
-                // Calcular días restantes hasta próxima caducidad
-                if ($producto['lote_proxima_caducidad']) {
-                    $hoy = new DateTime();
-                    $fecha_cad = new DateTime($producto['lote_proxima_caducidad']);
-                    $diferencia = $hoy->diff($fecha_cad);
-                    $producto['dias_hasta_caducidad'] = $diferencia->invert ? -$diferencia->days : $diferencia->days;
-                } else {
-                    $producto['dias_hasta_caducidad'] = null;
-                }
-            }
-            unset($producto); // Romper la referencia
-            
             $this->total_elementos_perecederos = $this->inventarioModel->getTotalElementos($filtros_perecederos);
             $this->total_paginas_perecederos = max(1, ceil($this->total_elementos_perecederos / $this->elementos_por_pagina_perecederos));
             
@@ -458,9 +438,6 @@ class Cinventario {
     /**
      * Cargar información de paginación
      */
-    /**
-     * Cargar información de paginación
-     */
     private function cargarPaginacion($filtros) {
         try {
             if ($this->inventarioModel) {
@@ -498,70 +475,91 @@ class Cinventario {
      * Cargar la vista del inventario
      */
     private function cargarVista() {
-    // Hacer las variables accesibles en la vista
-    $mensaje_exito = $this->mensaje_exito;
-    $mensaje_error = $this->mensaje_error;
-    $error_message = $this->error_message;
-
-    // Variables de estadísticas - siempre definidas
-    $total_productos = $this->total_productos;
-    $stock_bajo = $this->stock_bajo;
-    $stock_critico = $this->stock_critico;
-    $sin_stock = $this->sin_stock;
-    $valor_total = $this->valor_total;
-
-    // Variables de inventario - siempre definidas
-    $inventario = $this->inventario;
-    $inventario_perecederos = $this->inventario_perecederos;
-    $inventario_no_perecederos = $this->inventario_no_perecederos;
-    $total_elementos = $this->total_elementos;
-    $total_paginas = $this->total_paginas;
-    $todas_las_flores = $this->todas_las_flores;
-    $flores_para_select = $this->flores_para_select;
-
-    // Productos para el select de proveedores (todos los productos)
-    $productos_inventario = $this->inventarioModel ? $this->inventarioModel->getInventarioPaginado(9999, 0, []) : [];
-
-    // Proveedores para la tabla de proveedores (paginados con productos)
-    $proveedores = $this->proveedores;
-    
-    // Todos los proveedores para el select (sin paginar)
-    $todos_proveedores = $this->inventarioModel ? $this->inventarioModel->getProveedores() : [];
-
-    // Variables de paginación - siempre definidas
-    $elementos_por_pagina = $this->elementos_por_pagina;
-    $pagina_actual = $this->pagina_actual;
-    $offset = $this->offset;
-    
-    // Variables de paginación de perecederos
-    $elementos_por_pagina_perecederos = $this->elementos_por_pagina_perecederos;
-    $pagina_actual_perecederos = $this->pagina_actual_perecederos;
-    $offset_perecederos = $this->offset_perecederos;
-    $total_elementos_perecederos = $this->total_elementos_perecederos;
-    $total_paginas_perecederos = $this->total_paginas_perecederos;
-    
-    // Variables de paginación de no perecederos
-    $elementos_por_pagina_no_perecederos = $this->elementos_por_pagina_no_perecederos;
-    $pagina_actual_no_perecederos = $this->pagina_actual_no_perecederos;
-    $offset_no_perecederos = $this->offset_no_perecederos;
-    $total_elementos_no_perecederos = $this->total_elementos_no_perecederos;
-    $total_paginas_no_perecederos = $this->total_paginas_no_perecederos;
-    
-    // Variables de paginación de proveedores
-    $elementos_por_pagina_proveedores = $this->elementos_por_pagina_proveedores;
-    $pagina_actual_proveedores = $this->pagina_actual_proveedores;
-    $offset_proveedores = $this->offset_proveedores;
-    $total_elementos_proveedores = $this->total_elementos_proveedores;
-    $total_paginas_proveedores = $this->total_paginas_proveedores;
-
-    // Variables para el layout
-    $usu = $_SESSION['user'];
-    $page = 'inventario'; // Forzar siempre la vista de inventario
-    $_GET['page'] = 'inventario'; // Forzar también el parámetro GET por si la vista lo usa
-    $totalUsuarios = 0; // Variable requerida por el dashboard
-
-    // Cargar el dashboard de admin con la vista del inventario
-    include 'views/admin/VadashboardPrincipal.php';
+        // Preparar contexto para pasar a la vista
+        $ctx = [
+            'mensaje_exito' => $this->mensaje_exito,
+            'mensaje_error' => $this->mensaje_error,
+            'error_message' => $this->error_message,
+            'total_productos' => $this->total_productos,
+            'stock_bajo' => $this->stock_bajo,
+            'stock_critico' => $this->stock_critico,
+            'sin_stock' => $this->sin_stock,
+            'valor_total' => $this->valor_total,
+            'inventario' => $this->inventario,
+            'inventario_perecederos' => $this->inventario_perecederos,
+            'inventario_no_perecederos' => $this->inventario_no_perecederos,
+            'total_elementos' => $this->total_elementos,
+            'total_paginas' => $this->total_paginas,
+            'todas_las_flores' => $this->todas_las_flores,
+            'flores_para_select' => $this->flores_para_select,
+            'productos_inventario' => $this->inventarioModel ? $this->inventarioModel->getInventarioPaginado(9999, 0, []) : [],
+            'proveedores' => $this->proveedores,
+            'todos_proveedores' => $this->inventarioModel ? $this->inventarioModel->getProveedores() : [],
+            'elementos_por_pagina' => $this->elementos_por_pagina,
+            'pagina_actual' => $this->pagina_actual,
+            'offset' => $this->offset,
+            'elementos_por_pagina_perecederos' => $this->elementos_por_pagina_perecederos,
+            'pagina_actual_perecederos' => $this->pagina_actual_perecederos,
+            'offset_perecederos' => $this->offset_perecederos,
+            'total_elementos_perecederos' => $this->total_elementos_perecederos,
+            'total_paginas_perecederos' => $this->total_paginas_perecederos,
+            'elementos_por_pagina_no_perecederos' => $this->elementos_por_pagina_no_perecederos,
+            'pagina_actual_no_perecederos' => $this->pagina_actual_no_perecederos,
+            'offset_no_perecederos' => $this->offset_no_perecederos,
+            'total_elementos_no_perecederos' => $this->total_elementos_no_perecederos,
+            'total_paginas_no_perecederos' => $this->total_paginas_no_perecederos,
+            'elementos_por_pagina_proveedores' => $this->elementos_por_pagina_proveedores,
+            'pagina_actual_proveedores' => $this->pagina_actual_proveedores,
+            'offset_proveedores' => $this->offset_proveedores,
+            'total_elementos_proveedores' => $this->total_elementos_proveedores,
+            'total_paginas_proveedores' => $this->total_paginas_proveedores,
+            'usu' => $_SESSION['user'] ?? []
+        ];
+        
+        // Variables locales para acceso directo
+        $mensaje_exito = $this->mensaje_exito;
+        $mensaje_error = $this->mensaje_error;
+        $error_message = $this->error_message;
+        $total_productos = $this->total_productos;
+        $stock_bajo = $this->stock_bajo;
+        $stock_critico = $this->stock_critico;
+        $sin_stock = $this->sin_stock;
+        $valor_total = $this->valor_total;
+        $inventario = $this->inventario;
+        $inventario_perecederos = $this->inventario_perecederos;
+        $inventario_no_perecederos = $this->inventario_no_perecederos;
+        $total_elementos = $this->total_elementos;
+        $total_paginas = $this->total_paginas;
+        $todas_las_flores = $this->todas_las_flores;
+        $flores_para_select = $this->flores_para_select;
+        $productos_inventario = $this->inventarioModel ? $this->inventarioModel->getInventarioPaginado(9999, 0, []) : [];
+        $proveedores = $this->proveedores;
+        $todos_proveedores = $this->inventarioModel ? $this->inventarioModel->getProveedores() : [];
+        $elementos_por_pagina = $this->elementos_por_pagina;
+        $pagina_actual = $this->pagina_actual;
+        $offset = $this->offset;
+        $elementos_por_pagina_perecederos = $this->elementos_por_pagina_perecederos;
+        $pagina_actual_perecederos = $this->pagina_actual_perecederos;
+        $offset_perecederos = $this->offset_perecederos;
+        $total_elementos_perecederos = $this->total_elementos_perecederos;
+        $total_paginas_perecederos = $this->total_paginas_perecederos;
+        $elementos_por_pagina_no_perecederos = $this->elementos_por_pagina_no_perecederos;
+        $pagina_actual_no_perecederos = $this->pagina_actual_no_perecederos;
+        $offset_no_perecederos = $this->offset_no_perecederos;
+        $total_elementos_no_perecederos = $this->total_elementos_no_perecederos;
+        $total_paginas_no_perecederos = $this->total_paginas_no_perecederos;
+        $elementos_por_pagina_proveedores = $this->elementos_por_pagina_proveedores;
+        $pagina_actual_proveedores = $this->pagina_actual_proveedores;
+        $offset_proveedores = $this->offset_proveedores;
+        $total_elementos_proveedores = $this->total_elementos_proveedores;
+        $total_paginas_proveedores = $this->total_paginas_proveedores;
+        $usu = $_SESSION['user'];
+        $page = 'inventario';
+        $_GET['page'] = 'inventario';
+        $totalUsuarios = 0;
+        
+        // Cargar el dashboard con la vista del inventario
+        include 'views/admin/VadashboardPrincipal.php';
     }
 
     /**
@@ -915,29 +913,6 @@ class Cinventario {
             
             // Obtener productos (sin límite para búsqueda)
             $productos = $this->inventarioModel->getInventarioPaginado(1000, 0, $filtros);
-            
-            // Enriquecer productos perecederos con datos de lotes
-            if ($tipo === 'perecedero') {
-                require_once 'models/Mlotes.php';
-                $lotesModel = new Mlotes();
-                
-                foreach ($productos as &$producto) {
-                    $resumen = $lotesModel->getResumenLotesPorProducto($producto['idinv']);
-                    $producto['lote_proxima_caducidad'] = $resumen['proxima_caducidad'] ?? null;
-                    $producto['lote_cantidad_activa'] = $resumen['cantidad_activa'] ?? 0;
-                    
-                    // Calcular días restantes
-                    if ($producto['lote_proxima_caducidad']) {
-                        $hoy = new DateTime();
-                        $fecha_cad = new DateTime($producto['lote_proxima_caducidad']);
-                        $diferencia = $hoy->diff($fecha_cad);
-                        $producto['dias_hasta_caducidad'] = $diferencia->invert ? -$diferencia->days : $diferencia->days;
-                    } else {
-                        $producto['dias_hasta_caducidad'] = null;
-                    }
-                }
-                unset($producto);
-            }
             
             echo json_encode([
                 'success' => true,
