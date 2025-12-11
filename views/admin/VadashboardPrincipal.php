@@ -15,6 +15,7 @@ $pages = [
     'pedidos'       => 'VagestionPedidos.php',
     'pagos'         => 'VadashboardPagos.php',
     'configuracion' => 'Vaconfiguracion.php',
+    'soporte'       => 'Vsoporte.php',
     'auditoria'     => 'VaauditoriaPagos.php',
     'reportes'      => 'Vareportes.php'
 ];
@@ -27,6 +28,7 @@ $pageTitles = [
     'pedidos'       => 'Gestion de Pedidos',
     'pagos'         => 'Pagos',
     'configuracion' => 'Configuracion',
+    'soporte'       => 'Centro de Soporte',
     'auditoria'     => 'Auditoria',
     'reportes'      => 'Reportes'
 ];
@@ -115,6 +117,8 @@ function render_admin_view(string $filePath, array $context = []): void
             <a class="nav-link <?= $page === 'empleados' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=empleados"><i class="fas fa-users"></i>Gestion de Usuarios</a>
             <a class="nav-link <?= $page === 'inventarios' || $page === 'inventario' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=inventarios"><i class="fa-solid fa-server"></i>Inventario</a>
             <a class="nav-link <?= $page === 'pedidos' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=pedidos"><i class="fas fa-cart-shopping"></i>Gestion de Pedidos</a>
+            <div class="section-label">Soporte</div>
+            <a class="nav-link <?= $page === 'soporte' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=soporte"><i class="fas fa-life-ring"></i>Centro de Soporte</a>
             <div class="section-label">Control</div>
             <a class="nav-link <?= $page === 'configuracion' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=configuracion"><i class="fas fa-sliders"></i>Configuracion</a>
             <a class="nav-link <?= $page === 'auditoria' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=auditoria"><i class="fas fa-clipboard-list"></i>Auditoria</a>

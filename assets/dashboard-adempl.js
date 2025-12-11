@@ -1,10 +1,33 @@
 <script>
-    let empleados = [
-        {id:101, nombre:"María", apellido:"González", documento:"12345678", cargo:"Florista Senior", ingreso:"2020-03-15", contrato:"Indefinido", estado:"Activo"},
-        {id:102, nombre:"Juan", apellido:"Pérez", documento:"87654321", cargo:"Diseñador floral", ingreso:"2021-08-22", contrato:"Fijo", estado:"Activo"},
-        {id:103, nombre:"Ana", apellido:"Rodríguez", documento:"11223344", cargo:"Vendedora", ingreso:"2022-01-05", contrato:"Temporal", estado:"Activo"},
-        {id:104, nombre:"Carlos", apellido:"López", documento:"44332211", cargo:"Entregas", ingreso:"2021-11-10", contrato:"Obra", estado:"Inactivo"}
-    ];
+
+    let empleados = [];
+
+    // Cargar empleados reales desde listar_usuarios.php
+    function cargarEmpleados() {
+        fetch('listar_usuarios.php')
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    empleados = data.usuarios.map(emp => ({
+                        id: emp.idusu,
+                        nombre: emp.nombre_completo,
+                        usuario: emp.username,
+                        telefono: emp.telefono,
+                        email: emp.email,
+                        ingreso: emp.fecha_registro,
+                        estado: emp.activo == 1 ? "Activo" : "Inactivo"
+                    }));
+                    renderEmpleados();
+                } else {
+                    alert('Error al cargar empleados: ' + (data.error || 'Desconocido'));
+                }
+            })
+            .catch(err => {
+                alert('Error de conexión al cargar empleados');
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarEmpleados);
 
     // Renderizar empleados en la tabla
     function renderEmpleados() {
@@ -14,11 +37,11 @@
             let tr = document.createElement("tr");
             tr.innerHTML = `
                 <td>${emp.id}</td>
-                <td>${emp.nombre} ${emp.apellido}</td>
-                <td>${emp.documento}</td>
-                <td>${emp.cargo}</td>
+                <td>${emp.nombre}</td>
+                <td>${emp.usuario}</td>
+                <td>-</td>
                 <td>${emp.ingreso}</td>
-                <td><span class="badge bg-success">${emp.contrato}</span></td>
+                <td>-</td>
                 <td><span class="badge ${emp.estado==="Activo"?"bg-success":"bg-danger"}">${emp.estado}</span></td>
                 <td class="actions-column">
                     <button class="btn btn-sm btn-outline-primary" onclick="editarEmpleado(${emp.id})"><i class="fas fa-edit"></i></button>

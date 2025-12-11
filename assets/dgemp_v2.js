@@ -762,7 +762,6 @@ window.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
-// ...existing code...
     document.getElementById('formEditarPermiso').addEventListener('submit', function(e) {
         e.preventDefault();
         const fd = new FormData(this);

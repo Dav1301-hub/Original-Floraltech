@@ -1,13 +1,13 @@
 /* Estilos extraídos de dgemp.php para dgemp.css */
 :root {
-    --primary: #4CAF50;
-    --secondary: #8BC34A;
-    --accent: #FF9800;
-    --light: #F1F8E9;
-    --dark: #1B5E20;
-    --text: #212121;
-    --text-light: #757575;
-    --card-shadow: 0 4px 12px rgba(139, 195, 74, 0.15);
+    --primary: #6a5af9;
+    --secondary: #5b21b6;
+    --accent: #14b8a6;
+    --light: #eef2ff;
+    --dark: #0b1224;
+    --text: #0f172a;
+    --text-light: #6b7280;
+    --card-shadow: 0 12px 30px rgba(17, 24, 39, 0.08);
 }
 
 * {
