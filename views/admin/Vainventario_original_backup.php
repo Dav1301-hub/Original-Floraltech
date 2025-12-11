@@ -1,16 +1,11 @@
 <!-- FontAwesome 6.5.2 CDN -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-+Cf+8J2k6U5zQ6QwQ6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-<!-- Bootstrap 5 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
     /* Responsive para Inventario Admin */
-    * {
-        box-sizing: border-box;
-    }
-    
-    html, body {
-        overflow-x: hidden;
-        width: 100%;
+    body {
+        overflow-x: hidden !important;
+        width: 100vw;
+        max-width: 100vw;
         margin: 0;
         padding: 0;
     }
@@ -20,11 +15,10 @@
         margin: 0 !important;
         width: 100% !important;
         max-width: 100% !important;
-        overflow-x: hidden;
     }
     
     main.container-fluid {
-        padding: 1.5rem 1rem !important;
+        padding: 2rem 2.5rem !important;
     }
     
     /* Asegurar que las cards y tablas tengan espacio */
@@ -198,155 +192,9 @@
     .sortable:hover i {
         opacity: 1;
     }
-    
-    /* Columna de acciones - solución para botones cortados */
-    .table-responsive {
-        overflow-x: auto !important;
-        overflow-y: visible;
-        width: 100%;
-        box-sizing: border-box;
-        -webkit-overflow-scrolling: touch;
-    }
-    
-    .table {
-        width: 100%;
-        table-layout: auto;
-        font-size: 0.65rem;
-        margin-bottom: 0;
-        min-width: 100%;
-    }
-    
-    .table th {
-        font-size: 0.6rem;
-        padding: 0.25rem 0.15rem !important;
-    }
-    
-    .table td {
-        padding: 0.25rem 0.15rem !important;
-        white-space: nowrap;
-        font-size: 0.65rem;
-    }
-    
-    /* Columna de acciones - fijar ancho y mostrar botones */
-    .table td:last-child,
-    .table th:last-child {
-        white-space: normal !important;
-        padding: 0.25rem 0.1rem !important;
-        min-width: 100px;
-        position: sticky;
-        right: 0;
-        background-color: #fff;
-    }
-    
-    /* Botones en columna de acciones - muy compactos */
-    .table .btn-group,
-    .table .btn-group-sm {
-        display: flex !important;
-        flex-wrap: wrap;
-        gap: 0.05rem;
-        width: 100%;
-    }
-    
-    .table .btn {
-        padding: 0.15rem 0.25rem;
-        font-size: 0.55rem;
-        flex: 0 1 auto;
-        min-width: auto;
-        white-space: nowrap;
-        line-height: 1;
-        border: 0.5px solid;
-    }
-    
-    .table .btn i,
-    .table .btn .fa {
-        margin-right: 0 !important;
-        font-size: 0.5rem;
-    }
-    
-    /* Badges más pequeños */
-    .table .badge {
-        padding: 0.15rem 0.25rem;
-        font-size: 0.5rem;
-    }
-    
-    /* Reducir espacios en filas */
-    .table tbody tr {
-        height: auto;
-    }
-    
-    /* En tablets */
-    @media (max-width: 992px) {
-        .table {
-            font-size: 0.6rem;
-        }
-        
-        .table th {
-            font-size: 0.55rem;
-        }
-        
-        .table th,
-        .table td {
-            padding: 0.2rem 0.1rem !important;
-        }
-        
-        .table .btn {
-            padding: 0.1rem 0.2rem;
-            font-size: 0.5rem;
-        }
-    }
 </style>
 <!-- Gestión de Inventario - Vista -->
-<div class="section-box" style="padding: 0; margin: 0; width: 100%; max-width: 100%; box-sizing: border-box;">
-    <!-- Debug UI: activa añadiendo ?debug_ui=1 a la URL -->
-    <script>
-        (function(){
-            try {
-                if (window.location.search && window.location.search.indexOf('debug_ui=1') !== -1) {
-                    document.documentElement.classList.add('debug-outline');
-                    document.body.classList.add('debug-outline');
-                    var tb = document.querySelector('.topbar'); if (tb) tb.classList.add('debug-outline');
-
-                    function rectToStr(r){ return Math.round(r.top)+','+Math.round(r.left)+' / '+Math.round(r.width)+'x'+Math.round(r.height); }
-
-                    var panel = document.createElement('div');
-                    panel.id = 'debug-ui-panel';
-                    panel.style.position = 'fixed';
-                    panel.style.right = '12px';
-                    panel.style.top = '12px';
-                    panel.style.zIndex = '99999';
-                    panel.style.background = 'rgba(0,0,0,0.65)';
-                    panel.style.color = '#fff';
-                    panel.style.fontSize = '12px';
-                    panel.style.padding = '8px 10px';
-                    panel.style.borderRadius = '8px';
-                    panel.style.boxShadow = '0 6px 18px rgba(0,0,0,0.4)';
-                    panel.style.maxWidth = '320px';
-                    panel.innerHTML = '<strong>DEBUG UI</strong><br><small id="dbg-lines">calculando...</small><br><a id="dbg-close" href="#" style="color:#ffd; text-decoration:underline; font-size:11px;">Cerrar</a>';
-                    document.body.appendChild(panel);
-
-                    function update(){
-                        var htmlR = document.documentElement.getBoundingClientRect();
-                        var bodyR = document.body.getBoundingClientRect();
-                        var topR = tb ? tb.getBoundingClientRect() : {top:-1,left:-1,width:0,height:0};
-                        var elAt = document.elementFromPoint(5,5);
-                        var elName = elAt ? (elAt.tagName + (elAt.id?('#'+elAt.id):'') + (elAt.className?('.'+elAt.className.split(' ').join('.')):'')) : 'none';
-
-                        // List first few direct children of body with their top positions
-                        var children = Array.from(document.body.children).slice(0,8).map(function(ch){
-                            var r = ch.getBoundingClientRect();
-                            return ch.tagName.toLowerCase() + (ch.id?('#'+ch.id):'') + (ch.className?('.'+ch.className.split(' ').join('.')):'') + ' t:'+Math.round(r.top)+' h:'+Math.round(r.height);
-                        }).join(' | ');
-
-                        document.getElementById('dbg-lines').textContent = 'html: '+rectToStr(htmlR)+' | body: '+rectToStr(bodyR)+' | topbar: '+rectToStr(topR)+' | el@5,5: '+elName + '\nchildren: '+children;
-                    }
-
-                    document.getElementById('dbg-close').addEventListener('click', function(e){ e.preventDefault(); panel.remove(); });
-                    window.addEventListener('resize', update);
-                    setTimeout(update,200);
-                }
-            } catch(e){ console.error('debug-ui error', e); }
-        })();
-    </script>
+<main class="container-fluid" style="padding: 2rem 2.5rem; margin: 0; width: 100%; max-width: 100%; box-sizing: border-box;">
     <!-- Backdrop para modales manuales -->
 <div id="modal-backdrop" class="modal-backdrop fade" style="display:none;z-index:1040;"></div>
 
@@ -368,12 +216,7 @@
         </div>
     <?php endif; ?>
 
-    <div class="d-flex align-items-center mb-4 py-3 px-3 rounded-4 shadow-sm text-white" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%);">
-        <div>
-            <p class="mb-1 opacity-75" style="letter-spacing:1px;text-transform:uppercase; color: #ffff"><i class="fas fa-cube me-2"></i>FloralTech Admin</p>
-            <h2 class="mb-0 fw-bold" style="color: #ffff">Gestión de Inventario</h2>
-        </div>
-    </div> 
+    <h2 class="mb-4 fw-bold">Gestión de Inventario</h2> 
     <!-- Cards de resumen funcionales -->
     <div class="row mb-4 g-3">
         <div class="col-lg-2 col-md-4 col-sm-6">
@@ -401,7 +244,7 @@
                     <i class="fas fa-exclamation-circle fa-lg mb-2" style="color: #ff6b35;"></i>
                     <div class="fw-bold text-muted small">Stock Crítico</div>
                     <div class="fs-4 fw-bold text-dark"><?= $stock_critico ?? 0 ?></div>
-                    <small class="text-muted" style="font-size: 0.75rem;">0-9 unidades</small>
+                    <small class="text-muted" style="font-size: 0.75rem;">1-9 unidades</small>
                 </div>
             </div>
         </div>
@@ -1115,7 +958,7 @@
     </div>
 <!-- Cargar Bootstrap JS para modales -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</div>
+</main>
 
 <script src="/Original-Floraltech/assets/inventario.js"></script>
 <script src="/Original-Floraltech/assets/inventario_modal_handler.js"></script>
@@ -4857,5 +4700,5 @@ function irAAgregarStock() {
 
 </script>
 
-</div>
+</main>
 <!-- Fin de la vista de inventario -->

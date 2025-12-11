@@ -1,117 +1,196 @@
+﻿<?php
+if (!isset($totalUsuarios)) {
+    $totalUsuarios = 0;
+}
+
+$usu = $usu ?? ($_SESSION['user'] ?? []);
+$page = $page ?? ($_GET['page'] ?? 'general');
+$pg = $_GET['pg'] ?? null;
+
+$pages = [
+    'general'       => 'VadashboardGeneral.php',
+    'empleados'     => 'VagestionarEmpleados.php',
+    'inventarios'   => null, // redirige a controlador
+    'inventario'    => 'Vainventario.php',
+    'pedidos'       => 'VagestionPedidos.php',
+    'pagos'         => 'VadashboardPagos.php',
+    'configuracion' => 'Vaconfiguracion.php',
+    'soporte'       => 'Vsoporte.php',
+    'auditoria'     => 'VaauditoriaPagos.php',
+    'reportes'      => 'Vareportes.php'
+];
+
+$pageTitles = [
+    'general'       => 'Dashboard',
+    'empleados'     => 'Gestion de Usuarios',
+    'inventarios'   => 'Inventario',
+    'inventario'    => 'Inventario',
+    'pedidos'       => 'Gestion de Pedidos',
+    'pagos'         => 'Pagos',
+    'configuracion' => 'Configuracion',
+    'soporte'       => 'Centro de Soporte',
+    'auditoria'     => 'Auditoria',
+    'reportes'      => 'Reportes'
+];
+
+$pgs = [
+    'ggp' => 'catin.php'
+];
+
+function render_admin_view(string $filePath, array $context = []): void
+{
+    if (!file_exists($filePath)) {
+        echo '<div class="alert alert-warning mb-0">Vista no encontrada.</div>';
+        return;
+    }
+
+    ob_start();
+    if (!empty($context)) {
+        // Extrae variables de contexto para la vista incluida
+        extract($context, EXTR_SKIP);
+    }
+    include $filePath;
+    $content = ob_get_clean();
+
+    if (preg_match('/<head[^>]*>(.*?)<\\/head>/is', $content, $matches)) {
+        // Descartar head propio de la vista para evitar estilos que rompan el layout
+        $content = str_replace($matches[0], '', $content);
+    }
+
+    // Quitar wrappers de documento
+    $content = preg_replace('/<!DOCTYPE[^>]*>/i', '', $content);
+    $content = preg_replace('/<html[^>]*>/i', '', $content);
+    $content = preg_replace('/<\\/html>/i', '', $content);
+    $content = preg_replace('/<body[^>]*>/i', '', $content);
+    $content = preg_replace('/<\\/body>/i', '', $content);
+
+    // Quitar estilos y links incrustados de las vistas antiguas para no pisar el tema unificado
+    $content = preg_replace('#<style[^>]*>.*?</style>#is', '', $content);
+    $content = preg_replace('#<link[^>]*rel=[\"\\\']stylesheet[\"\\\'][^>]*>#i', '', $content);
+
+    echo $content;
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FloralTech - Sistema Integral</title>
+    <title>FloralTech - Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/dashboard-cliente.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/dashboard-admin.css">
-    <link rel="stylesheet" href="assets/styles.css">
-
+    <link rel="stylesheet" href="assets/dashboard-admin.css?v=2">
+    <link rel="stylesheet" href="assets/admin-unificado.css?v=2">
 </head>
-<body>
-    <?php
-    if (!isset($totalUsuarios)) {
-        $totalUsuarios = 0;
-    }
-    ?>
-    <div class="d-flex flex-column" style="min-height: 100vh; background: #f7f7fb;">
-        <!-- Barra superior ├║nica -->
-        <div class="w-100 px-4 pt-3 pb-2" style="background: linear-gradient(90deg, #6a5af9 0%, #7c3aed 100%); border-radius: 16px; margin: 24px auto 0 auto; max-width: 98%; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-            <div class="d-flex align-items-center">
-                <span class="fs-3 fw-bold text-white me-3"><i class="fa-solid fa-seedling me-2"></i>FloralTech</span>
-            </div>
-            <div class="d-flex align-items-center">
-                <span class="fw-bold text-white me-3">Bienvenido, <?= isset($usu['nombre_completo']) ? htmlspecialchars($usu['nombre_completo']) : 'Administrador' ?></span>
-                <a href="index.php?ctrl=login&action=logout" class="btn btn-light fw-bold"><i class="fa-solid fa-sign-out-alt me-1"></i> Cerrar Sesión</a>
+<body class="app-shell">
+    <header class="topbar">
+        <div class="brand">
+            <i class="fa-solid fa-seedling"></i>
+            <div>
+                <div style="font-size:13px; color:#94a3b8;">Panel administrativo</div>
+                <div style="font-size:16px;">FloralTech</div>
             </div>
         </div>
-        <div class="d-flex flex-row flex-grow-1" style="width: 100%;">
-            <!-- Sidebar -->
-            <aside class="bg-white border-end shadow-sm" style="width: 250px; min-width: 220px; border-radius: 16px; margin: 24px 0 24px 24px; height: calc(100vh - 120px);">
-                <ul class="nav flex-column p-3">
-                    <li class="nav-item mb-2"><a class="nav-link" href="?page=general"><i class="fas fa-tachometer-alt me-2"></i> Dashboard</a></li>
-                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=empleados"><i class="fas fa-users me-2"></i> Gestión de Empleados</a></li>
-                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=inventarios"><i class="fa-solid fa-server me-2"></i> Inventario</a></li>
-                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=pedidos"><i class="fas fa-shopping-cart me-2"></i> Gestión de Pedidos</a></li>
-                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=configuracion"><i class="fas fa-cogs me-2"></i> Configuración</a></li>
-                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=auditoria"><i class="fas fa-clipboard-list me-2"></i> Auditoría</a></li>
-                    <li class="nav-item mb-2"><a class="nav-link" href="index.php?ctrl=dashboard&action=admin&page=reportes"><i class="fas fa-chart-bar me-2"></i> Reportes</a></li>
-                </ul>
-            </aside>
-            <!-- Main Content -->
-            <div class="main-content flex-grow-1 d-flex flex-column align-items-stretch" id="mainContent" style="margin: 24px 24px 24px 0; min-height: calc(100vh - 120px); width: 100%;">
-                <div class="w-100" style="width: 100%;">
-                    <?php
-                    $pg = $_GET['pg'] ?? null;
-
-                    // Priorizar $page si est├í definida (desde controlador), sino usar $_GET['page']
-                    if (!isset($page)) {
-                        $page = $_GET['page'] ?? 'general';
-                    }
-
-                    $pages = [
-                        'general' => 'VadashboardGeneral.php',
-                        'empleados' => 'VagestionarEmpleados.php',
-                        'inventarios' => null, // Redirigir al controlador
-                        'inventario' => 'Vainventario.php', // Desde el controlador cinventario
-                        'pedidos' => 'VagestionPedidos.php',
-                        'pagos' => 'VadashboardPagos.php',
-                        'configuracion' => 'Vaconfiguracion.php',
-                        'auditoria' => 'VaauditoriaPagos.php',
-                        'reportes' => 'Vareportes.php'
-                    ];
-
-                    $pgs = [
-                        'ggp' => 'catin.php'
-                    ];
-
-                    if ($page === 'inventarios') {
-                        // Redirigir al controlador de inventario
-                        header('Location: index.php?ctrl=cinventario');
-                        exit;
-                    } elseif ($pg && isset($pgs[$pg])) {
-                        $file = $pgs[$pg];
-                        $filePath = __DIR__ . '/' . $file;
-                        if ($file && file_exists($filePath)) {
-                            include $filePath;
-                        } else {
-                            echo '<div class="alert alert-warning">P├ígina no encontrada.</div>';
-                        }
-                    } else {
-                        $file = isset($pages[$page]) ? $pages[$page] : $pages['general'];
-                        $filePath = __DIR__ . '/' . $file;
-                        
-                        if ($file && file_exists($filePath)) {
-                            switch ($file) {
-                                case 'VaauditoriaPagos.php':
-                                    require_once __DIR__ . '/../../controllers/AdminAuditoriaController.php';
-                                    $auditoriaCtrl = new AdminAuditoriaController();
-                                    $ctx = $auditoriaCtrl->obtenerContexto();
-                                    extract($ctx);
-                                    break;
-                                case 'Vareportes.php':
-                                    require_once __DIR__ . '/../../controllers/ReportesController.php';
-                                    $reportesCtrl = new ReportesController();
-                                    $ctx = $reportesCtrl->obtenerContexto();
-                                    extract($ctx);
-                                    break;
-                            }
-                            include $filePath;
-                        } else {
-                            echo '<div class="alert alert-warning">Página no encontrada: ' . htmlspecialchars($page) . '</div>';
-                        }
-                    }
-                    ?>
+        <div class="d-flex align-items-center gap-2">
+            <button class="sidebar-toggle" id="toggleSidebar" aria-label="Mostrar/Ocultar menu">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            <div class="user-chip">
+                <i class="fa-regular fa-circle-user"></i>
+                <div class="d-flex flex-column">
+                    <small style="color:#94a3b8;">Sesion</small>
+                    <strong><?= htmlspecialchars($usu['nombre_completo'] ?? 'Administrador') ?></strong>
                 </div>
             </div>
+            <a href="index.php?ctrl=login&action=logout" class="btn btn-logout">
+                <i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Salir
+            </a>
         </div>
+    </header>
+
+    <div class="layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="section-label">Panel</div>
+            <a class="nav-link <?= $page === 'general' ? 'active' : '' ?>" href="?page=general"><i class="fas fa-gauge"></i>Dashboard</a>
+            <div class="section-label">Operaciones</div>
+            <a class="nav-link <?= $page === 'empleados' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=empleados"><i class="fas fa-users"></i>Gestion de Usuarios</a>
+            <a class="nav-link <?= $page === 'inventarios' || $page === 'inventario' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=inventarios"><i class="fa-solid fa-server"></i>Inventario</a>
+            <a class="nav-link <?= $page === 'pedidos' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=pedidos"><i class="fas fa-cart-shopping"></i>Gestion de Pedidos</a>
+            <div class="section-label">Soporte</div>
+            <a class="nav-link <?= $page === 'soporte' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=soporte"><i class="fas fa-life-ring"></i>Centro de Soporte</a>
+            <div class="section-label">Control</div>
+            <a class="nav-link <?= $page === 'configuracion' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=configuracion"><i class="fas fa-sliders"></i>Configuracion</a>
+            <a class="nav-link <?= $page === 'auditoria' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=auditoria"><i class="fas fa-clipboard-list"></i>Auditoria</a>
+            <a class="nav-link <?= $page === 'reportes' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=reportes"><i class="fas fa-chart-bar"></i>Reportes</a>
+        </aside>
+
+                <main class="main-panel" style="overflow-x:hidden;">
+            <div class="content-area" style="overflow-x:hidden;">
+                <div class="content-slot">
+                <?php
+                if ($page === 'inventarios') {
+                    header('Location: index.php?ctrl=cinventario');
+                    exit;
+                }
+
+                if ($pg && isset($pgs[$pg])) {
+                    $file = $pgs[$pg];
+                    $filePath = __DIR__ . '/' . $file;
+                    render_admin_view($filePath);
+                } else {
+                    $file = $pages[$page] ?? $pages['general'];
+                    $filePath = __DIR__ . '/' . $file;
+
+                    // Permitir que un controlador pase $ctx preconstruido
+                    if (!isset($ctx) || !is_array($ctx)) {
+                        $ctx = [];
+                    }
+                    if ($file && file_exists($filePath)) {
+                        switch ($file) {
+                            case 'Vainventario.php':
+                                // El contexto ya debe estar preparado por Cinventario
+                                // Solo pasar si existe y no está vacío
+                                break;
+                            case 'VaauditoriaPagos.php':
+                                require_once __DIR__ . '/../../controllers/AdminAuditoriaController.php';
+                                $auditoriaCtrl = new AdminAuditoriaController();
+                                $ctx = $auditoriaCtrl->obtenerContexto();
+                                break;
+                            case 'Vareportes.php':
+                                require_once __DIR__ . '/../../controllers/ReportesController.php';
+                                $reportesCtrl = new ReportesController();
+                                $ctx = $reportesCtrl->obtenerContexto();
+                                break;
+                            case 'VagestionarEmpleados.php':
+                                require_once __DIR__ . '/../../controllers/AdminEmpleadosController.php';
+                                $empCtrl = new AdminEmpleadosController();
+                                $ctx = $empCtrl->obtenerContexto();
+                                break;
+                        }
+                        render_admin_view($filePath, $ctx);
+                    } else {
+                        echo '<div class="alert alert-warning">Pagina no encontrada: ' . htmlspecialchars($page) . '</div>';
+                    }
+                }
+                ?>
+                </div>
+            </div>
+        </main>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.getElementById('toggleSidebar');
+            const sidebar = document.getElementById('sidebar');
+            if (btn && sidebar) {
+                btn.addEventListener('click', function() {
+                    sidebar.classList.toggle('collapsed');
+                });
+            }
+        });
+    </script>
 </body>
 </html>
+
 

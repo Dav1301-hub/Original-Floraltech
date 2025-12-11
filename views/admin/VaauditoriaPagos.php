@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // Vista de auditor├¡a: espera variables preparadas por AdminAuditoriaController::obtenerContexto()
 $resumenAuditoria = $resumenAuditoria ?? ['acciones' => 0, 'usuarios' => 0, 'incidencias' => 0, 'ultima' => null];
 $accionesPorTipo = $accionesPorTipo ?? [];
@@ -21,14 +21,17 @@ $pagosPorFecha = $pagosPorFecha ?? [];
 $listadoAuditoria = $listadoAuditoria ?? [];
 $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
 ?>
+<link rel="stylesheet" href="assets/admin-unificado.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<main>
-    <div class="container-fluid my-4 px-4">
+<main class="w-100">
+    <div class="container-fluid px-3 px-md-4 py-4 w-100" style="overflow-x:hidden;">
         <div class="p-4 mb-4 rounded-4 shadow-sm" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%); color:#fff;">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div>
-                    <p class="mb-1 text-white-50 small">Visibilidad integral de actividad, usuarios y metas</p>
-                    <h1 class="fw-bold mb-0">Panel de auditoria</h1>
+                    <p class="mb-1 text-white-50 small" style="color: #ffff">Visibilidad integral de actividad, usuarios y metas</p>
+                    <h1 class="fw-bold mb-0" style="color: #ffff">Panel de auditoria</h1>
                 </div>
                 <div class="d-flex gap-3 flex-wrap">
                     <div class="px-3 py-2 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-25">
@@ -47,22 +50,19 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
             </div>
         </div>
 
-        <ul class="nav nav-pills justify-content-center gap-2 mb-4">
+        <ul class="nav nav-pills justify-content-center gap-2 mb-4 flex-column flex-md-row">
             <li class="nav-item">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-resumen">Resumen</button>
+                <button class="nav-link active w-100 w-md-auto" data-bs-toggle="tab" data-bs-target="#tab-resumen">Resumen</button>
             </li>
             <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-actividad">Actividad</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-proyecciones">Proyecciones</button>
+                <button class="nav-link w-100 w-md-auto" data-bs-toggle="tab" data-bs-target="#tab-proyecciones">Proyecciones</button>
             </li>
         </ul>
 
         <div class="tab-content">
             <div class="tab-pane fade show active" id="tab-resumen">
                 <div class="row g-3 mb-4">
-                    <div class="col-12 col-md-3">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <div class="card shadow-sm border-0 rounded-4 h-100" style="background: linear-gradient(135deg,#e0e7ff,#eef2ff);">
                             <div class="card-body">
                                 <p class="fw-bold text-primary mb-1 small text-uppercase">Acciones totales</p>
@@ -73,7 +73,7 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                             </div>
                         </div>
                     </div>
-                    <div class="col-12 col-md-3">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <div class="card shadow-sm border-0 rounded-4 h-100" style="background: linear-gradient(135deg,#dcfce7,#ecfdf3);">
                             <div class="card-body">
                                 <p class="fw-bold text-success mb-1 small text-uppercase">Usuarios involucrados</p>
@@ -85,7 +85,7 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                             </div>
                         </div>
                     </div>
-                    <div class="col-12 col-md-3">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <div class="card shadow-sm border-0 rounded-4 h-100" style="background: linear-gradient(135deg,#fef9c3,#fffbeb);">
                             <div class="card-body">
                                 <p class="fw-bold text-warning mb-1 small text-uppercase">Incidencias</p>
@@ -96,7 +96,7 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                             </div>
                         </div>
                     </div>
-                    <div class="col-12 col-md-3">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <div class="card shadow-sm border-0 rounded-4 h-100" style="background: linear-gradient(135deg,#ffe2e5,#fff1f2);">
                             <div class="card-body">
                                 <p class="fw-bold text-danger mb-1 small text-uppercase">Ultima accion</p>
@@ -415,3 +415,5 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
 ], JSON_UNESCAPED_UNICODE) ?>
 </script>
 <script src="assets/js/auditoria.js"></script>
+
+

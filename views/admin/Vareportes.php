@@ -37,7 +37,8 @@ function badgeClaseEstado($estado)
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reportes - FloralTech</title>
-    <link rel="stylesheet" href="/assets/dashboard-admin.css">
+    <link rel="stylesheet" href="assets/admin-unificado.css">
+    <link rel="stylesheet" href="assets/dashboard-admin.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <style>
@@ -58,8 +59,8 @@ function badgeClaseEstado($estado)
         <div class="p-4 mb-4 rounded-4 shadow-sm" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%); color:#fff;">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div>
-                    <p class="mb-1 text-white-50 small">Visibilidad rapida de ventas, inventario, cuentas y pagos</p>
-                    <h1 class="fw-bold mb-0">Panel de reportes</h1>
+                    <p class="mb-1 text-white-50 small" style="color: #ffff">Visibilidad rapida de ventas, inventario, cuentas y pagos</p>
+                    <h1 class="fw-bold mb-0" style="color: #ffff">Panel de reportes</h1>
                 </div>
                 <div class="d-flex gap-3 flex-wrap">
                     <div class="px-3 py-2 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-25">
@@ -329,6 +330,10 @@ function badgeClaseEstado($estado)
                                         <option value="no disponible">No disponible</option>
                                     </select>
                                 </div>
+                                <div>
+                                    <label class="form-label small text-muted mb-1">Categoría</label>
+                                    <input type="text" class="form-control" id="modal_categoria_flores" name="categoria" placeholder="Ej. Rosas">
+                                </div>
                                 <div class="filters-actions">
                                     <button type="button" class="btn text-white w-100" id="btnFiltrarModalFlores" style="background: linear-gradient(120deg,#10b981,#38bdf8);">
                                         <i class="bi bi-funnel me-1"></i>Filtrar
@@ -353,6 +358,7 @@ function badgeClaseEstado($estado)
                                 <tr>
                                     <th><input type="checkbox" id="selectAllFlores" title="Seleccionar todo"></th>
                                     <th>ID</th>
+                                    <th>Categoría</th>
                                     <th>Producto</th>
                                     <th>Naturaleza</th>
                                     <th>Color</th>
@@ -365,9 +371,10 @@ function badgeClaseEstado($estado)
                             <tbody>
                                 <?php if (!empty($inventarioFiltrado)): ?>
                                     <?php foreach ($inventarioFiltrado as $f): ?>
-                                        <tr data-estado="<?= strtolower($f['estado'] ?? '') ?>">
-                                            <td><input type="checkbox" class="select-row" value="<?= htmlspecialchars($f['idtflor']) ?>"></td>
-                                            <td><?= htmlspecialchars($f['idtflor']) ?></td>
+                                        <tr data-estado="<?= strtolower($f['estado'] ?? '') ?>" data-categoria="<?= strtolower($f['categoria'] ?? '') ?>">
+                                            <td><input type="checkbox" class="select-row" value="<?= htmlspecialchars($f['idinv']) ?>"></td>
+                                            <td><?= htmlspecialchars($f['idinv']) ?></td>
+                                            <td><?= htmlspecialchars($f['categoria'] ?? 'Sin categoría') ?></td>
                                             <td><?= htmlspecialchars($f['producto']) ?></td>
                                             <td><?= htmlspecialchars($f['naturaleza']) ?></td>
                                             <td><?= htmlspecialchars($f['color']) ?></td>
@@ -379,7 +386,7 @@ function badgeClaseEstado($estado)
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="9" class="text-center text-warning">No hay registros en el inventario.</td>
+                                        <td colspan="10" class="text-center text-warning">No hay registros en el inventario.</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
@@ -508,3 +515,4 @@ function badgeClaseEstado($estado)
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+

@@ -48,36 +48,9 @@ public function auditoriaFinanciera() {
         header("Location: /acceso-denegado");
         exit();
     }
-
-    // Obtener parámetros de filtro
-    $filtros = [
-        'fecha_inicio' => $_GET['fecha_inicio'] ?? null,
-        'fecha_fin' => $_GET['fecha_fin'] ?? null,
-        'estado' => $_GET['estado'] ?? null
-    ];
-
-    // Obtener todos los pagos y filtrar manualmente
-    $pagos = $this->model->obtenerTodosLosPagos();
-    // Filtrar por fecha y estado si se proporcionan
-    if ($filtros['fecha_inicio'] || $filtros['fecha_fin'] || $filtros['estado']) {
-        $pagos = array_filter($pagos, function($pago) use ($filtros) {
-            $fechaValida = true;
-            if ($filtros['fecha_inicio']) {
-                $fechaValida = $fechaValida && (strtotime($pago['fecha_pago']) >= strtotime($filtros['fecha_inicio']));
-            }
-            if ($filtros['fecha_fin']) {
-                $fechaValida = $fechaValida && (strtotime($pago['fecha_pago']) <= strtotime($filtros['fecha_fin']));
-            }
-            $estadoValido = true;
-            if ($filtros['estado']) {
-                $estadoValido = strtolower($pago['estado_pag']) === strtolower($filtros['estado']);
-            }
-            return $fechaValida && $estadoValido;
-        });
-    }
-    
-    // Incluir vista
-    include 'views/admin/auditoria.php';
+    // Reutilizar la vista unificada del dashboard
+    header("Location: index.php?ctrl=dashboard&action=admin&page=auditoria");
+    exit();
 }
 
     public function actualizarProyecciones() {
