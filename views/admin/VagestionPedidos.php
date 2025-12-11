@@ -877,6 +877,9 @@ function verDetallePedido(idPedido) {
                 productosHTML += '</tbody></table></div>';
             }
 
+            const notas = data.pedido?.notas || '';
+            const notasHTML = notas ? `<div class="alert alert-info mt-3"><strong><i class="fas fa-sticky-note me-2"></i>Notas:</strong><br>${notas.replace(/\n/g, '<br>')}</div>` : '';
+            
             modalBody.innerHTML = `
                 <div class="row">
                     <div class="col-md-6">
@@ -896,6 +899,7 @@ function verDetallePedido(idPedido) {
                 <hr>
                 <h6 class="text-primary mb-3"><i class="fas fa-box me-2"></i>Productos</h6>
                 ${productosHTML}
+                ${notasHTML}
                 <div class="text-end mt-3">
                     <h5>Total: $${parseFloat(totalMonto).toFixed(2)}</h5>
                     <p class="text-muted mb-0">Productos: ${totalProd}</p>

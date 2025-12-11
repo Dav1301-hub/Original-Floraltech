@@ -97,13 +97,19 @@ class Cpedido {
     public function obtenerProductosPedido($idPedido) {
         $stmt = $this->db->prepare("
             SELECT 
+                dp.iddetped,
+                dp.idtflor,
                 tf.nombre,
+                tf.naturaleza,
                 dp.cantidad,
                 dp.precio_unitario,
-                (dp.cantidad * dp.precio_unitario) AS subtotal
+                (dp.cantidad * dp.precio_unitario) AS subtotal,
+                COALESCE(SUM(i.stock), 0) AS stock
             FROM detped dp
             INNER JOIN tflor tf ON dp.idtflor = tf.idtflor
+            LEFT JOIN inv i ON i.tflor_idtflor = tf.idtflor
             WHERE dp.idped = ?
+            GROUP BY dp.iddetped, dp.idtflor, tf.nombre, tf.naturaleza, dp.cantidad, dp.precio_unitario
         ");
         $stmt->execute([$idPedido]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -152,6 +158,14 @@ class Cpedido {
         $sql = "UPDATE ped SET " . implode(', ', $campos) . " WHERE idped = :id";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute($params);
+    }
+
+    /**
+     * Actualiza el monto_total de un pedido.
+     */
+    public function actualizarMontoTotalPedido($idPedido, $montoTotal) {
+        $stmt = $this->db->prepare("UPDATE ped SET monto_total = :monto WHERE idped = :id");
+        return $stmt->execute([':monto' => $montoTotal, ':id' => $idPedido]);
     }
 
     /**
@@ -334,18 +348,45 @@ class Cpedido {
      */
     public function listarProductosPorCategoria($categoriaId) {
         $stmt = $this->db->prepare("
-            SELECT tf.idtflor AS id, tf.nombre, tf.descripcion,
-                   COALESCE(i.stock, 0) AS stock,
-                   COALESCE(i.precio, 0) AS precio
+            SELECT 
+                   tf.idtflor AS id, 
+                   tf.nombre, 
+                   tf.descripcion,
+                   COALESCE(SUM(i.stock), 0) AS stock,
+                   COALESCE(AVG(i.precio), tf.precio) AS precio
             FROM tflor tf
             LEFT JOIN inv i ON i.tflor_idtflor = tf.idtflor
             WHERE tf.idtflor = :cat
+            GROUP BY tf.idtflor, tf.nombre, tf.descripcion, tf.precio
             ORDER BY tf.nombre ASC
         ");
         $stmt->execute([':cat' => $categoriaId]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        // Filtrar solo disponibles
-        return array_values(array_filter($rows, fn($r) => !isset($r['disponible']) || (int)$r['disponible'] === 1));
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Elimina todos los detalles de un pedido (productos).
+     * También restaura el stock en inventario.
+     */
+    public function eliminarDetallesPedido($pedidoId) {
+        try {
+            // Obtener todos los detalles para restaurar stock
+            $stmt = $this->db->prepare("SELECT idtflor, cantidad FROM detped WHERE idped = ?");
+            $stmt->execute([$pedidoId]);
+            $detalles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Restaurar stock para cada producto
+            foreach ($detalles as $det) {
+                $upd = $this->db->prepare("UPDATE inv SET stock = stock + ? WHERE tflor_idtflor = ?");
+                $upd->execute([$det['cantidad'], $det['idtflor']]);
+            }
+            
+            // Eliminar todos los detalles
+            $del = $this->db->prepare("DELETE FROM detped WHERE idped = ?");
+            return $del->execute([$pedidoId]);
+        } catch (Exception $e) {
+            throw new Exception('Error al eliminar detalles del pedido: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -356,33 +397,33 @@ class Cpedido {
             return;
         }
         foreach ($items as $it) {
-            // validar disponibilidad en inventario
-            $inv = $this->db->prepare("SELECT disponible, stock FROM inv WHERE tflor_idtflor = :id LIMIT 1");
-            $inv->execute([':id' => $it['id']]);
+            // Obtener stock actual del producto
+            $inv = $this->db->prepare("SELECT stock FROM inv WHERE tflor_idtflor = ? LIMIT 1");
+            $inv->execute([$it['id']]);
             $invRow = $inv->fetch(PDO::FETCH_ASSOC);
-            if ($invRow && isset($invRow['disponible']) && (int)$invRow['disponible'] === 0) {
-                throw new Exception('El producto seleccionado no esta disponible.');
-            }
-            if ($invRow && isset($invRow['stock']) && $invRow['stock'] < $it['cantidad']) {
-                throw new Exception('Stock insuficiente para el producto seleccionado.');
+            
+            // Validar stock
+            if (!$invRow || (isset($invRow['stock']) && $invRow['stock'] < $it['cantidad'])) {
+                throw new Exception('Stock insuficiente para el producto ' . $it['id'] . '.');
             }
 
+            // Insertar detalle del pedido
             $stmt = $this->db->prepare("
                 INSERT INTO detped (idped, idtflor, cantidad, precio_unitario)
-                VALUES (:idped, :idtflor, :cantidad, :precio_unitario)
+                VALUES (?, ?, ?, ?)
             ");
             $stmt->execute([
-                ':idped' => $pedidoId,
-                ':idtflor' => $it['id'],
-                ':cantidad' => $it['cantidad'],
-                ':precio_unitario' => $it['precio_unitario']
+                $pedidoId,
+                $it['id'],
+                $it['cantidad'],
+                $it['precio_unitario']
             ]);
 
-            // restar stock en inventario
-            $upd = $this->db->prepare("UPDATE inv SET stock = stock - :cant WHERE tflor_idtflor = :id AND stock >= :cant");
-            $upd->execute([':cant' => $it['cantidad'], ':id' => $it['id']]);
+            // Restar stock en inventario
+            $upd = $this->db->prepare("UPDATE inv SET stock = stock - ? WHERE tflor_idtflor = ? AND stock >= ?");
+            $upd->execute([$it['cantidad'], $it['id'], $it['cantidad']]);
             if ($upd->rowCount() === 0) {
-                throw new Exception('No se pudo descontar stock (stock insuficiente).');
+                throw new Exception('No se pudo descontar stock para el producto ' . $it['id'] . '.');
             }
         }
     }
@@ -544,11 +585,46 @@ if (php_sapi_name() !== 'cli' && basename(__FILE__) === basename($_SERVER['SCRIP
                     'notas' => $_POST['notas'] ?? null,
                     'empleado_id' => $_POST['empleado_id'] ?? null
                 ];
-                $ok = $controller->actualizarPedido($id, $data);
-                echo json_encode($ok
-                    ? ['success' => true, 'mensaje' => 'Pedido actualizado correctamente']
-                    : ['success' => false, 'mensaje' => 'No se pudo actualizar el pedido']
-                );
+                
+                // Procesar productos si se proporcionan
+                $items = [];
+                $totalItems = 0;
+                if (!empty($_POST['producto_id']) && is_array($_POST['producto_id'])) {
+                    $productos = $_POST['producto_id'];
+                    $cantidades = $_POST['cantidad'] ?? [];
+                    $precios = $_POST['precio_unitario'] ?? [];
+                    foreach ($productos as $idx => $prodId) {
+                        $prodId = (int)$prodId;
+                        $cant = isset($cantidades[$idx]) ? (float)$cantidades[$idx] : 0;
+                        $precioU = isset($precios[$idx]) ? (float)$precios[$idx] : 0;
+                        if ($prodId > 0 && $cant > 0 && $precioU > 0) {
+                            $items[] = ['id' => $prodId, 'cantidad' => $cant, 'precio_unitario' => $precioU];
+                            $totalItems += $cant * $precioU;
+                        }
+                    }
+                }
+                
+                try {
+                    $controller->beginTx();
+                    
+                    // Actualizar datos del pedido
+                    $ok = $controller->actualizarPedido($id, $data);
+                    
+                    // Si hay items, eliminar los antiguos y agregar los nuevos
+                    if (!empty($items)) {
+                        $controller->eliminarDetallesPedido($id);
+                        $controller->agregarDetallesPedido($id, $items);
+                        // Actualizar monto_total con la suma de los items
+                        $controller->actualizarMontoTotalPedido($id, $totalItems);
+                    }
+                    
+                    $controller->commitTx();
+                    
+                    echo json_encode(['success' => true, 'mensaje' => 'Pedido actualizado correctamente']);
+                } catch (Exception $e) {
+                    $controller->rollbackTx();
+                    echo json_encode(['success' => false, 'mensaje' => 'Error: ' . $e->getMessage()]);
+                }
                 break;
 
             case 'empleados_activos':
