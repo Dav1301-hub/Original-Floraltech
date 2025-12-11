@@ -295,9 +295,7 @@ $stmt = $db->prepare("
                     <div class="stat-number"><?= number_format($pagos_pendientes) ?></div>
                     <div class="stat-label">Por Pagar</div>
                     <?php if ($pagos_pendientes > 0): ?>
-                        <div class="stat-change negative">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
+                        
                     <?php endif; ?>
                 </div>
             </div>

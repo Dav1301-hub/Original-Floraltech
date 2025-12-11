@@ -14,7 +14,7 @@ function enviarCorreoRecuperacion($destinatario, $token) {
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
         $mail->Username = 'epymes270@gmail.com';
-        $mail->Password = 'oddh ytgf wtgk dzdh';
+        $mail->Password = 'gzeq vnry rjgp mvdl';
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // Usar TLS
         $mail->Port = 587;
         $mail->CharSet = 'UTF-8';

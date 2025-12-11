@@ -32,8 +32,6 @@
     .filtros-horizontal a.btn {
         min-width: 100%;
     }
-}
-error
 body {
     font-family: Arial, sans-serif;
     background-color: #f4f4f4;
@@ -143,7 +141,6 @@ button:hover {
         display: none;
     }
 }
-
 
 
 

@@ -1,3 +1,129 @@
+// =============================
+// Empleados: Filtros y paginación AJAX
+// =============================
+document.addEventListener('DOMContentLoaded', function() {
+        // ========== CREAR TURNO AJAX ==========
+        const formNuevoTurno = document.getElementById('formNuevoTurno');
+        if (formNuevoTurno) {
+            formNuevoTurno.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(formNuevoTurno);
+                fetch('/Original-Floraltech/index.php?ctrl=Cdgemp&action=crearTurnoAjax', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Turno creado exitosamente');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (data.error || 'Error desconocido'));
+                    }
+                })
+                .catch(err => {
+                    alert('Error de conexión: ' + err.message);
+                });
+            });
+        }
+
+        // ========== CREAR VACACION AJAX ==========
+        const formNuevaVacacion = document.getElementById('formNuevaVacacion');
+        if (formNuevaVacacion) {
+            formNuevaVacacion.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(formNuevaVacacion);
+                fetch('/Original-Floraltech/index.php?ctrl=Cdgemp&action=crearVacacionAjax', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Vacación creada exitosamente');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + (data.error || 'Error desconocido'));
+                    }
+                })
+                .catch(err => {
+                    alert('Error de conexión: ' + err.message);
+                });
+            });
+        }
+    function cargarEmpleados(page = 1) {
+        // Deshabilitado: la tabla se renderiza desde servidor. Evita vaciar el contenido.
+        return;
+    }
+
+    function renderTablaEmpleados(empleados) {
+        console.log('Empleados recibidos:', empleados);
+        const tbody = document.querySelector('#tablaEmpleados tbody');
+        console.log('Tbody encontrado:', tbody);
+        if (!tbody) {
+            console.error('No se encontró el tbody de la tabla empleados.');
+            return;
+        }
+        tbody.innerHTML = '';
+        empleados.forEach(emp => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${emp.idusu}</td>
+                <td>${emp.nombre_completo}</td>
+                <td>${emp.username}</td>
+                <td>${emp.naturaleza}</td>
+                <td>${emp.fecha_registro ? new Date(emp.fecha_registro).toLocaleDateString() : ''}</td>
+                <td>
+                    <select class="form-select form-select-sm tipo-select" data-idusu="${emp.idusu}">
+                        <option value="1"${emp.tpusu_idtpusu==1?' selected':''}>Administrador</option>
+                        <option value="2"${emp.tpusu_idtpusu==2?' selected':''}>Vendedor</option>
+                        <option value="3"${emp.tpusu_idtpusu==3?' selected':''}>Inventario</option>
+                        <option value="4"${emp.tpusu_idtpusu==4?' selected':''}>Repartidor</option>
+                        <option value="5"${emp.tpusu_idtpusu==5?' selected':''}>Cliente</option>
+                    </select>
+                </td>
+                <td><span class="badge ${emp.activo ? 'bg-success' : 'bg-danger'}">${emp.activo ? 'Activo' : 'Inactivo'}</span></td>
+                <td class="actions-column">
+                    <a href="#" class="btn btn-sm btn-outline-primary" onclick="cargarEmpleado(${emp.idusu})" title="Editar"><i class="fas fa-edit"></i></a>
+                    <a href="#" class="btn btn-sm btn-outline-danger" onclick="eliminarEmpleado(${emp.idusu})" title="Eliminar"><i class="fas fa-trash"></i></a>
+                    <a href="#" class="btn btn-sm btn-outline-info" onclick="verEmpleado(${emp.idusu})" title="Ver Detalles"><i class="fas fa-eye"></i></a>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderPaginacion(page, perPage, total) {
+        const ul = document.getElementById('paginacionEmpleados');
+        ul.innerHTML = '';
+        const totalPages = Math.ceil(total / perPage);
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = 'page-item' + (i === page ? ' active' : '');
+            const a = document.createElement('a');
+            a.className = 'page-link';
+            a.href = '#';
+            a.textContent = i;
+            a.addEventListener('click', function(e) {
+                e.preventDefault();
+                cargarEmpleados(i);
+            });
+            li.appendChild(a);
+            ul.appendChild(li);
+        }
+    }
+
+    const btnFilt = document.getElementById('btnFiltrarEmpleados');
+    if (btnFilt) {
+        btnFilt.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Endpoint AJAX no implementado; la tabla ya se renderiza desde el servidor.
+            alert('Los filtros en modo servidor aún no están implementados. La tabla muestra todos los empleados.');
+        });
+    }
+    // Cargar al iniciar
+    // Tabla renderizada en servidor; no llamar cargarEmpleados.
+});
 // Limpieza forzada de backdrop y clase modal-open al cerrar el modal de turnos
 document.addEventListener('DOMContentLoaded', function() {
     // Limpieza forzada de backdrop y clase modal-open al cerrar cualquier modal
@@ -762,7 +888,6 @@ window.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
-// ...existing code...
     document.getElementById('formEditarPermiso').addEventListener('submit', function(e) {
         e.preventDefault();
         const fd = new FormData(this);

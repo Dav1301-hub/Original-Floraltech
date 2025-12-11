@@ -1,5 +1,5 @@
 <?php
-require_once 'models/Minventario.php';
+require_once 'models/minventario.php';
 
 class Cinventario {
     private $inventarioModel;
@@ -14,6 +14,9 @@ class Cinventario {
     private $sin_stock = 0;
     private $valor_total = 0;
     private $inventario = [];
+    private $inventario_perecederos = [];
+    private $inventario_no_perecederos = [];
+    private $proveedores = [];
     private $total_elementos = 0;
     private $total_paginas = 1;
     private $todas_las_flores = [];
@@ -21,6 +24,27 @@ class Cinventario {
     private $elementos_por_pagina = 10;
     private $pagina_actual = 1;
     private $offset = 0;
+    
+    // Variables para paginación de perecederos
+    private $elementos_por_pagina_perecederos = 10;
+    private $pagina_actual_perecederos = 1;
+    private $offset_perecederos = 0;
+    private $total_elementos_perecederos = 0;
+    private $total_paginas_perecederos = 1;
+    
+    // Variables para paginación de no perecederos
+    private $elementos_por_pagina_no_perecederos = 10;
+    private $pagina_actual_no_perecederos = 1;
+    private $offset_no_perecederos = 0;
+    private $total_elementos_no_perecederos = 0;
+    private $total_paginas_no_perecederos = 1;
+    
+    // Variables para paginación de proveedores
+    private $elementos_por_pagina_proveedores = 10;
+    private $pagina_actual_proveedores = 1;
+    private $offset_proveedores = 0;
+    private $total_elementos_proveedores = 0;
+    private $total_paginas_proveedores = 1;
 
     public function __construct() {
         // Verificar sesión
@@ -68,10 +92,46 @@ class Cinventario {
             if (isset($_POST['accion'])) {
                 switch ($_POST['accion']) {
                     case 'nuevo_producto':
-                        $this->inventarioModel->agregarProducto($_POST);
-                        $this->mensaje_exito = 'Producto agregado al inventario exitosamente';
-                        header('Location: ?ctrl=Cinventario&success=1');
-                        exit;
+                        try {
+                            // Validación de precios
+                            $precio_compra = floatval($_POST['precio_compra'] ?? 0);
+                            $precio_venta = floatval($_POST['precio'] ?? 0);
+                            
+                            if ($precio_compra <= 0) {
+                                throw new Exception('El precio de compra debe ser mayor a cero');
+                            }
+                            
+                            if ($precio_venta <= 0) {
+                                throw new Exception('El precio de venta debe ser mayor a cero');
+                            }
+                            
+                            if ($precio_compra >= $precio_venta) {
+                                throw new Exception('El precio de venta debe ser mayor al precio de compra para generar ganancia');
+                            }
+                            
+                            $this->inventarioModel->agregarProducto($_POST);
+                            $this->mensaje_exito = 'Producto agregado al inventario exitosamente';
+                            header('Location: ?ctrl=Cinventario&success=1');
+                            exit;
+                        } catch (Exception $e) {
+                            $mensaje = $e->getMessage();
+                            
+                            // Verificar si es un error de producto duplicado (JSON)
+                            if (strpos($mensaje, '{"tipo":"producto_duplicado"') === 0) {
+                                $datos_duplicado = json_decode($mensaje, true);
+                                // Redirigir con parámetros especiales para mostrar modal de confirmación
+                                header('Location: ?ctrl=Cinventario&duplicado=1&producto_id=' . 
+                                       $datos_duplicado['producto_id'] . 
+                                       '&producto_nombre=' . urlencode($datos_duplicado['producto_nombre']) .
+                                       '&stock_actual=' . $datos_duplicado['stock_actual'] .
+                                       '&mensaje=' . urlencode($datos_duplicado['mensaje']));
+                                exit;
+                            }
+                            
+                            error_log('Error al agregar producto: ' . $mensaje);
+                            header('Location: ?ctrl=Cinventario&error=' . urlencode($mensaje));
+                            exit;
+                        }
                         break;
                         
                     case 'actualizar_parametros':
@@ -117,13 +177,20 @@ class Cinventario {
                         break;
                         
                     case 'editar_proveedor':
+                        // LOG TEMPORAL PARA DEBUG
+                        error_log('=== EDITAR PROVEEDOR DEBUG ===');
+                        error_log('POST recibido: ' . print_r($_POST, true));
+                        
                         $resultado = $this->inventarioModel->editarProveedor($_POST);
+                        
+                        error_log('Resultado del modelo: ' . print_r($resultado, true));
+                        
                         if ($resultado['success']) {
                             $this->mensaje_exito = 'Proveedor actualizado exitosamente';
-                            header('Location: ?ctrl=Cinventario&success=proveedor_editado');
+                            header('Location: ?ctrl=cinventario&success=proveedor_editado');
                         } else {
                             $this->mensaje_error = $resultado['message'];
-                            header('Location: ?ctrl=Cinventario&error=proveedor_editar_fallido');
+                            header('Location: ?ctrl=cinventario&error=proveedor_editar_fallido');
                         }
                         exit;
                         break;
@@ -141,11 +208,34 @@ class Cinventario {
                         break;
                         
                     case 'editar_producto':
-                        $resultado = $this->inventarioModel->editarProducto($_POST);
-                        if ($resultado['success']) {
-                            echo json_encode(['success' => true, 'message' => 'Producto actualizado correctamente']);
-                        } else {
-                            echo json_encode(['success' => false, 'message' => $resultado['message']]);
+                        try {
+                            // Validación de precios
+                            $precio_compra = floatval($_POST['precio_compra'] ?? 0);
+                            $precio_venta = floatval($_POST['precio'] ?? 0);
+                            
+                            if ($precio_compra <= 0) {
+                                echo json_encode(['success' => false, 'message' => 'El precio de compra debe ser mayor a cero']);
+                                exit;
+                            }
+                            
+                            if ($precio_venta <= 0) {
+                                echo json_encode(['success' => false, 'message' => 'El precio de venta debe ser mayor a cero']);
+                                exit;
+                            }
+                            
+                            if ($precio_compra >= $precio_venta) {
+                                echo json_encode(['success' => false, 'message' => 'El precio de venta debe ser mayor al precio de compra']);
+                                exit;
+                            }
+                            
+                            $resultado = $this->inventarioModel->editarProducto($_POST);
+                            if ($resultado['success']) {
+                                echo json_encode(['success' => true, 'message' => 'Producto actualizado correctamente']);
+                            } else {
+                                echo json_encode(['success' => false, 'message' => $resultado['message']]);
+                            }
+                        } catch (Exception $e) {
+                            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
                         }
                         exit;
                         break;
@@ -184,16 +274,44 @@ class Cinventario {
                         break;
                         
                     case 'eliminar_producto':
-                        $id = $_GET['id'] ?? $_POST['id'] ?? null;
-                        if ($id) {
-                            $resultado = $this->inventarioModel->eliminarProducto($id);
-                            if ($resultado['success']) {
-                                echo json_encode(['success' => true, 'message' => 'Producto eliminado correctamente']);
-                            } else {
-                                echo json_encode(['success' => false, 'message' => $resultado['message']]);
+                        $id = $_POST['id'] ?? $_GET['id'] ?? null;
+                        
+                        if (!$id) {
+                            // Respuesta JSON para peticiones AJAX
+                            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                                echo json_encode(['success' => false, 'message' => 'ID de producto requerido']);
+                                exit;
                             }
-                        } else {
-                            echo json_encode(['success' => false, 'message' => 'ID de producto requerido']);
+                            header('Location: ?ctrl=Cinventario&error=' . urlencode('ID de producto requerido'));
+                            exit;
+                        }
+                        
+                        try {
+                            $resultado = $this->inventarioModel->eliminarProducto($id);
+                            
+                            // Respuesta JSON para peticiones AJAX
+                            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                                if ($resultado['success']) {
+                                    echo json_encode(['success' => true, 'message' => 'Producto eliminado correctamente']);
+                                } else {
+                                    echo json_encode(['success' => false, 'message' => $resultado['message']]);
+                                }
+                                exit;
+                            }
+                            
+                            // Redirect para formularios POST tradicionales
+                            if ($resultado['success']) {
+                                header('Location: ?ctrl=Cinventario&success=producto_eliminado');
+                            } else {
+                                header('Location: ?ctrl=Cinventario&error=' . urlencode($resultado['message']));
+                            }
+                        } catch (Exception $e) {
+                            // Respuesta JSON para peticiones AJAX
+                            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                                exit;
+                            }
+                            header('Location: ?ctrl=Cinventario&error=' . urlencode($e->getMessage()));
                         }
                         exit;
                         break;
@@ -224,10 +342,20 @@ class Cinventario {
         }
         
         try {
-            // Configuración de paginación
-            $this->elementos_por_pagina = isset($_GET['per_page']) ? max(10, min(100, intval($_GET['per_page']))) : 10;
-            $this->pagina_actual = isset($_GET['pagina']) ? max(1, intval($_GET['pagina'])) : 1;
-            $this->offset = ($this->pagina_actual - 1) * $this->elementos_por_pagina;
+            // Configuración de paginación para perecederos
+            $this->elementos_por_pagina_perecederos = isset($_GET['per_page_perecederos']) ? max(5, min(50, intval($_GET['per_page_perecederos']))) : 10;
+            $this->pagina_actual_perecederos = isset($_GET['pagina_perecederos']) ? max(1, intval($_GET['pagina_perecederos'])) : 1;
+            $this->offset_perecederos = ($this->pagina_actual_perecederos - 1) * $this->elementos_por_pagina_perecederos;
+            
+            // Configuración de paginación para no perecederos
+            $this->elementos_por_pagina_no_perecederos = isset($_GET['per_page_no_perecederos']) ? max(5, min(50, intval($_GET['per_page_no_perecederos']))) : 10;
+            $this->pagina_actual_no_perecederos = isset($_GET['pagina_no_perecederos']) ? max(1, intval($_GET['pagina_no_perecederos'])) : 1;
+            $this->offset_no_perecederos = ($this->pagina_actual_no_perecederos - 1) * $this->elementos_por_pagina_no_perecederos;
+            
+            // Configuración de paginación para proveedores
+            $this->elementos_por_pagina_proveedores = isset($_GET['per_page_proveedores']) ? max(5, min(50, intval($_GET['per_page_proveedores']))) : 10;
+            $this->pagina_actual_proveedores = isset($_GET['pagina_proveedores']) ? max(1, intval($_GET['pagina_proveedores'])) : 1;
+            $this->offset_proveedores = ($this->pagina_actual_proveedores - 1) * $this->elementos_por_pagina_proveedores;
             
             // Obtener filtros
             $filtros = [
@@ -239,10 +367,28 @@ class Cinventario {
             // Obtener estadísticas
             $this->cargarEstadisticas();
             
-            // Obtener inventario paginado
+            // Obtener inventario completo (para compatibilidad con código existente)
             $this->cargarInventario($filtros);
             
-            // Obtener total de elementos y calcular páginas
+            // Obtener inventario de perecederos paginado
+            $filtros_perecederos = array_merge($filtros, ['tipo_producto' => 'perecedero']);
+            $this->inventario_perecederos = $this->inventarioModel->getInventarioPaginado($this->elementos_por_pagina_perecederos, $this->offset_perecederos, $filtros_perecederos);
+            
+            $this->total_elementos_perecederos = $this->inventarioModel->getTotalElementos($filtros_perecederos);
+            $this->total_paginas_perecederos = max(1, ceil($this->total_elementos_perecederos / $this->elementos_por_pagina_perecederos));
+            
+            // Obtener inventario de no perecederos paginado
+            $filtros_no_perecederos = array_merge($filtros, ['tipo_producto' => 'no_perecedero']);
+            $this->inventario_no_perecederos = $this->inventarioModel->getInventarioPaginado($this->elementos_por_pagina_no_perecederos, $this->offset_no_perecederos, $filtros_no_perecederos);
+            $this->total_elementos_no_perecederos = $this->inventarioModel->getTotalElementos($filtros_no_perecederos);
+            $this->total_paginas_no_perecederos = max(1, ceil($this->total_elementos_no_perecederos / $this->elementos_por_pagina_no_perecederos));
+            
+            // Obtener proveedores paginados para la tabla
+            $this->proveedores = $this->inventarioModel->getProveedoresConProductos($this->elementos_por_pagina_proveedores, $this->offset_proveedores);
+            $this->total_elementos_proveedores = $this->inventarioModel->getTotalProveedores();
+            $this->total_paginas_proveedores = max(1, ceil($this->total_elementos_proveedores / $this->elementos_por_pagina_proveedores));
+            
+            // Obtener total de elementos y calcular páginas (para compatibilidad)
             $this->cargarPaginacion($filtros);
             
             // Obtener flores para los selectores
@@ -292,9 +438,6 @@ class Cinventario {
     /**
      * Cargar información de paginación
      */
-    /**
-     * Cargar información de paginación
-     */
     private function cargarPaginacion($filtros) {
         try {
             if ($this->inventarioModel) {
@@ -332,44 +475,91 @@ class Cinventario {
      * Cargar la vista del inventario
      */
     private function cargarVista() {
-    // Hacer las variables accesibles en la vista
-    $mensaje_exito = $this->mensaje_exito;
-    $mensaje_error = $this->mensaje_error;
-    $error_message = $this->error_message;
-
-    // Variables de estadísticas - siempre definidas
-    $total_productos = $this->total_productos;
-    $stock_bajo = $this->stock_bajo;
-    $stock_critico = $this->stock_critico;
-    $sin_stock = $this->sin_stock;
-    $valor_total = $this->valor_total;
-
-    // Variables de inventario - siempre definidas
-    $inventario = $this->inventario;
-    $total_elementos = $this->total_elementos;
-    $total_paginas = $this->total_paginas;
-    $todas_las_flores = $this->todas_las_flores;
-    $flores_para_select = $this->flores_para_select;
-
-    // NUEVO: Productos para el select de proveedores (todos los productos)
-    $productos_inventario = $this->inventarioModel ? $this->inventarioModel->getInventarioPaginado(9999, 0, []) : [];
-
-    // NUEVO: Proveedores para la tabla de proveedores (con productos asociados)
-    $proveedores = $this->inventarioModel ? $this->inventarioModel->getProveedoresConProductos() : [];
-
-    // Variables de paginación - siempre definidas
-    $elementos_por_pagina = $this->elementos_por_pagina;
-    $pagina_actual = $this->pagina_actual;
-    $offset = $this->offset;
-
-    // Variables para el layout
-    $usu = $_SESSION['user'];
-    $page = 'inventario'; // Forzar siempre la vista de inventario
-    $_GET['page'] = 'inventario'; // Forzar también el parámetro GET por si la vista lo usa
-    $totalUsuarios = 0; // Variable requerida por el dashboard
-
-    // Cargar el dashboard de admin con la vista del inventario
-    include 'views/admin/VadashboardPrincipal.php';
+        // Preparar contexto para pasar a la vista
+        $ctx = [
+            'mensaje_exito' => $this->mensaje_exito,
+            'mensaje_error' => $this->mensaje_error,
+            'error_message' => $this->error_message,
+            'total_productos' => $this->total_productos,
+            'stock_bajo' => $this->stock_bajo,
+            'stock_critico' => $this->stock_critico,
+            'sin_stock' => $this->sin_stock,
+            'valor_total' => $this->valor_total,
+            'inventario' => $this->inventario,
+            'inventario_perecederos' => $this->inventario_perecederos,
+            'inventario_no_perecederos' => $this->inventario_no_perecederos,
+            'total_elementos' => $this->total_elementos,
+            'total_paginas' => $this->total_paginas,
+            'todas_las_flores' => $this->todas_las_flores,
+            'flores_para_select' => $this->flores_para_select,
+            'productos_inventario' => $this->inventarioModel ? $this->inventarioModel->getInventarioPaginado(9999, 0, []) : [],
+            'proveedores' => $this->proveedores,
+            'todos_proveedores' => $this->inventarioModel ? $this->inventarioModel->getProveedores() : [],
+            'elementos_por_pagina' => $this->elementos_por_pagina,
+            'pagina_actual' => $this->pagina_actual,
+            'offset' => $this->offset,
+            'elementos_por_pagina_perecederos' => $this->elementos_por_pagina_perecederos,
+            'pagina_actual_perecederos' => $this->pagina_actual_perecederos,
+            'offset_perecederos' => $this->offset_perecederos,
+            'total_elementos_perecederos' => $this->total_elementos_perecederos,
+            'total_paginas_perecederos' => $this->total_paginas_perecederos,
+            'elementos_por_pagina_no_perecederos' => $this->elementos_por_pagina_no_perecederos,
+            'pagina_actual_no_perecederos' => $this->pagina_actual_no_perecederos,
+            'offset_no_perecederos' => $this->offset_no_perecederos,
+            'total_elementos_no_perecederos' => $this->total_elementos_no_perecederos,
+            'total_paginas_no_perecederos' => $this->total_paginas_no_perecederos,
+            'elementos_por_pagina_proveedores' => $this->elementos_por_pagina_proveedores,
+            'pagina_actual_proveedores' => $this->pagina_actual_proveedores,
+            'offset_proveedores' => $this->offset_proveedores,
+            'total_elementos_proveedores' => $this->total_elementos_proveedores,
+            'total_paginas_proveedores' => $this->total_paginas_proveedores,
+            'usu' => $_SESSION['user'] ?? []
+        ];
+        
+        // Variables locales para acceso directo
+        $mensaje_exito = $this->mensaje_exito;
+        $mensaje_error = $this->mensaje_error;
+        $error_message = $this->error_message;
+        $total_productos = $this->total_productos;
+        $stock_bajo = $this->stock_bajo;
+        $stock_critico = $this->stock_critico;
+        $sin_stock = $this->sin_stock;
+        $valor_total = $this->valor_total;
+        $inventario = $this->inventario;
+        $inventario_perecederos = $this->inventario_perecederos;
+        $inventario_no_perecederos = $this->inventario_no_perecederos;
+        $total_elementos = $this->total_elementos;
+        $total_paginas = $this->total_paginas;
+        $todas_las_flores = $this->todas_las_flores;
+        $flores_para_select = $this->flores_para_select;
+        $productos_inventario = $this->inventarioModel ? $this->inventarioModel->getInventarioPaginado(9999, 0, []) : [];
+        $proveedores = $this->proveedores;
+        $todos_proveedores = $this->inventarioModel ? $this->inventarioModel->getProveedores() : [];
+        $elementos_por_pagina = $this->elementos_por_pagina;
+        $pagina_actual = $this->pagina_actual;
+        $offset = $this->offset;
+        $elementos_por_pagina_perecederos = $this->elementos_por_pagina_perecederos;
+        $pagina_actual_perecederos = $this->pagina_actual_perecederos;
+        $offset_perecederos = $this->offset_perecederos;
+        $total_elementos_perecederos = $this->total_elementos_perecederos;
+        $total_paginas_perecederos = $this->total_paginas_perecederos;
+        $elementos_por_pagina_no_perecederos = $this->elementos_por_pagina_no_perecederos;
+        $pagina_actual_no_perecederos = $this->pagina_actual_no_perecederos;
+        $offset_no_perecederos = $this->offset_no_perecederos;
+        $total_elementos_no_perecederos = $this->total_elementos_no_perecederos;
+        $total_paginas_no_perecederos = $this->total_paginas_no_perecederos;
+        $elementos_por_pagina_proveedores = $this->elementos_por_pagina_proveedores;
+        $pagina_actual_proveedores = $this->pagina_actual_proveedores;
+        $offset_proveedores = $this->offset_proveedores;
+        $total_elementos_proveedores = $this->total_elementos_proveedores;
+        $total_paginas_proveedores = $this->total_paginas_proveedores;
+        $usu = $_SESSION['user'];
+        $page = 'inventario';
+        $_GET['page'] = 'inventario';
+        $totalUsuarios = 0;
+        
+        // Cargar el dashboard con la vista del inventario
+        include 'views/admin/VadashboardPrincipal.php';
     }
 
     /**
@@ -403,28 +593,43 @@ class Cinventario {
                 'Producto',
                 'Categoría',
                 'Stock',
-                'Precio',
+                'Precio Compra',
+                'Precio Venta',
+                'Margen Unit.',
                 'Color',
                 'Naturaleza',
-                'Estado',
-                'Fecha Creación',
-                'Valor Total'
+                'Estado Stock',
+                'Inversión Total',
+                'Ingresos Potenciales',
+                'Ganancia Potencial',
+                'Fecha Actualización'
             ], ';');
             
             // Datos
             foreach ($inventario as $item) {
-                $valor_total = $item['stock'] * $item['precio'];
+                $precio_compra = floatval($item['precio_compra'] ?? 0);
+                $precio_venta = floatval($item['precio'] ?? 0);
+                $stock = intval($item['stock'] ?? 0);
+                $margen_unitario = $precio_venta - $precio_compra;
+                $inversion_total = $precio_compra * $stock;
+                $ingresos_potenciales = $precio_venta * $stock;
+                $ganancia_potencial = $margen_unitario * $stock;
+                
                 fputcsv($output, [
                     $item['idinv'] ?? '',
                     $item['producto'] ?? '',
-                    $item['categoria'] ?? '',
-                    $item['stock'] ?? '0',
-                    number_format($item['precio'] ?? 0, 2),
+                    $item['categoria_producto'] ?? $item['naturaleza'] ?? '',
+                    $stock,
+                    number_format($precio_compra, 2),
+                    number_format($precio_venta, 2),
+                    number_format($margen_unitario, 2),
                     $item['color'] ?? '',
                     $item['naturaleza'] ?? '',
-                    $item['estado'] ?? '',
-                    $item['fecha_creacion'] ?? '',
-                    number_format($valor_total, 2)
+                    $item['estado_stock'] ?? '',
+                    number_format($inversion_total, 2),
+                    number_format($ingresos_potenciales, 2),
+                    number_format($ganancia_potencial, 2),
+                    $item['fecha_actualizacion'] ?? ''
                 ], ';');
             }
             
@@ -438,6 +643,221 @@ class Cinventario {
     }
 
     /**
+     * Exportar inventario a PDF con análisis financiero completo
+     */
+    public function exportarInventarioPDF() {
+        try {
+            if (!$this->inventarioModel) {
+                throw new Exception('Modelo de inventario no disponible');
+            }
+
+            // Incluir librería FPDF
+            require_once __DIR__ . '/../libs/FPDF/fpdf.php';
+            
+            // Obtener filtros de URL
+            $tipo = $_GET['tipo'] ?? 'todos'; // perecedero, no_perecedero, todos
+            $filtros = [];
+            
+            if ($tipo === 'perecedero') {
+                $filtros['tipo_producto'] = 'perecedero';
+            } elseif ($tipo === 'no_perecedero') {
+                $filtros['tipo_producto'] = 'no_perecedero';
+            }
+            
+            // Obtener datos del inventario
+            $inventario = $this->inventarioModel->getInventarioPaginado(9999, 0, $filtros);
+            
+            // Crear PDF
+            $pdf = new FPDF('L', 'mm', 'A4'); // Landscape, mm, A4
+            $pdf->SetMargins(8, 10, 8);
+            $pdf->AddPage();
+            
+            // Helper para UTF-8
+            $limpiar = function($texto) {
+                return iconv('UTF-8', 'ISO-8859-1//TRANSLIT', $texto);
+            };
+            
+            // HEADER
+            $pdf->SetFont('Arial', 'B', 16);
+            $pdf->Cell(0, 8, $limpiar('FLORALTECH - ANÁLISIS FINANCIERO DE INVENTARIO'), 0, 1, 'C');
+            
+            $pdf->SetFont('Arial', '', 9);
+            $pdf->Cell(0, 5, 'Fecha: ' . date('d/m/Y H:i:s'), 0, 1, 'C');
+            
+            // Tipo de reporte
+            $tipoTexto = $tipo === 'perecedero' ? 'Productos Perecederos (Flores Naturales)' : 
+                         ($tipo === 'no_perecedero' ? 'Productos No Perecederos (Duraderos)' : 
+                          'Inventario Completo');
+            $pdf->Cell(0, 5, $limpiar($tipoTexto), 0, 1, 'C');
+            $pdf->Ln(3);
+            
+            // TABLA - Headers
+            $pdf->SetFont('Arial', 'B', 7);
+            $pdf->SetFillColor(52, 152, 219); // Azul
+            $pdf->SetTextColor(255, 255, 255); // Blanco
+            
+            $pdf->Cell(8, 7, 'ID', 1, 0, 'C', true);
+            $pdf->Cell(48, 7, 'Producto', 1, 0, 'C', true);
+            $pdf->Cell(15, 7, 'Stock', 1, 0, 'C', true);
+            $pdf->Cell(20, 7, 'P. Compra', 1, 0, 'C', true);
+            $pdf->Cell(20, 7, 'P. Venta', 1, 0, 'C', true);
+            $pdf->Cell(18, 7, 'Margen', 1, 0, 'C', true);
+            $pdf->Cell(28, 7, $limpiar('Inversión'), 1, 0, 'C', true);
+            $pdf->Cell(28, 7, 'Ingresos Pot.', 1, 0, 'C', true);
+            $pdf->Cell(25, 7, 'Ganancia', 1, 0, 'C', true);
+            $pdf->Cell(25, 7, 'Naturaleza', 1, 0, 'C', true);
+            $pdf->Cell(23, 7, 'Estado', 1, 1, 'C', true);
+            
+            // Datos
+            $pdf->SetFont('Arial', '', 6.5);
+            $pdf->SetTextColor(0, 0, 0); // Negro
+            
+            $total_productos = 0;
+            $inversion_total_general = 0;
+            $ingresos_potenciales_general = 0;
+            $ganancia_potencial_general = 0;
+            $stock_bajo_count = 0;
+            $sin_stock_count = 0;
+            
+            foreach ($inventario as $item) {
+                $stock = intval($item['stock'] ?? 0);
+                $precio_compra = floatval($item['precio_compra'] ?? 0);
+                $precio_venta = floatval($item['precio'] ?? 0);
+                $margen_unitario = $precio_venta - $precio_compra;
+                $inversion = $precio_compra * $stock;
+                $ingresos = $precio_venta * $stock;
+                $ganancia = $margen_unitario * $stock;
+                
+                $inversion_total_general += $inversion;
+                $ingresos_potenciales_general += $ingresos;
+                $ganancia_potencial_general += $ganancia;
+                $total_productos++;
+                
+                // Contar estados
+                if ($stock == 0) {
+                    $sin_stock_count++;
+                } elseif ($stock < 20) {
+                    $stock_bajo_count++;
+                }
+                
+                // Color de fondo según stock
+                $aplicar_fill = false;
+                if ($stock == 0) {
+                    $pdf->SetFillColor(231, 76, 60); // Rojo
+                    $pdf->SetTextColor(255, 255, 255); // Blanco
+                    $aplicar_fill = true;
+                } elseif ($stock < 20) {
+                    $pdf->SetFillColor(241, 196, 15); // Amarillo
+                    $pdf->SetTextColor(0, 0, 0); // Negro
+                    $aplicar_fill = true;
+                } else {
+                    $pdf->SetFillColor(240, 240, 240); // Gris claro
+                    $pdf->SetTextColor(0, 0, 0); // Negro
+                }
+                
+                $pdf->Cell(8, 6, $item['idinv'], 1, 0, 'C', $aplicar_fill);
+                $pdf->Cell(48, 6, $limpiar(substr($item['producto'] ?? '', 0, 35)), 1, 0, 'L', $aplicar_fill);
+                $pdf->Cell(15, 6, $stock, 1, 0, 'C', $aplicar_fill);
+                $pdf->Cell(20, 6, '$' . number_format($precio_compra, 2), 1, 0, 'R', $aplicar_fill);
+                $pdf->Cell(20, 6, '$' . number_format($precio_venta, 2), 1, 0, 'R', $aplicar_fill);
+                $pdf->Cell(18, 6, '$' . number_format($margen_unitario, 2), 1, 0, 'R', $aplicar_fill);
+                $pdf->Cell(28, 6, '$' . number_format($inversion, 2), 1, 0, 'R', $aplicar_fill);
+                $pdf->Cell(28, 6, '$' . number_format($ingresos, 2), 1, 0, 'R', $aplicar_fill);
+                
+                // Color especial para ganancia negativa
+                if ($ganancia < 0) {
+                    $pdf->SetFillColor(255, 0, 0); // Rojo brillante
+                    $pdf->SetTextColor(255, 255, 255);
+                }
+                $pdf->Cell(25, 6, '$' . number_format($ganancia, 2), 1, 0, 'R', $aplicar_fill || $ganancia < 0);
+                
+                // Resetear color
+                if ($ganancia < 0 || $aplicar_fill) {
+                    $pdf->SetFillColor(240, 240, 240);
+                    $pdf->SetTextColor(0, 0, 0);
+                }
+                
+                $pdf->Cell(25, 6, $limpiar(substr($item['naturaleza'] ?? 'N/A', 0, 12)), 1, 0, 'C', false);
+                $pdf->Cell(23, 6, $limpiar($item['estado_stock'] ?? 'Normal'), 1, 1, 'C', false);
+                
+                // Salto de página si es necesario
+                if ($pdf->GetY() > 175) {
+                    $pdf->AddPage();
+                    
+                    // Re-dibujar headers
+                    $pdf->SetFont('Arial', 'B', 7);
+                    $pdf->SetFillColor(52, 152, 219);
+                    $pdf->SetTextColor(255, 255, 255);
+                    $pdf->Cell(8, 7, 'ID', 1, 0, 'C', true);
+                    $pdf->Cell(48, 7, 'Producto', 1, 0, 'C', true);
+                    $pdf->Cell(15, 7, 'Stock', 1, 0, 'C', true);
+                    $pdf->Cell(20, 7, 'P. Compra', 1, 0, 'C', true);
+                    $pdf->Cell(20, 7, 'P. Venta', 1, 0, 'C', true);
+                    $pdf->Cell(18, 7, 'Margen', 1, 0, 'C', true);
+                    $pdf->Cell(28, 7, $limpiar('Inversión'), 1, 0, 'C', true);
+                    $pdf->Cell(28, 7, 'Ingresos Pot.', 1, 0, 'C', true);
+                    $pdf->Cell(25, 7, 'Ganancia', 1, 0, 'C', true);
+                    $pdf->Cell(25, 7, 'Naturaleza', 1, 0, 'C', true);
+                    $pdf->Cell(23, 7, 'Estado', 1, 1, 'C', true);
+                    $pdf->SetFont('Arial', '', 6.5);
+                    $pdf->SetTextColor(0, 0, 0);
+                }
+            }
+            
+            // RESUMEN FINANCIERO
+            $pdf->Ln(4);
+            $pdf->SetFont('Arial', 'B', 10);
+            $pdf->SetFillColor(46, 204, 113); // Verde
+            $pdf->SetTextColor(255, 255, 255);
+            $pdf->Cell(0, 8, $limpiar('RESUMEN FINANCIERO GENERAL'), 0, 1, 'C', true);
+            
+            $pdf->SetFont('Arial', '', 9);
+            $pdf->SetTextColor(0, 0, 0);
+            $margen_porcentaje = $inversion_total_general > 0 ? 
+                                 ($ganancia_potencial_general / $inversion_total_general) * 100 : 0;
+            
+            $pdf->Cell(65, 6, $limpiar('Total de productos:'), 0, 0, 'L');
+            $pdf->Cell(0, 6, $total_productos, 0, 1, 'L');
+            
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->SetTextColor(220, 53, 69); // Rojo bootstrap
+            $pdf->Cell(65, 6, $limpiar('Inversión total (lo que pagaste):'), 0, 0, 'L');
+            $pdf->Cell(0, 6, '$' . number_format($inversion_total_general, 2), 0, 1, 'L');
+            
+            $pdf->SetTextColor(25, 135, 84); // Verde bootstrap
+            $pdf->Cell(65, 6, $limpiar('Ingresos potenciales (si vendes todo):'), 0, 0, 'L');
+            $pdf->Cell(0, 6, '$' . number_format($ingresos_potenciales_general, 2), 0, 1, 'L');
+            
+            $pdf->SetTextColor(13, 110, 253); // Azul bootstrap
+            $pdf->Cell(65, 6, $limpiar('Ganancia potencial:'), 0, 0, 'L');
+            $pdf->Cell(0, 6, '$' . number_format($ganancia_potencial_general, 2) . 
+                             ' (' . number_format($margen_porcentaje, 1) . '% margen)', 0, 1, 'L');
+            
+            $pdf->SetFont('Arial', '', 9);
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->Cell(65, 6, $limpiar('Productos con stock bajo (<20):'), 0, 0, 'L');
+            $pdf->Cell(0, 6, $stock_bajo_count, 0, 1, 'L');
+            
+            $pdf->Cell(65, 6, $limpiar('Productos sin stock:'), 0, 0, 'L');
+            $pdf->Cell(0, 6, $sin_stock_count, 0, 1, 'L');
+            
+            // FOOTER
+            $pdf->SetY(-15);
+            $pdf->SetFont('Arial', 'I', 7);
+            $pdf->Cell(0, 10, $limpiar('Página ') . $pdf->PageNo() . ' - ' . date('d/m/Y H:i:s'), 0, 0, 'C');
+            
+            // Output
+            $filename = 'inventario_analisis_' . $tipo . '_' . date('Y-m-d_H-i-s') . '.pdf';
+            $pdf->Output('D', $filename);
+            
+        } catch (Exception $e) {
+            error_log('Error al exportar PDF: ' . $e->getMessage());
+            header('Location: ?ctrl=Cinventario&error=export_pdf_failed');
+            exit;
+        }
+    }
+
+    /**
      * Método simple para compatibilidad (antes en InventarioController.php)
      */
     public function obtenerInventario() {
@@ -445,6 +865,68 @@ class Cinventario {
             return [];
         }
         return $this->inventarioModel->getInventario();
+    }
+    
+    /**
+     * Búsqueda en tiempo real de productos (AJAX)
+     */
+    public function buscar() {
+        header('Content-Type: application/json');
+        
+        try {
+            if (!$this->inventarioModel) {
+                throw new Exception('Modelo no disponible');
+            }
+            
+            $termino = $_GET['termino'] ?? '';
+            $tipo = $_GET['tipo'] ?? 'perecedero'; // 'perecedero' o 'no_perecedero'
+            $categoria = $_GET['categoria'] ?? '';
+            $estadoStock = $_GET['estado_stock'] ?? '';
+            $orden = $_GET['orden'] ?? '';
+            $direccion = $_GET['direccion'] ?? 'ASC';
+            
+            // Filtros para la búsqueda
+            $filtros = [
+                'tipo_producto' => $tipo
+            ];
+            
+            // Agregar término de búsqueda si existe
+            if (!empty($termino)) {
+                $filtros['buscar'] = $termino;
+            }
+            
+            // Agregar filtro de categoría si existe
+            if (!empty($categoria)) {
+                $filtros['categoria'] = $categoria;
+            }
+            
+            // Agregar filtro de estado de stock si existe
+            if (!empty($estadoStock)) {
+                $filtros['estado_stock'] = $estadoStock;
+            }
+            
+            // Agregar parámetros de ordenamiento
+            if (!empty($orden)) {
+                $filtros['orden'] = $orden;
+                $filtros['direccion'] = $direccion;
+            }
+            
+            // Obtener productos (sin límite para búsqueda)
+            $productos = $this->inventarioModel->getInventarioPaginado(1000, 0, $filtros);
+            
+            echo json_encode([
+                'success' => true,
+                'productos' => $productos,
+                'total' => count($productos)
+            ]);
+            
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+        exit;
     }
 }
 ?>

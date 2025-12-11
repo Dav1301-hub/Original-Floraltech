@@ -1,11 +1,12 @@
-<?php ?>
+﻿<?php ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reportes de Pagos - FloralTech</title>
-    <link rel="stylesheet" href="/assets/dashboard-admin.css">
+    <link rel="stylesheet" href="assets/admin-unificado.css">
+    <link rel="stylesheet" href="assets/dashboard-admin.css">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -1014,3 +1015,5 @@ function exportar(tipo) {
 // Incluir footer con direccionamiento correcto
 require_once __DIR__ . '/../partials/footer.php';
 ?>
+
+

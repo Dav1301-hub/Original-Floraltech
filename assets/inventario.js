@@ -471,22 +471,29 @@ function crearModalAgregarStockGenerico(id) {
 
 // Función auxiliar para procesar la adición de stock
 function procesarAgregarStock(id, cantidad, motivo = '') {
-    fetch(`?ctrl=Cinventario&accion=agregar_stock&id=${id}&cantidad=${cantidad}&motivo=${encodeURIComponent(motivo)}`, {
+    const formData = new FormData();
+    formData.append('accion', 'agregar_stock');
+    formData.append('id', id);
+    formData.append('cantidad', cantidad);
+    formData.append('motivo', motivo);
+    
+    fetch('?ctrl=cinventario', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
+        body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             mostrarMensajeExito(`✅ Se agregaron ${cantidad} unidades al stock correctamente`);
-            // Recargar la página después de un breve delay
             setTimeout(() => {
                 location.reload();
             }, 1500);
         } else {
-            console.error('Error al agregar stock:', data.message);
             mostrarMensajeError('❌ Error al agregar stock: ' + (data.message || 'Error desconocido'));
         }
     })
@@ -647,7 +654,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             
             const formData = new FormData(this);
-            const id = formData.get('producto_id');
+            const id = formData.get('id');
             const cantidad = formData.get('cantidad');
             const motivo = formData.get('motivo') || '';
             

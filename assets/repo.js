@@ -65,9 +65,13 @@ document.getElementById('formPdfUsuarios')?.addEventListener('submit', function 
 
 document.getElementById('btnFiltrarModalFlores')?.addEventListener('click', () => {
     const estado = document.getElementById('modal_estado_flores')?.value?.toLowerCase();
+    const categoria = document.getElementById('modal_categoria_flores')?.value?.toLowerCase();
     filtrarTabla('#tablaFloresModal', row => {
         const estadoRow = (row.dataset.estado || '').toLowerCase();
-        return !estado || estadoRow === estado;
+        const categoriaRow = (row.dataset.categoria || '').toLowerCase();
+        if (estado && estadoRow !== estado) return false;
+        if (categoria && !categoriaRow.includes(categoria)) return false;
+        return true;
     });
 });
 
