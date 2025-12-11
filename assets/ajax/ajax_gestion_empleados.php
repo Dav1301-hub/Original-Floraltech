@@ -30,8 +30,73 @@ $action = $_POST['action'] ?? '';
 $response = ['success' => false];
 
 // ============================================
-// CRUD PERMISOS
+// CRUD EMPLEADOS
 // ============================================
+
+if ($action === 'get_empleado') {
+    $id = intval($_POST['id'] ?? 0);
+    
+    if ($id === 0) {
+        echo json_encode(['success' => false, 'error' => 'ID inválido']);
+        exit;
+    }
+    
+    try {
+        $empleado = $mdgemp->getEmpleadoById($id);
+        if ($empleado) {
+            $empleado['success'] = true;
+            echo json_encode($empleado);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Empleado no encontrado']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+if ($action === 'update_empleado') {
+    $id = intval($_POST['id'] ?? 0);
+    $datos = [
+        'nombre_completo' => $_POST['nombre_completo'] ?? '',
+        'username' => $_POST['username'] ?? '',
+        'email' => $_POST['email'] ?? '',
+        'telefono' => $_POST['telefono'] ?? '',
+        'tpusu_idtpusu' => intval($_POST['tpusu_idtpusu'] ?? 0),
+        'naturaleza' => $_POST['naturaleza'] ?? '',
+        'activo' => intval($_POST['activo'] ?? 1)
+    ];
+    
+    if ($id === 0 || empty($datos['nombre_completo'])) {
+        echo json_encode(['success' => false, 'error' => 'Datos inválidos']);
+        exit;
+    }
+    
+    try {
+        $ok = $mdgemp->actualizarEmpleado($id, $datos);
+        echo json_encode(['success' => $ok]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
+
+if ($action === 'delete_empleado') {
+    $id = intval($_POST['id'] ?? 0);
+    
+    if ($id === 0) {
+        echo json_encode(['success' => false, 'error' => 'ID inválido']);
+        exit;
+    }
+    
+    try {
+        $ok = $mdgemp->eliminarEmpleado($id);
+        echo json_encode(['success' => $ok]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
 
 if ($action === 'create_permiso') {
     $idempleado = intval($_POST['idempleado'] ?? $_POST['empleado'] ?? 0);
