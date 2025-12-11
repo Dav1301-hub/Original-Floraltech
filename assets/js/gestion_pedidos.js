@@ -19,6 +19,10 @@ function editarPedido(idPedido) {
     alertaDiv.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary"></div></div>';
     modalInstance.show();
 
+    // Limpiar tabla de productos antes de cargar nuevos
+    const tbody = document.querySelector('#tablaProductosNuevo tbody');
+    if (tbody) tbody.innerHTML = '';
+
     fetch(`controllers/Cpedido.php?action=detalle&id=${encodeURIComponent(idPedido)}`)
         .then(r => r.json())
         .then(data => {
@@ -43,11 +47,104 @@ function editarPedido(idPedido) {
                     selectCliente.value = p.cli_idcli;
                 }
             });
+            
+            // Cargar y renderizar productos del pedido
+            if (data.productos && data.productos.length > 0) {
+                cargarProductosEnEdicion(data.productos);
+            }
+            
             alertaDiv.innerHTML = '';
         })
         .catch(error => {
             alertaDiv.innerHTML = `<div class="alert alert-danger">Error al cargar el pedido: ${error}</div>`;
         });
+}
+
+// Cargar y renderizar productos en la tabla cuando se edita un pedido
+function cargarProductosEnEdicion(productos) {
+    const tbody = document.querySelector('#tablaProductosNuevo tbody');
+    if (!tbody) return;
+    
+    // Limpiar tabla
+    tbody.innerHTML = '';
+    
+    // Cargar categorías primero para disponibilidad
+    cargarCategorias().then((cats) => {
+        productos.forEach(prod => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <div class="d-flex gap-1">
+                        <select class="form-select form-select-sm categoria-select" onchange="cargarProductosEnFila(this)">
+                            <option value="">Categoria</option>
+                        </select>
+                        <select class="form-select form-select-sm producto-select" name="producto_id[]" onchange="actualizarPrecio(this)">
+                            <option value="">Producto</option>
+                        </select>
+                    </div>
+                </td>
+                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm precio-input" name="precio_unitario[]" value="${parseFloat(prod.precio_unitario).toFixed(2)}" onchange="actualizarSubtotal(this)" /></td>
+                <td><input type="number" step="1" min="0" class="form-control form-control-sm cantidad-input" name="cantidad[]" value="${parseInt(prod.cantidad)}" onchange="actualizarSubtotal(this)" /></td>
+                <td class="subtotal-cell fw-semibold text-end">$${parseFloat(prod.subtotal).toFixed(2)}</td>
+                <td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarFilaProducto(this)"><i class="fas fa-trash"></i></button></td>
+            `;
+            tbody.appendChild(row);
+            
+            // Cargar opciones de categorías (que son en realidad flores)
+            const catSelect = row.querySelector('.categoria-select');
+            cats.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.nombre;
+                catSelect.appendChild(opt);
+            });
+            
+            // Selectionar la categoría correcta usando el idtflor
+            if (prod.idtflor) {
+                catSelect.value = prod.idtflor;
+                
+                // Cargar productos de esa categoría inmediatamente
+                cargarProductosPorCategoria(prod.idtflor).then(prods => {
+                    const prodSelect = row.querySelector('.producto-select');
+                    prodSelect.innerHTML = '<option value="">Producto</option>';
+                    
+                    // Siempre mostrar el producto actual con su stock
+                    const opt = document.createElement('option');
+                    opt.value = prod.idtflor;
+                    const stockDisponible = (prod.stock ?? 0) > 0;
+                    const textoStock = `Stock: ${prod.stock ?? 0}`;
+                    const textoFinal = stockDisponible ? textoStock : `${textoStock} (Agotado)`;
+                    opt.textContent = `${prod.nombre} (${textoFinal})`;
+                    opt.dataset.precio = prod.precio_unitario || 0;
+                    opt.dataset.stock = prod.stock || 0;
+                    opt.dataset.disponible = stockDisponible ? '1' : '0';
+                    prodSelect.appendChild(opt);
+                    
+                    // Si hay otros productos en la respuesta, agregarlos también
+                    if (prods && prods.length > 0) {
+                        prods.forEach(p => {
+                            const opt2 = document.createElement('option');
+                            opt2.value = p.id;
+                            const stockDisp = (p.stock ?? 0) > 0;
+                            const texStock = `Stock: ${p.stock ?? 0}`;
+                            const texFin = stockDisp ? texStock : `${texStock} (Agotado)`;
+                            opt2.textContent = `${p.nombre} (${texFin})`;
+                            opt2.dataset.precio = p.precio || 0;
+                            opt2.dataset.stock = p.stock || 0;
+                            opt2.dataset.disponible = stockDisp ? '1' : '0';
+                            prodSelect.appendChild(opt2);
+                        });
+                    }
+                    
+                    // Selectionar el producto correcto
+                    prodSelect.value = prod.idtflor;
+                });
+            }
+        });
+        
+        // Recalcular totales
+        recalcularTotalNuevo();
+    });
 }
 
 // Abrir modal de pago
@@ -310,9 +407,13 @@ function cargarProductosEnFila(catSelect) {
         prods.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p.id;
-            opt.textContent = `${p.nombre} (Stock: ${p.stock ?? 0})`;
+            const stockDisponible = (p.stock ?? 0) > 0;
+            const textoStock = `Stock: ${p.stock ?? 0}`;
+            const textoFinal = stockDisponible ? textoStock : `${textoStock} (Agotado)`;
+            opt.textContent = `${p.nombre} (${textoFinal})`;
             opt.dataset.precio = p.precio || 0;
-            opt.dataset.disponible = p.disponible ? '1' : '0';
+            opt.dataset.stock = p.stock || 0;
+            opt.dataset.disponible = stockDisponible ? '1' : '0';
             prodSelect.appendChild(opt);
         });
     });
