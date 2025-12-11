@@ -605,29 +605,24 @@ if (php_sapi_name() !== 'cli' && basename(__FILE__) === basename($_SERVER['SCRIP
                 }
                 
                 try {
-                    // Actualizar pedido
+                    $controller->beginTx();
+                    
+                    // Actualizar datos del pedido
                     $ok = $controller->actualizarPedido($id, $data);
                     
                     // Si hay items, eliminar los antiguos y agregar los nuevos
-                    if ($ok && !empty($items)) {
-                        $controller->beginTx();
-                        try {
-                            $controller->eliminarDetallesPedido($id);
-                            $controller->agregarDetallesPedido($id, $items);
-                            // Actualizar monto_total con la suma de los items
-                            $controller->actualizarMontoTotalPedido($id, $totalItems);
-                            $controller->commitTx();
-                        } catch (Exception $e) {
-                            $controller->rollbackTx();
-                            throw $e;
-                        }
+                    if (!empty($items)) {
+                        $controller->eliminarDetallesPedido($id);
+                        $controller->agregarDetallesPedido($id, $items);
+                        // Actualizar monto_total con la suma de los items
+                        $controller->actualizarMontoTotalPedido($id, $totalItems);
                     }
                     
-                    echo json_encode($ok
-                        ? ['success' => true, 'mensaje' => 'Pedido actualizado correctamente']
-                        : ['success' => false, 'mensaje' => 'No se pudo actualizar el pedido']
-                    );
+                    $controller->commitTx();
+                    
+                    echo json_encode(['success' => true, 'mensaje' => 'Pedido actualizado correctamente']);
                 } catch (Exception $e) {
+                    $controller->rollbackTx();
                     echo json_encode(['success' => false, 'mensaje' => 'Error: ' . $e->getMessage()]);
                 }
                 break;
