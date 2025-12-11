@@ -90,8 +90,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="p-4 mb-4 rounded-4 shadow-sm" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%); color: #fff;">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
-                <p class="mb-1 text-white-50 small">Ajustes de cuenta</p>
-                <h2 class="fw-bold mb-0">Configuracion</h2>
+                <p class="mb-1 text-white-50 small" style="color: #ffff">Ajustes de cuenta</p>
+                <h2 class="fw-bold mb-0" style="color: #ffff">Configuracion</h2>
             </div>
             <div class="d-flex gap-2 flex-wrap">
                 <span class="badge bg-white bg-opacity-10 border border-white border-opacity-25">Usuario: <?= htmlspecialchars($admin['username'] ?? '') ?></span>

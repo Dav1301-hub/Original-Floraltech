@@ -147,18 +147,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_soporte'])) {
         $mensaje_error = $e->getMessage();
     }
 }
-
 ?>
 
 <div class="container-fluid py-4" style="background:#fff; min-height: 100vh;">
-    <!-- Header -->
+    
     <div class="p-4 mb-4 rounded-4 shadow-sm" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%); color: #fff;">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
                 <p class="mb-1 text-white-50 small" style="letter-spacing:1px;text-transform:uppercase;">
-                    <i class="fas fa-life-ring me-2"></i>Soporte técnico
+                    <i class="fas fa-life-ring me-2" style="color: #ffff"></i>Soporte técnico
                 </p>
-                <h2 class="fw-bold mb-0">Centro de Soporte</h2>
+                <h2 class="fw-bold mb-0"style="color: #ffff">Centro de Soporte</h2>
             </div>
             <span class="badge bg-white bg-opacity-10 border border-white border-opacity-25 fs-6">
                 <i class="fas fa-ticket me-2"></i><?= count($tickets) ?> Tickets

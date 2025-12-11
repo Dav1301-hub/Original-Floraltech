@@ -1,5 +1,6 @@
 :root {
     --primary: #6a5af9;
+    --topbar-height: 68px;
     --primary-2: #4f46e5;
     --accent: #5b21b6;
     --warning: #f59e0b;
@@ -61,11 +62,13 @@ p {
 .app-shell {
     min-height: 100vh;
     display: grid;
-    grid-template-rows: 68px 1fr;
+    /* Use auto for the top row so the topbar can grow if needed (avoids fixed-gap issues) */
+    grid-template-rows: auto 1fr;
 }
 
 .topbar {
-    height: 68px;
+    /* Fixed topbar to avoid unexpected offsets from mixed layouts */
+    min-height: var(--topbar-height);
     background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%);
     color: #f8fafc;
     display: flex;
@@ -73,8 +76,10 @@ p {
     justify-content: space-between;
     padding: 0 20px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 1030;
 }
 
@@ -169,7 +174,8 @@ p {
     display: grid;
     grid-template-columns: 260px 1fr;
     gap: 20px;
-    padding: 20px 24px 32px;
+    /* Añadir espacio superior igual a la altura del topbar para evitar solapamiento */
+    padding: calc(var(--topbar-height) + 20px) 24px 32px;
     width: 100%;
     max-width: 100%;
     margin: 0;
@@ -398,6 +404,15 @@ p {
     box-shadow: none;
     padding: 6px 8px;
 }
+/* DEBUG: resaltar límites para identificar espacio en blanco superior (temporal) */
+/* Elimina o comenta este bloque cuando termines la inspección */
+html.debug-outline { outline: 3px solid rgba(255,0,0,0.06); }
+body.debug-outline { outline: 3px solid rgba(0,255,0,0.05); }
+.topbar.debug-outline { outline: 3px solid rgba(0,0,255,0.2); }
+.layout.debug-outline { outline: 3px solid rgba(255,165,0,0.18); }
+.main-panel.debug-outline { outline: 3px solid rgba(128,0,128,0.18); }
+
+/* Helper: añadir la clase `debug-outline` al elemento <html> o <body> desde la consola para activar visualización */
 
 .badge-success {
     background: #e0f7f0;

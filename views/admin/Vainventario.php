@@ -296,7 +296,57 @@
     }
 </style>
 <!-- Gestión de Inventario - Vista -->
-<main class="container-fluid" style="padding: 2rem 2.5rem; margin: 0; width: 100%; max-width: 100%; box-sizing: border-box;">
+<div class="section-box" style="padding: 0; margin: 0; width: 100%; max-width: 100%; box-sizing: border-box;">
+    <!-- Debug UI: activa añadiendo ?debug_ui=1 a la URL -->
+    <script>
+        (function(){
+            try {
+                if (window.location.search && window.location.search.indexOf('debug_ui=1') !== -1) {
+                    document.documentElement.classList.add('debug-outline');
+                    document.body.classList.add('debug-outline');
+                    var tb = document.querySelector('.topbar'); if (tb) tb.classList.add('debug-outline');
+
+                    function rectToStr(r){ return Math.round(r.top)+','+Math.round(r.left)+' / '+Math.round(r.width)+'x'+Math.round(r.height); }
+
+                    var panel = document.createElement('div');
+                    panel.id = 'debug-ui-panel';
+                    panel.style.position = 'fixed';
+                    panel.style.right = '12px';
+                    panel.style.top = '12px';
+                    panel.style.zIndex = '99999';
+                    panel.style.background = 'rgba(0,0,0,0.65)';
+                    panel.style.color = '#fff';
+                    panel.style.fontSize = '12px';
+                    panel.style.padding = '8px 10px';
+                    panel.style.borderRadius = '8px';
+                    panel.style.boxShadow = '0 6px 18px rgba(0,0,0,0.4)';
+                    panel.style.maxWidth = '320px';
+                    panel.innerHTML = '<strong>DEBUG UI</strong><br><small id="dbg-lines">calculando...</small><br><a id="dbg-close" href="#" style="color:#ffd; text-decoration:underline; font-size:11px;">Cerrar</a>';
+                    document.body.appendChild(panel);
+
+                    function update(){
+                        var htmlR = document.documentElement.getBoundingClientRect();
+                        var bodyR = document.body.getBoundingClientRect();
+                        var topR = tb ? tb.getBoundingClientRect() : {top:-1,left:-1,width:0,height:0};
+                        var elAt = document.elementFromPoint(5,5);
+                        var elName = elAt ? (elAt.tagName + (elAt.id?('#'+elAt.id):'') + (elAt.className?('.'+elAt.className.split(' ').join('.')):'')) : 'none';
+
+                        // List first few direct children of body with their top positions
+                        var children = Array.from(document.body.children).slice(0,8).map(function(ch){
+                            var r = ch.getBoundingClientRect();
+                            return ch.tagName.toLowerCase() + (ch.id?('#'+ch.id):'') + (ch.className?('.'+ch.className.split(' ').join('.')):'') + ' t:'+Math.round(r.top)+' h:'+Math.round(r.height);
+                        }).join(' | ');
+
+                        document.getElementById('dbg-lines').textContent = 'html: '+rectToStr(htmlR)+' | body: '+rectToStr(bodyR)+' | topbar: '+rectToStr(topR)+' | el@5,5: '+elName + '\nchildren: '+children;
+                    }
+
+                    document.getElementById('dbg-close').addEventListener('click', function(e){ e.preventDefault(); panel.remove(); });
+                    window.addEventListener('resize', update);
+                    setTimeout(update,200);
+                }
+            } catch(e){ console.error('debug-ui error', e); }
+        })();
+    </script>
     <!-- Backdrop para modales manuales -->
 <div id="modal-backdrop" class="modal-backdrop fade" style="display:none;z-index:1040;"></div>
 
@@ -320,8 +370,8 @@
 
     <div class="d-flex align-items-center mb-4 py-3 px-3 rounded-4 shadow-sm text-white" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%);">
         <div>
-            <p class="mb-1 opacity-75" style="letter-spacing:1px;text-transform:uppercase;"><i class="fas fa-cube me-2"></i>FloralTech Admin</p>
-            <h2 class="mb-0 fw-bold">Gestión de Inventario</h2>
+            <p class="mb-1 opacity-75" style="letter-spacing:1px;text-transform:uppercase; color: #ffff"><i class="fas fa-cube me-2"></i>FloralTech Admin</p>
+            <h2 class="mb-0 fw-bold" style="color: #ffff">Gestión de Inventario</h2>
         </div>
     </div> 
     <!-- Cards de resumen funcionales -->
@@ -1065,7 +1115,7 @@
     </div>
 <!-- Cargar Bootstrap JS para modales -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</main>
+</div>
 
 <script src="/Original-Floraltech/assets/inventario.js"></script>
 <script src="/Original-Floraltech/assets/inventario_modal_handler.js"></script>
@@ -4807,5 +4857,5 @@ function irAAgregarStock() {
 
 </script>
 
-</main>
+</div>
 <!-- Fin de la vista de inventario -->

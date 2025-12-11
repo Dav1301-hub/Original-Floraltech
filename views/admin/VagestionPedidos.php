@@ -352,8 +352,8 @@ try {
 <div class="container-fluid">
     <div class="d-flex align-items-center justify-content-between mb-4 py-3 px-3 rounded-4 shadow-sm text-white" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%);">
         <div>
-            <p class="mb-1 opacity-75 text-uppercase" style="letter-spacing:1px;"><i class="fas fa-seedling me-2"></i>FloralTech Admin</p>
-            <h2 class="mb-0 fw-bold">Gestion de Pedidos</h2>
+            <p class="mb-1 opacity-75 text-uppercase" style="letter-spacing:1px; color: #ffff"><i class="fas fa-seedling me-2"></i>FloralTech Admin</p>
+            <h2 class="mb-0 fw-bold" style="color: #ffff">Gestion de Pedidos</h2>
         </div>
         <button class="btn btn-light text-primary fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#nuevoPedidoModal">
             <i class="fas fa-plus me-2"></i>Nuevo pedido
