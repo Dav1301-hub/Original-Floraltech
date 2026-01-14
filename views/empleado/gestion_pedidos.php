@@ -442,14 +442,19 @@ if (!isset($pedidosPaginados)) {
 
                     <!-- Lista de pedidos -->
                     <div class="content-card">
-                        <div class="pedido-list-header">
-                            <span><i class="fas fa-list me-2"></i>Lista de Pedidos</span>
-                            <span class="badge">
-                                <?= $totalPedidos ?> total 
-                                <?php if ($totalPedidos > 0): ?>
-                                    (Página <?= $paginaActual ?> de <?= $totalPaginas ?>)
-                                <?php endif; ?>
-                            </span>
+                        <div class="pedido-list-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <span><i class="fas fa-list me-2"></i>Lista de Pedidos</span>
+                                <span class="badge">
+                                    <?= $totalPedidos ?> total 
+                                    <?php if ($totalPedidos > 0): ?>
+                                        (Página <?= $paginaActual ?> de <?= $totalPaginas ?>)
+                                    <?php endif; ?>
+                                </span>
+                            </div>
+                            <a href="index.php?ctrl=empleado&action=nuevoPedidoForm" class="btn btn-success btn-sm">
+                                <i class="fas fa-plus me-2"></i>Nuevo Pedido
+                            </a>
                         </div>
                         <div class="card-body">
                             <?php if ($mensaje): ?>
@@ -458,6 +463,45 @@ if (!isset($pedidosPaginados)) {
                                     <?= htmlspecialchars($mensaje) ?>
                                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                                 </div>
+                            <?php endif; ?>
+
+                            <!-- 📊 Alertas de Inventario por Descuentos Automáticos -->
+                            <?php if (isset($_SESSION['alertas_inventario']) && !empty($_SESSION['alertas_inventario'])): ?>
+                                <div style="margin-bottom: 20px;">
+                                    <?php foreach ($_SESSION['alertas_inventario'] as $alerta): ?>
+                                        <?php 
+                                            $clase_bootstrap = 'alert-warning';
+                                            $icono_fas = 'fa-exclamation-triangle';
+                                            
+                                            switch ($alerta['tipo'] ?? 'advertencia') {
+                                                case 'crítica':
+                                                    $clase_bootstrap = 'alert-danger';
+                                                    $icono_fas = 'fa-circle-exclamation';
+                                                    break;
+                                                case 'baja':
+                                                    $clase_bootstrap = 'alert-warning';
+                                                    $icono_fas = 'fa-bolt';
+                                                    break;
+                                                case 'error':
+                                                    $clase_bootstrap = 'alert-danger';
+                                                    $icono_fas = 'fa-times-circle';
+                                                    break;
+                                                case 'advertencia':
+                                                default:
+                                                    $clase_bootstrap = 'alert-warning';
+                                                    $icono_fas = 'fa-exclamation-triangle';
+                                                    break;
+                                            }
+                                        ?>
+                                        <div class="alert <?= $clase_bootstrap ?> alert-dismissible fade show" role="alert">
+                                            <i class="fas <?= $icono_fas ?> me-2"></i>
+                                            <strong><?= htmlspecialchars($alerta['flor'] ?? 'Alerta') ?>:</strong>
+                                            <?= htmlspecialchars($alerta['mensaje']) ?>
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php unset($_SESSION['alertas_inventario']); ?>
                             <?php endif; ?>
                             
                             <?php if (empty($pedidosPaginados)): ?>
