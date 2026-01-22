@@ -167,6 +167,7 @@ function badgeClaseEstado($estado)
                             </form>
                             <form id="formPdfPedidos" action="controllers/repopdf.php" method="POST" class="filters-export">
                                 <input type="hidden" name="ids" id="pdf_ids">
+                                <input type="hidden" name="grafico_ventas" id="grafico_ventas_data">
                                 <button type="submit" class="btn btn-outline-light text-primary fw-bold w-100" style="border-color:#7c3aed;">
                                     <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
                                 </button>
@@ -274,6 +275,7 @@ function badgeClaseEstado($estado)
                                 <input type="hidden" name="accion" value="usuarios_pdf">
                                 <input type="hidden" name="tipo" id="tipoSeleccionado">
                                 <input type="hidden" name="ids" id="pdf_ids_usuarios">
+                                <input type="hidden" name="grafico_usuarios" id="grafico_usuarios_data">
                                 <button type="submit" class="btn btn-outline-warning text-warning fw-bold w-100">
                                     <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
                                 </button>
@@ -393,6 +395,7 @@ function badgeClaseEstado($estado)
                             <form id="formPdfFlores" action="controllers/repopdf.php" method="POST" class="filters-export">
                                 <input type="hidden" name="accion" value="flores_pdf">
                                 <input type="hidden" name="ids" id="pdf_ids_flores">
+                                <input type="hidden" name="grafico_inventario" id="grafico_inventario_data">
                                 <button type="submit" class="btn btn-outline-success text-success fw-bold w-100">
                                     <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
                                 </button>
@@ -508,6 +511,7 @@ function badgeClaseEstado($estado)
                             <form id="formPdfPagos" action="controllers/repopdf.php" method="POST" class="filters-export">
                                 <input type="hidden" name="accion" value="pagos_pdf">
                                 <input type="hidden" name="ids" id="pdf_ids_pagos">
+                                <input type="hidden" name="grafico_pagos" id="grafico_pagos_data">
                                 <button type="submit" class="btn btn-outline-danger text-danger fw-bold w-100">
                                     <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
                                 </button>
@@ -770,6 +774,158 @@ function badgeClaseEstado($estado)
                 setTimeout(actualizarTotalesVentas, 100);
             });
         }
+        
+        // ========== CAPTURAR GRÁFICOS PARA PDF ==========
+        let capturandoGrafico = false;
+        
+        // Capturar gráfico de Ventas antes de enviar formulario
+        document.getElementById('formPdfPedidos')?.addEventListener('submit', function(e) {
+            const inputGrafico = document.getElementById('grafico_ventas_data');
+            
+            if (inputGrafico.value) {
+                console.log('✅ Ya existe gráfico de Ventas capturado');
+                return true;
+            }
+            
+            e.preventDefault();
+            if (capturandoGrafico) return;
+            capturandoGrafico = true;
+            
+            const canvas = document.getElementById('chartVentasTendencia');
+            console.log('📊 VENTAS - Canvas encontrado:', canvas ? 'SÍ' : 'NO');
+            
+            if (canvas) {
+                console.log('📐 VENTAS - Dimensiones:', canvas.width, 'x', canvas.height);
+                try {
+                    const imgData = canvas.toDataURL('image/png');
+                    console.log('📸 VENTAS - Imagen generada:', imgData.length, 'caracteres');
+                    inputGrafico.value = imgData;
+                    console.log('✅ VENTAS - Gráfico capturado y guardado');
+                    capturandoGrafico = false;
+                    this.submit();
+                } catch (error) {
+                    console.error('❌ VENTAS - Error:', error);
+                    capturandoGrafico = false;
+                    this.submit();
+                }
+            } else {
+                console.warn('⚠️ VENTAS - Canvas no encontrado');
+                capturandoGrafico = false;
+                this.submit();
+            }
+        });
+        
+        // Capturar gráfico de Inventario antes de enviar formulario
+        document.getElementById('formPdfFlores')?.addEventListener('submit', function(e) {
+            const inputGrafico = document.getElementById('grafico_inventario_data');
+            
+            if (inputGrafico.value) {
+                console.log('✅ Ya existe gráfico capturado, enviando...');
+                return true;
+            }
+            
+            e.preventDefault();
+            if (capturandoGrafico) return;
+            capturandoGrafico = true;
+            
+            const canvas = document.getElementById('chartInventarioTop');
+            console.log('📊 Canvas encontrado:', canvas ? 'SÍ' : 'NO');
+            
+            if (canvas) {
+                console.log('📐 Dimensiones canvas:', canvas.width, 'x', canvas.height);
+                try {
+                    const imgData = canvas.toDataURL('image/png');
+                    console.log('📸 Imagen generada, tamaño:', imgData.length, 'caracteres');
+                    console.log('🔍 Primeros 50 caracteres:', imgData.substring(0, 50));
+                    inputGrafico.value = imgData;
+                    console.log('✅ Gráfico de Inventario capturado y guardado');
+                    capturandoGrafico = false;
+                    this.submit();
+                } catch (error) {
+                    console.error('❌ Error capturando gráfico:', error);
+                    capturandoGrafico = false;
+                    this.submit();
+                }
+            } else {
+                console.warn('⚠️ Canvas no encontrado, enviando sin gráfico');
+                capturandoGrafico = false;
+                this.submit();
+            }
+        });
+        
+        // Capturar gráfico de Usuarios antes de enviar formulario
+        document.getElementById('formPdfUsuarios')?.addEventListener('submit', function(e) {
+            const inputGrafico = document.getElementById('grafico_usuarios_data');
+            
+            if (inputGrafico.value) {
+                console.log('✅ Ya existe gráfico de Usuarios capturado');
+                return true;
+            }
+            
+            e.preventDefault();
+            if (capturandoGrafico) return;
+            capturandoGrafico = true;
+            
+            const canvas = document.getElementById('chartUsuariosRol');
+            console.log('📊 USUARIOS - Canvas encontrado:', canvas ? 'SÍ' : 'NO');
+            
+            if (canvas) {
+                console.log('📐 USUARIOS - Dimensiones:', canvas.width, 'x', canvas.height);
+                try {
+                    const imgData = canvas.toDataURL('image/png');
+                    console.log('📸 USUARIOS - Imagen generada:', imgData.length, 'caracteres');
+                    inputGrafico.value = imgData;
+                    console.log('✅ USUARIOS - Gráfico capturado y guardado');
+                    capturandoGrafico = false;
+                    this.submit();
+                } catch (error) {
+                    console.error('❌ USUARIOS - Error:', error);
+                    capturandoGrafico = false;
+                    this.submit();
+                }
+            } else {
+                console.warn('⚠️ USUARIOS - Canvas no encontrado');
+                capturandoGrafico = false;
+                this.submit();
+            }
+        });
+        
+        // Capturar gráfico de Pagos antes de enviar formulario
+        document.getElementById('formPdfPagos')?.addEventListener('submit', function(e) {
+            const inputGrafico = document.getElementById('grafico_pagos_data');
+            
+            if (inputGrafico.value) {
+                console.log('✅ Ya existe gráfico de Pagos capturado');
+                return true;
+            }
+            
+            e.preventDefault();
+            if (capturandoGrafico) return;
+            capturandoGrafico = true;
+            
+            const canvas = document.getElementById('chartPagosEstados');
+            console.log('📊 PAGOS - Canvas encontrado:', canvas ? 'SÍ' : 'NO');
+            
+            if (canvas) {
+                console.log('📐 PAGOS - Dimensiones:', canvas.width, 'x', canvas.height);
+                try {
+                    const imgData = canvas.toDataURL('image/png');
+                    console.log('📸 PAGOS - Imagen generada:', imgData.length, 'caracteres');
+                    inputGrafico.value = imgData;
+                    console.log('✅ PAGOS - Gráfico capturado y guardado');
+                    capturandoGrafico = false;
+                    this.submit();
+                } catch (error) {
+                    console.error('❌ PAGOS - Error:', error);
+                    capturandoGrafico = false;
+                    this.submit();
+                }
+            } else {
+                console.warn('⚠️ PAGOS - Canvas no encontrado');
+                capturandoGrafico = false;
+                this.submit();
+            }
+        });
     });
     </script>
 </body>

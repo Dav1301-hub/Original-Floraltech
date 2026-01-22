@@ -39,7 +39,7 @@ $mreportes = new Mreportes();
 /**
  * Fallback sencillo con FPDF si no hay vendor/autoload.
  */
-function renderWithFPDF($titulo, $headers, $rows, $fileName) {
+function renderWithFPDF($titulo, $headers, $rows, $fileName, $graficoBase64 = null) {
     global $logo_empresa_path, $nombre_empresa;
     
     $pdf = new FPDF('L', 'mm', 'A4');
@@ -80,6 +80,33 @@ function renderWithFPDF($titulo, $headers, $rows, $fileName) {
             $pdf->Ln();
         }
     }
+    
+    // Agregar gráfico si se proporcionó
+    if ($graficoBase64) {
+        $graficoData = str_replace('data:image/png;base64,', '', $graficoBase64);
+        $graficoData = str_replace(' ', '', $graficoData);
+        $imagenBinaria = base64_decode($graficoData);
+        
+        if ($imagenBinaria !== false) {
+            $tempPath = __DIR__ . '/../temp_grafico.png';
+            file_put_contents($tempPath, $imagenBinaria);
+            
+            // Agregar nueva página para el gráfico
+            $pdf->AddPage();
+            $pdf->SetFont('Arial', 'B', 14);
+            $pdf->Cell(0, 10, utf8_decode('Análisis Gráfico'), 0, 1, 'C');
+            $pdf->Ln(5);
+            
+            // Insertar imagen centrada
+            $pdf->Image($tempPath, 20, $pdf->GetY(), 240, 120);
+            
+            // Limpiar archivo temporal
+            if (file_exists($tempPath)) {
+                unlink($tempPath);
+            }
+        }
+    }
+    
     $pdf->Output('D', $fileName);
     exit;
 }
@@ -132,7 +159,9 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'usuarios_pdf') {
                 ($u['activo'] ? 'Si' : 'No')
             ];
         }
-        renderWithFPDF('Reporte de Usuarios', $headers, $rows, 'Usuarios_Seleccionados.pdf');
+        // Pasar el gráfico si se recibió
+        $graficoUsuarios = !empty($_POST['grafico_usuarios']) ? $_POST['grafico_usuarios'] : null;
+        renderWithFPDF('Reporte de Usuarios', $headers, $rows, 'Usuarios_Seleccionados.pdf', $graficoUsuarios);
     }
 
     // Generar header con logo para mPDF
@@ -188,6 +217,19 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'usuarios_pdf') {
     }
 
     $html .= '</tbody></table>';
+    
+    // Agregar gráfico si se envió
+    if (!empty($_POST['grafico_usuarios'])) {
+        $graficoData = $_POST['grafico_usuarios'];
+        // Remover el prefijo data:image/png;base64,
+        if (strpos($graficoData, 'data:image/png;base64,') === 0) {
+            $graficoData = str_replace('data:image/png;base64,', '', $graficoData);
+        }
+        $html .= '<div style="page-break-before: avoid; margin-top: 20px;">
+            <h3 style="color: #333; margin-bottom: 10px;">Distribución por Rol</h3>
+            <img src="data:image/png;base64,' . $graficoData . '" style="max-width: 100%; height: auto;" />
+        </div>';
+    }
 
     ob_clean();
     $mpdf = new \Mpdf\Mpdf();
@@ -223,20 +265,22 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'flores_pdf') {
                 $f['estado'] ?? ''
             ];
         }
-        renderWithFPDF('Inventario de Flores', $headers, $rows, 'Inventario_Flores.pdf');
+        // Pasar el gráfico si se recibió
+        $graficoInventario = !empty($_POST['grafico_inventario']) ? $_POST['grafico_inventario'] : null;
+        renderWithFPDF('Inventario de Flores', $headers, $rows, 'Inventario_Flores.pdf', $graficoInventario);
     }
 
     // Generar header con logo
     $headerHtml = '';
     if ($logo_empresa_path) {
         $logo_data = base64_encode(file_get_contents($logo_empresa_path));
-        $logo_extension = pathinfo($logo_empresa_path, PATHINFO_EXTENSION);
-        $headerHtml = '<div class="header-logo">
-            <img src="data:image/' . $logo_extension . ';base64,' . $logo_data . '" alt="Logo">
-            <h2>' . htmlspecialchars($nombre_empresa) . '</h2>
-        </div>';
+        $ext = pathinfo($logo_empresa_path, PATHINFO_EXTENSION);
+        $headerHtml .= '<div style="text-align:left; margin-bottom:20px;">';
+        $headerHtml .= '<img src="data:image/' . $ext . ';base64,' . $logo_data . '" style="max-width:100px; margin-bottom:10px;" />';
+        $headerHtml .= '<h2 style="margin:0; color:#10b981;">' . htmlspecialchars($nombre_empresa) . '</h2>';
+        $headerHtml .= '</div>';
     }
-
+    
     $html = $baseCss;
     $html .= $headerHtml;
     $html .= '<h1>Reporte de Inventario de Flores</h1>';
@@ -290,9 +334,46 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'flores_pdf') {
     $html .= '</tbody></table>';
 
     ob_clean();
-    $mpdf = new \Mpdf\Mpdf();
+    $mpdf = new \Mpdf\Mpdf([
+        'mode' => 'utf-8',
+        'format' => 'A4-L',
+        'margin_left' => 15,
+        'margin_right' => 15,
+        'margin_top' => 20,
+        'margin_bottom' => 20,
+        'margin_header' => 10,
+        'margin_footer' => 10
+    ]);
     $mpdf->WriteHTML($html);
+    
+    // Agregar gráfico si se envió
+    if (!empty($_POST['grafico_inventario'])) {
+        $graficoData = $_POST['grafico_inventario'];
+        // Limpiar el prefijo data:image si existe
+        $graficoData = str_replace('data:image/png;base64,', '', $graficoData);
+        $graficoData = str_replace(' ', '', $graficoData);
+        $imagenBinaria = base64_decode($graficoData);
+        
+        if ($imagenBinaria !== false) {
+            // Guardar temporalmente en el directorio del proyecto
+            $tempPath = __DIR__ . '/../temp_grafico.png';
+            file_put_contents($tempPath, $imagenBinaria);
+            
+            // Agregar título del gráfico
+            $mpdf->WriteHTML('<h3 style="color: #10b981; margin: 20px 0 15px 0; font-size: 16px; text-align: center;">📊 Top 10 Productos por Stock</h3>');
+            
+            // Insertar imagen usando el método Image de mPDF
+            $mpdf->Image($tempPath, 0, '', 250, 150, 'png', '', true, false);
+            
+            // Limpiar archivo temporal
+            if (file_exists($tempPath)) {
+                unlink($tempPath);
+            }
+        }
+    }
+    
     $mpdf->Output('Inventario_Flores.pdf', \Mpdf\Output\Destination::DOWNLOAD);
+    
     exit;
 }
 
@@ -324,7 +405,9 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'pagos_pdf') {
                 !empty($pago['comprobante_transferencia']) ? $pago['comprobante_transferencia'] : 'Sin comprobante'
             ];
         }
-        renderWithFPDF('Pagos Seleccionados', $headers, $rows, 'Pagos_Seleccionados.pdf');
+        // Pasar el gráfico si se recibió
+        $graficoPagos = !empty($_POST['grafico_pagos']) ? $_POST['grafico_pagos'] : null;
+        renderWithFPDF('Pagos Seleccionados', $headers, $rows, 'Pagos_Seleccionados.pdf', $graficoPagos);
     }
 
     // Generar header con logo
@@ -389,6 +472,18 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'pagos_pdf') {
     }
 
     $html .= '</tbody></table>';
+    
+    // Agregar gráfico si se envió
+    if (!empty($_POST['grafico_pagos'])) {
+        $graficoData = $_POST['grafico_pagos'];
+        if (strpos($graficoData, 'data:image/png;base64,') === 0) {
+            $graficoData = str_replace('data:image/png;base64,', '', $graficoData);
+        }
+        $html .= '<div style="page-break-before: avoid; margin-top: 20px;">
+            <h3 style="color: #333; margin-bottom: 10px;">Estados de Pagos</h3>
+            <img src="data:image/png;base64,' . $graficoData . '" style="max-width: 100%; height: auto;" />
+        </div>';
+    }
 
     ob_clean();
     $mpdf = new \Mpdf\Mpdf();
@@ -468,6 +563,18 @@ if (!empty($pedidosSeleccionados)) {
 
 $html .= '</tbody></table>';
 
+// Agregar gráfico si se envió
+if (!empty($_POST['grafico_ventas'])) {
+    $graficoData = $_POST['grafico_ventas'];
+    if (strpos($graficoData, 'data:image/png;base64,') === 0) {
+        $graficoData = str_replace('data:image/png;base64,', '', $graficoData);
+    }
+    $html .= '<div style="page-break-before: avoid; margin-top: 20px;">
+        <h3 style="color: #333; margin-bottom: 10px;">Tendencia de Ventas (Últimos 7 días)</h3>
+        <img src="data:image/png;base64,' . $graficoData . '" style="max-width: 100%; height: auto;" />
+    </div>';
+}
+
 ob_clean();
 if ($pdfEngine === 'fpdf') {
     $headers = ['ID','Numero','Fecha','Entrega','Monto','Cliente','Estado','Empleado'];
@@ -484,7 +591,9 @@ if ($pdfEngine === 'fpdf') {
             $pedido['empleado_id'] ?? ''
         ];
     }
-    renderWithFPDF('Pedidos Seleccionados', $headers, $rows, 'Pedidos_Seleccionados.pdf');
+    // Pasar el gráfico si se recibió
+    $graficoVentas = !empty($_POST['grafico_ventas']) ? $_POST['grafico_ventas'] : null;
+    renderWithFPDF('Pedidos Seleccionados', $headers, $rows, 'Pedidos_Seleccionados.pdf', $graficoVentas);
 } elseif ($pdfEngine === 'mpdf') {
     $mpdf = new \Mpdf\Mpdf();
     $mpdf->WriteHTML($html);
