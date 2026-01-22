@@ -1,6 +1,26 @@
 <?php
 require_once __DIR__ . '/../models/mreportes.php';
 
+// Cargar logo de la empresa para PDFs
+require_once __DIR__ . '/../models/conexion.php';
+$conexion = (new conexion())->get_conexion();
+$logo_empresa_path = null;
+$nombre_empresa = 'FloralTech';
+try {
+    $stmt_empresa = $conexion->prepare("SELECT logo, nombre FROM empresa LIMIT 1");
+    $stmt_empresa->execute();
+    $empresa_data = $stmt_empresa->fetch(PDO::FETCH_ASSOC);
+    if ($empresa_data && !empty($empresa_data['logo'])) {
+        $logo_path = __DIR__ . '/../' . $empresa_data['logo'];
+        if (file_exists($logo_path)) {
+            $logo_empresa_path = $logo_path;
+        }
+    }
+    $nombre_empresa = $empresa_data['nombre'] ?? 'FloralTech';
+} catch (Exception $e) {
+    // Usar valores por defecto
+}
+
 // Seleccionar motor PDF disponible (mPDF si existe, FPDF si no)
 $mpdfPath = dirname(__DIR__) . '/vendor/autoload.php';
 $fpdfPath = __DIR__ . '/../libs/FPDF/fpdf.php';
@@ -20,12 +40,28 @@ $mreportes = new Mreportes();
  * Fallback sencillo con FPDF si no hay vendor/autoload.
  */
 function renderWithFPDF($titulo, $headers, $rows, $fileName) {
+    global $logo_empresa_path, $nombre_empresa;
+    
     $pdf = new FPDF('L', 'mm', 'A4');
     $pdf->AddPage();
-    $pdf->SetFont('Arial', 'B', 16);
-    $pdf->Cell(0, 10, utf8_decode($titulo), 0, 1, 'C');
+    
+    // Agregar logo si existe
+    if ($logo_empresa_path) {
+        $pdf->Image($logo_empresa_path, 10, 8, 40);
+        $pdf->SetXY(55, 10);
+        $pdf->SetFont('Arial', 'B', 18);
+        $pdf->Cell(0, 10, utf8_decode($nombre_empresa), 0, 1);
+        $pdf->SetXY(55, 18);
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->Cell(0, 6, utf8_decode($titulo), 0, 1);
+    } else {
+        $pdf->SetFont('Arial', 'B', 16);
+        $pdf->Cell(0, 10, utf8_decode($titulo), 0, 1, 'C');
+    }
+    
     $pdf->SetFont('Arial', '', 10);
     $pdf->Cell(0, 7, 'Generado: ' . date('d/m/Y H:i:s'), 0, 1, 'R');
+    
     // Headers
     $pdf->SetFont('Arial', 'B', 9);
     foreach ($headers as $h) {
@@ -52,6 +88,9 @@ function renderWithFPDF($titulo, $headers, $rows, $fileName) {
 $baseCss = '
     <style>
         body { font-family: Arial, Helvetica, sans-serif; color: #2c3e50; font-size: 12px; }
+        .header-logo { text-align: center; margin-bottom: 20px; }
+        .header-logo img { max-width: 200px; max-height: 80px; }
+        .header-logo h2 { margin: 10px 0 5px 0; color: #1a5276; }
         h1 { text-align: center; color: #1a5276; border-bottom: 2px solid #1a5276; padding-bottom: 8px; margin-bottom: 18px; }
         .meta { text-align: right; color: #555; font-size: 11px; }
         table { width: 100%; border-collapse: collapse; margin-top: 12px; }
@@ -96,7 +135,19 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'usuarios_pdf') {
         renderWithFPDF('Reporte de Usuarios', $headers, $rows, 'Usuarios_Seleccionados.pdf');
     }
 
+    // Generar header con logo para mPDF
+    $headerHtml = '';
+    if ($logo_empresa_path) {
+        $logo_data = base64_encode(file_get_contents($logo_empresa_path));
+        $logo_extension = pathinfo($logo_empresa_path, PATHINFO_EXTENSION);
+        $headerHtml = '<div class="header-logo">
+            <img src="data:image/' . $logo_extension . ';base64,' . $logo_data . '" alt="Logo">
+            <h2>' . htmlspecialchars($nombre_empresa) . '</h2>
+        </div>';
+    }
+
     $html = $baseCss;
+    $html .= $headerHtml;
     $html .= '<h1>Reporte de Usuarios Seleccionados</h1>';
     $html .= '<p class="meta">Generado el ' . date("d/m/Y H:i") . '</p>';
     if ($tipo) {
@@ -175,7 +226,19 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'flores_pdf') {
         renderWithFPDF('Inventario de Flores', $headers, $rows, 'Inventario_Flores.pdf');
     }
 
+    // Generar header con logo
+    $headerHtml = '';
+    if ($logo_empresa_path) {
+        $logo_data = base64_encode(file_get_contents($logo_empresa_path));
+        $logo_extension = pathinfo($logo_empresa_path, PATHINFO_EXTENSION);
+        $headerHtml = '<div class="header-logo">
+            <img src="data:image/' . $logo_extension . ';base64,' . $logo_data . '" alt="Logo">
+            <h2>' . htmlspecialchars($nombre_empresa) . '</h2>
+        </div>';
+    }
+
     $html = $baseCss;
+    $html .= $headerHtml;
     $html .= '<h1>Reporte de Inventario de Flores</h1>';
     $html .= '<p class="meta">Generado el ' . date("d/m/Y H:i") . '</p>';
     $html .= '<p class="meta">Items: ' . count($floresSeleccionadas) . ' | Stock total: ' . $totalStock . ' | Valor: $' . number_format($totalValor, 2) . '</p>';
@@ -264,7 +327,19 @@ if (isset($_POST['accion']) && $_POST['accion'] === 'pagos_pdf') {
         renderWithFPDF('Pagos Seleccionados', $headers, $rows, 'Pagos_Seleccionados.pdf');
     }
 
+    // Generar header con logo
+    $headerHtml = '';
+    if ($logo_empresa_path) {
+        $logo_data = base64_encode(file_get_contents($logo_empresa_path));
+        $logo_extension = pathinfo($logo_empresa_path, PATHINFO_EXTENSION);
+        $headerHtml = '<div class="header-logo">
+            <img src="data:image/' . $logo_extension . ';base64,' . $logo_data . '" alt="Logo">
+            <h2>' . htmlspecialchars($nombre_empresa) . '</h2>
+        </div>';
+    }
+
     $html = $baseCss;
+    $html .= $headerHtml;
     $html .= '<h1>Reporte de Pagos Seleccionados</h1>';
     $html .= '<p class="meta">Generado el ' . date("d/m/Y H:i") . '</p>';
     $html .= '<p class="meta">Pagos: ' . count($pagosSeleccionados) . ' | Completados: ' . $completados . ' | Pendientes: ' . $pendientes . ' | Monto total: $' . number_format($totalMonto, 2) . '</p>';
@@ -334,7 +409,19 @@ $montoTotal = array_sum(array_column($pedidosSeleccionados, 'monto_total'));
 $completados = count(array_filter($pedidosSeleccionados, fn($p) => strtolower($p['estado']) === 'completado'));
 $pendientes = count(array_filter($pedidosSeleccionados, fn($p) => strtolower($p['estado']) === 'pendiente'));
 
+// Generar header con logo
+$headerHtml = '';
+if ($logo_empresa_path) {
+    $logo_data = base64_encode(file_get_contents($logo_empresa_path));
+    $logo_extension = pathinfo($logo_empresa_path, PATHINFO_EXTENSION);
+    $headerHtml = '<div class="header-logo">
+        <img src="data:image/' . $logo_extension . ';base64,' . $logo_data . '" alt="Logo">
+        <h2>' . htmlspecialchars($nombre_empresa) . '</h2>
+    </div>';
+}
+
 $html = $baseCss;
+$html .= $headerHtml;
 $html .= '<h1>Reporte de Pedidos Seleccionados</h1>';
 $html .= '<p class="meta">Generado el ' . date("d/m/Y H:i") . '</p>';
 $html .= '<p class="meta">Pedidos: ' . $totalPedidos . ' | Completados: ' . $completados . ' | Pendientes: ' . $pendientes . ' | Monto total: $' . number_format($montoTotal, 2) . '</p>';

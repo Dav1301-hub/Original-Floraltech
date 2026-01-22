@@ -12,6 +12,20 @@ $max_attempts = isset($_SESSION['max_attempts']) ? $_SESSION['max_attempts'] : 3
 $account_locked = isset($_SESSION['account_locked']) ? $_SESSION['account_locked'] : false;
 $lockout_time = isset($_SESSION['lockout_time']) ? $_SESSION['lockout_time'] : null;
 
+// Cargar logo de la empresa
+require_once __DIR__ . '/../models/conexion.php';
+$conexion = (new conexion())->get_conexion();
+try {
+    $stmt_empresa = $conexion->prepare("SELECT logo, nombre FROM empresa LIMIT 1");
+    $stmt_empresa->execute();
+    $empresa_data = $stmt_empresa->fetch(PDO::FETCH_ASSOC);
+    $logo_empresa = $empresa_data['logo'] ?? null;
+    $nombre_empresa = $empresa_data['nombre'] ?? 'FloralTech';
+} catch (Exception $e) {
+    $logo_empresa = null;
+    $nombre_empresa = 'FloralTech';
+}
+
 // Limpiar los mensajes después de mostrarlos
 unset($_SESSION['login_error']);
 unset($_SESSION['register_success']);
@@ -33,7 +47,12 @@ unset($_SESSION['forgot_success']);
     <div class="row w-75 shadow-lg rounded overflow-hidden">
         <!-- Sección del Logo -->
         <div class="col-md-6 d-flex flex-column align-items-center justify-content-center" style="background:rgba(181,180,180,0.65); padding: 40px 0;">
-            <img src="assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:320px;">
+            <?php if (!empty($logo_empresa) && file_exists(__DIR__ . '/../' . $logo_empresa)): ?>
+                <img src="<?= htmlspecialchars($logo_empresa) ?>?v=<?= time() ?>" alt="Logo <?= htmlspecialchars($nombre_empresa) ?>" class="mb-4" style="max-width:320px; max-height:200px; width: auto; height: auto; object-fit: contain;">
+                <h2 class="text-center fw-bold mb-3" style="color: #333; font-size: 2rem;"><?= htmlspecialchars($nombre_empresa) ?></h2>
+            <?php else: ?>
+                <img src="assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:320px;">
+            <?php endif; ?>
             <p class="text-center px-3" style="font-size:1.2rem; color: #333;">"Gestiona tu floristería con facilidad, ¡deja que la tecnología florezca contigo!"</p>
         </div>
 
