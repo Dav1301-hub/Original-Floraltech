@@ -178,7 +178,7 @@ function badgeClaseEstado($estado)
                             <div class="card border-0 shadow-sm">
                                 <div class="card-body">
                                     <h6 class="text-muted mb-3"><i class="bi bi-graph-up me-2"></i>Tendencia de Ventas (Últimos 7 días)</h6>
-                                    <canvas id="chartVentasTendencia" height="80"></canvas>
+                                    <div style="height: 200px;"><canvas id="chartVentasTendencia"></canvas></div>
                                 </div>
                             </div>
                         </div>
@@ -285,7 +285,7 @@ function badgeClaseEstado($estado)
                             <div class="card border-0 shadow-sm">
                                 <div class="card-body text-center">
                                     <h6 class="text-muted mb-3"><i class="bi bi-pie-chart me-2"></i>Distribución por Rol</h6>
-                                    <canvas id="chartUsuariosRol" height="180"></canvas>
+                                    <div style="height: 250px;"><canvas id="chartUsuariosRol"></canvas></div>
                                 </div>
                             </div>
                         </div>
@@ -404,7 +404,7 @@ function badgeClaseEstado($estado)
                             <div class="card border-0 shadow-sm">
                                 <div class="card-body">
                                     <h6 class="text-muted mb-3"><i class="bi bi-bar-chart me-2"></i>Top 10 Productos por Stock</h6>
-                                    <canvas id="chartInventarioTop" height="100"></canvas>
+                                    <div style="height: 300px;"><canvas id="chartInventarioTop"></canvas></div>
                                 </div>
                             </div>
                         </div>
@@ -519,7 +519,7 @@ function badgeClaseEstado($estado)
                             <div class="card border-0 shadow-sm">
                                 <div class="card-body text-center">
                                     <h6 class="text-muted mb-3"><i class="bi bi-pie-chart-fill me-2"></i>Estados de Pagos</h6>
-                                    <canvas id="chartPagosEstados" height="180"></canvas>
+                                    <div style="height: 250px;"><canvas id="chartPagosEstados"></canvas></div>
                                 </div>
                             </div>
                         </div>
@@ -605,6 +605,7 @@ function badgeClaseEstado($estado)
 
     <script src="assets/repo.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
     // Gráfico de Tendencia de Ventas (Línea)
     document.addEventListener('DOMContentLoaded', function() {
