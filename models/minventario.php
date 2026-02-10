@@ -1224,7 +1224,56 @@ class Minventario {
             return ['success' => false, 'message' => 'Error de base de datos: ' . $e->getMessage()];
         }
     }
+
+    /**
+     * Descontar stock al realizar un pedido
+     */
+    public function descontarStock($idtflor, $cantidad) {
+        try {
+            // Verificar stock actual
+            $sql_verificar = "SELECT idinv, stock, cantidad_disponible FROM inv WHERE tflor_idtflor = :tflor_id";
+            $stmt_verificar = $this->db->prepare($sql_verificar);
+            $stmt_verificar->bindParam(':tflor_id', $idtflor, PDO::PARAM_INT);
+            $stmt_verificar->execute();
+            $inventario = $stmt_verificar->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$inventario) {
+                throw new Exception("El producto no existe en inventario");
+            }
+            
+            if ($inventario['cantidad_disponible'] < $cantidad) {
+                throw new Exception("Stock insuficiente para el producto seleccionado");
+            }
+            
+            $nuevo_stock = $inventario['stock'] - $cantidad;
+            $nueva_disponibilidad = $inventario['cantidad_disponible'] - $cantidad;
+            
+            // Actualizar stock
+            $sql_update = "UPDATE inv SET stock = :nuevo_stock, cantidad_disponible = :nueva_disponibilidad, fecha_actualizacion = NOW() WHERE idinv = :idinv";
+            $stmt_update = $this->db->prepare($sql_update);
+            $stmt_update->bindParam(':nuevo_stock', $nuevo_stock, PDO::PARAM_INT);
+            $stmt_update->bindParam(':nueva_disponibilidad', $nueva_disponibilidad, PDO::PARAM_INT);
+            $stmt_update->bindParam(':idinv', $inventario['idinv'], PDO::PARAM_INT);
+            
+            if (!$stmt_update->execute()) {
+                throw new Exception("Error al actualizar el stock");
+            }
+            
+            // Registrar en historial
+            $this->registrarMovimientoInventario(
+                $inventario['idinv'], 
+                $inventario['stock'], 
+                $nuevo_stock, 
+                "Venta online - Reducción de stock"
+            );
+            
+            return true;
+            
+        } catch (Exception $e) {
+            throw $e;
+        } catch (PDOException $e) {
+            throw new Exception("Error de base de datos al descontar stock: " . $e->getMessage());
+        }
+    }
 }
 ?>
-
-
