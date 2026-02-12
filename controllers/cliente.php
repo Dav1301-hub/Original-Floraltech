@@ -206,7 +206,14 @@ class cliente {
                 $stmt->execute([$numped, $monto_total, $this->cliente_id, $direccion_entrega, $fecha_entrega]);
                 $pedido_id = $this->db->lastInsertId();
                 
+                // Instanciar modelo de inventario para descontar stock
+                require_once 'models/minventario.php';
+                $modeloInventario = new Minventario(); // Usando la conexión existente o creando una nueva, Minventario gestiona su propia conexión
+
                 foreach ($detalles_pedido as $detalle) {
+                    // Descontar stock PRIMERO antes de insertar detalle
+                    $modeloInventario->descontarStock($detalle['idtflor'], $detalle['cantidad']);
+
                     $stmt = $this->db->prepare("
                         INSERT INTO detped (idped, idtflor, cantidad, precio_unitario) 
                         VALUES (?, ?, ?, ?)
