@@ -12,57 +12,132 @@ $isModal = isset($_GET['modal']) && $_GET['modal'] == '1';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nuevo Pedido - FloralTech Empleado</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../../assets/dashboard-general.css">
+    <link rel="stylesheet" href="assets/css/dashboard-general.css">
+    <link rel="stylesheet" href="assets/css/dashboard-cliente.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-green: #28a745;
+            --secondary-green: #20c997;
+            --accent-blue: #3b82f6;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --border-radius: 12px;
+        }
+
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: #f8fafc;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
         }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
         .navbar {
-            background: linear-gradient(135deg, #28a745, #20c997);
+            background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));
+            padding: 0.75rem 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: none;
         }
+
+        .main-content {
+            padding: 1.5rem;
+            width: 100%;
+        }
+
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            background: white;
+            transition: transform 0.3s ease;
+        }
+
         .flower-card { 
-            border: 1px solid #e0e0e0; 
-            border-radius: 10px; 
-            padding: 15px; 
-            margin-bottom: 15px; 
+            border: 1px solid #f1f5f9; 
+            border-radius: var(--border-radius); 
+            padding: 1rem; 
+            margin-bottom: 1rem; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #ffffff;
+            position: relative;
+        }
+
+        .flower-card:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08); 
+            border-color: var(--primary-green); 
+        }
+
+        .flower-card.selected { 
+            border-color: var(--primary-green); 
+            background-color: #f0fdf4; 
+            box-shadow: 0 0 0 2px var(--primary-green);
+        }
+
+        .flower-card.no-stock { 
+            opacity: 0.7; 
+            background-color: #f8fafc; 
+            border-color: #e2e8f0 !important; 
+            cursor: not-allowed;
+        }
+
+        .quantity-control input { 
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .total-summary { 
+            background: white; 
+            border-radius: var(--border-radius); 
+            padding: 1.5rem; 
+            position: sticky; 
+            top: 2rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid #f1f5f9;
+        }
+
+        .badge-stock { 
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));
+            border: none;
+            padding: 0.75rem;
+            font-weight: 600;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(40, 167, 69, 0.2);
             transition: all 0.3s ease;
         }
-        .flower-card:hover { 
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
-            border-color: #28a745; 
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(40, 167, 69, 0.3);
         }
-        .flower-card.selected { 
-            border-color: #28a745; 
-            background-color: #f8fff9; 
+
+        .form-select, .form-control {
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            padding: 0.6rem 1rem;
+            transition: border-color 0.3s ease;
         }
-        .flower-card.no-stock { 
-            opacity: 0.6; 
-            background-color: #f8f9fa; 
-            border-color: #e0e0e0 !important; 
-        }
-        .quantity-control { 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-        }
-        .quantity-control input { 
-            width: 70px; 
-            text-align: center; 
-        }
-        .total-summary { 
-            background-color: #f8f9fa; 
-            border-radius: 10px; 
-            padding: 20px; 
-            position: sticky; 
-            top: 20px;
-        }
-        .badge-stock { 
-            position: absolute; 
-            top: 10px; 
-            right: 10px; 
+
+        .form-select:focus, .form-control:focus {
+            border-color: var(--primary-green);
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
         }
     </style>
 </head>
@@ -79,7 +154,8 @@ $isModal = isset($_GET['modal']) && $_GET['modal'] == '1';
             </div>
         </nav>
 
-        <div class="container-fluid mt-4 mb-4">
+        <div class="main-content">
+            <div class="container-fluid px-0">
             <div class="row">
                 <!-- Columna Principal - Flores -->
                 <div class="col-md-8">
@@ -140,8 +216,8 @@ $isModal = isset($_GET['modal']) && $_GET['modal'] == '1';
                                                     >
                                                 </div>
                                                 <div class="col-md-7">
-                                                    <h6 class="mb-1"><?= htmlspecialchars($flor['nombre']) ?></h6>
-                                                    <small class="text-muted"><?= htmlspecialchars($flor['color'] ?? '') ?></small>
+                                                    <h6 class="mb-1 fw-bold"><?= htmlspecialchars($flor['nombre']) ?></h6>
+                                                    <p class="text-muted mb-0 small"><i class="fas fa-tags me-1"></i><?= htmlspecialchars($flor['color'] ?? '') ?></p>
                                                 </div>
                                                 <div class="col-md-2">
                                                     <input 
@@ -211,10 +287,10 @@ $isModal = isset($_GET['modal']) && $_GET['modal'] == '1';
                         <div class="mb-3">
                             <div class="row">
                                 <div class="col-6">
-                                    <small class="text-muted">Subtotal:</small>
+                                    <span class="text-muted">Subtotal</span>
                                 </div>
                                 <div class="col-6 text-end">
-                                    <strong id="subtotal">$0.00</strong>
+                                    <span id="subtotal" class="fw-bold">$0.00</span>
                                 </div>
                             </div>
                             <div class="row mt-2">
@@ -303,8 +379,8 @@ $isModal = isset($_GET['modal']) && $_GET['modal'] == '1';
 <form id="pedidoFormModal" method="POST" action="index.php?ctrl=empleado&action=crearPedidoEmpleado">
     <!-- Cliente -->
     <div class="mb-3">
-        <label for="cli_id_modal" class="form-label">Cliente</label>
-        <select id="cli_id_modal" name="cli_id" class="form-select form-select-sm" required>
+        <label for="cli_id_modal" class="form-label fw-bold">Cliente</label>
+        <select id="cli_id_modal" name="cli_id" class="form-select" required>
             <option value="">Selecciona cliente...</option>
             <?php foreach ($clientes as $cliente): ?>
                 <option value="<?= $cliente['idcli'] ?>"><?= htmlspecialchars($cliente['nombre']) ?></option>
@@ -314,48 +390,65 @@ $isModal = isset($_GET['modal']) && $_GET['modal'] == '1';
 
     <!-- Flores (versión comprimida para modal) -->
     <div class="mb-3">
-        <label class="form-label">Flores</label>
-        <input type="text" class="form-control form-control-sm mb-2" id="flowerSearchModal" onkeyup="filterFlowersModal()" placeholder="Buscar...">
-        <div id="floresContainerModal" style="max-height: 300px; overflow-y: auto;">
+        <label class="form-label fw-bold">Flores</label>
+        <div class="input-group input-group-sm mb-2">
+            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+            <input type="text" class="form-control border-start-0" id="flowerSearchModal" onkeyup="filterFlowersModal()" placeholder="Filtrar flores...">
+        </div>
+        <div id="floresContainerModal" class="border rounded-3 p-2 bg-light" style="max-height: 300px; overflow-y: auto;">
             <?php foreach ($flores as $flor): ?>
-                <div class="form-check flower-item-modal" data-name="<?= strtolower($flor['nombre']) ?>">
-                    <input 
-                        class="form-check-input" 
-                        type="checkbox" 
-                        id="flor_modal_<?= $flor['idtflor'] ?>"
-                        name="flores[<?= $flor['idtflor'] ?>][selected]"
-                        value="1"
-                        <?= $flor['stock'] <= 0 ? 'disabled' : '' ?>
-                    >
-                    <label class="form-check-label small" for="flor_modal_<?= $flor['idtflor'] ?>">
-                        <?= htmlspecialchars($flor['nombre']) ?> 
-                        <span class="badge badge-sm bg-info ms-2">$<?= number_format($flor['precio'], 2) ?></span>
-                    </label>
+                <div class="p-2 mb-2 bg-white rounded-2 shadow-sm flower-item-modal" data-name="<?= strtolower($flor['nombre']) ?>">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="form-check mb-0">
+                            <input 
+                                class="form-check-input" 
+                                type="checkbox" 
+                                id="flor_modal_<?= $flor['idtflor'] ?>"
+                                name="flores[<?= $flor['idtflor'] ?>][selected]"
+                                value="1"
+                                <?= $flor['stock'] <= 0 ? 'disabled' : '' ?>
+                                onchange="this.parentElement.parentElement.nextElementSibling.disabled = !this.checked; if(this.checked && this.parentElement.parentElement.nextElementSibling.value == 0) this.parentElement.parentElement.nextElementSibling.value = 1;"
+                            >
+                            <label class="form-check-label small" for="flor_modal_<?= $flor['idtflor'] ?>">
+                                <strong><?= htmlspecialchars($flor['nombre']) ?></strong>
+                            </label>
+                        </div>
+                        <span class="badge rounded-pill bg-light text-dark border">$<?= number_format($flor['precio'], 2) ?></span>
+                    </div>
                     <input 
                         type="number" 
-                        class="form-control form-control-sm mt-1"
+                        class="form-control form-control-sm mt-2"
                         name="flores[<?= $flor['idtflor'] ?>][cantidad]"
                         value="0"
                         min="0"
+                        placeholder="Cant."
                         disabled
                     >
+                    <?php if ($flor['stock'] <= 0): ?>
+                        <div class="text-danger x-small mt-1"><i class="fas fa-times-circle me-1"></i>Sin stock</div>
+                    <?php else: ?>
+                        <div class="text-success x-small mt-1"><i class="fas fa-check-circle me-1"></i>Stock: <?= $flor['stock'] ?></div>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         </div>
     </div>
 
-    <div class="mb-3">
-        <label for="direccion_modal" class="form-label form-label-sm">Dirección</label>
-        <input type="text" class="form-control form-control-sm" id="direccion_modal" name="direccion_entrega">
-    </div>
-
-    <div class="mb-3">
-        <label for="fecha_modal" class="form-label form-label-sm">Fecha Entrega</label>
-        <input type="date" class="form-control form-control-sm" id="fecha_modal" name="fecha_entrega">
+    <div class="row g-2 mb-3">
+        <div class="col-6">
+            <label for="direccion_modal" class="form-label small fw-bold">Dirección</label>
+            <input type="text" class="form-control form-control-sm" id="direccion_modal" name="direccion_entrega" placeholder="Ej: Calle 123...">
+        </div>
+        <div class="col-6">
+            <label for="fecha_modal" class="form-label small fw-bold">Fecha Entrega</label>
+            <input type="date" class="form-control form-control-sm" id="fecha_modal" name="fecha_entrega">
+        </div>
     </div>
 
     <input type="hidden" id="monto_total_modal" name="monto_total" value="0">
-    <button type="submit" class="btn btn-success btn-sm w-100">Crear Pedido</button>
+    <button type="submit" class="btn btn-success w-100 py-2">
+        <i class="fas fa-plus-circle me-1"></i> Crear Pedido
+    </button>
 </form>
 
 <script>

@@ -10,8 +10,25 @@ $usuario = $_SESSION['user'];
 
 // Conectar a la base de datos
 require_once 'models/conexion.php';
+require_once 'models/MDashboardGeneral.php';
 $conn = new conexion();
 $db = $conn->get_conexion();
+
+// Manejar filtros de periodo
+$mes = isset($_GET['mes']) ? (int)$_GET['mes'] : null;
+$ano = isset($_GET['ano']) ? (int)$_GET['ano'] : null;
+
+if (isset($_GET['periodo']) && !empty($_GET['periodo'])) {
+    $parts = explode('-', $_GET['periodo']);
+    if (count($parts) === 2) {
+        $mes = (int)$parts[0];
+        $ano = (int)$parts[1];
+    }
+}
+
+$modeloGeneral = new MDashboardGeneral($db);
+$periodos_disponibles = $modeloGeneral->getPeriodosDisponibles();
+$filtro = ['mes' => $mes, 'ano' => $ano];
 
 // Buscar el cliente asociado al usuario actual por email
 try {
@@ -31,6 +48,15 @@ try {
         $cliente_id = $db->lastInsertId();
     } else {
         $cliente_id = $cliente_data['idcli'];
+    }
+
+    // Preparar WHERE para filtros de fecha
+    $where_date = "";
+    $params_stats = [$cliente_id];
+    if ($mes && $ano) {
+        $where_date = "AND MONTH(p.fecha_pedido) = ? AND YEAR(p.fecha_pedido) = ?";
+        $params_stats[] = $mes;
+        $params_stats[] = $ano;
     }
 
     // Obtener estadísticas del cliente con una sola consulta optimizada
@@ -69,9 +95,10 @@ $stmt = $db->prepare("
         MAX(p.fecha_pedido) as ultimo_pedido
     FROM ped p 
     LEFT JOIN pagos pg ON p.idped = pg.ped_idped 
-    WHERE p.cli_idcli = ?
+    WHERE p.cli_idcli = ? 
+    $where_date
 ");
-    $stmt->execute([$cliente_id]);
+    $stmt->execute($params_stats);
     $estadisticas = $stmt->fetch(PDO::FETCH_ASSOC);
         
     // Extraer estadísticas
@@ -88,6 +115,14 @@ $stmt = $db->prepare("
     $dias_ultimo_pedido = $ultimo_pedido ? floor((time() - strtotime($ultimo_pedido)) / (60 * 60 * 24)) : null;
 
     // Pedidos recientes con más detalles
+    $where_orders = "";
+    $params_orders = [$cliente_id];
+    if ($mes && $ano) {
+        $where_orders = "AND MONTH(p.fecha_pedido) = ? AND YEAR(p.fecha_pedido) = ?";
+        $params_orders[] = $mes;
+        $params_orders[] = $ano;
+    }
+
     $stmt = $db->prepare("
         SELECT 
             p.*,
@@ -102,11 +137,12 @@ $stmt = $db->prepare("
         LEFT JOIN detped dp ON p.idped = dp.idped
         LEFT JOIN tflor tf ON dp.idtflor = tf.idtflor
         WHERE p.cli_idcli = ? 
+        $where_orders
         GROUP BY p.idped
         ORDER BY p.fecha_pedido DESC 
-        LIMIT 5
+        LIMIT 10
     ");
-    $stmt->execute([$cliente_id]);
+    $stmt->execute($params_orders);
     $pedidos_recientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Actividad reciente mejorada con más detalles
@@ -210,7 +246,7 @@ $stmt = $db->prepare("
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= isset($pageTitle) ? $pageTitle : 'Dashboard - Cliente' ?> - FloralTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/dashboard-cliente.css">
+    <link rel="stylesheet" href="assets/css/dashboard-cliente.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -254,13 +290,38 @@ $stmt = $db->prepare("
         <?php endif; ?>
 
         <!-- Saludo Principal Estilizado -->
-        <div class="welcome-card card">
-            <div class="card-body">
-                <div class="welcome-header">
-                    <h2>¡Hola, <?= explode(' ', $usuario['nombre_completo'])[0] ?>!</h2>
-                    <p>
-                            Bienvenido a FloralTech
-                    </p>
+        <div class="welcome-card card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <div class="welcome-header d-flex justify-content-between align-items-center flex-wrap gap-3 text-start">
+                    <div>
+                        <h2 class="mb-1 text-primary">¡Hola, <?= explode(' ', $usuario['nombre_completo'])[0] ?>!</h2>
+                        <p class="text-muted mb-0">Bienvenido a FloralTech. Aquí tienes un resumen de tu actividad.</p>
+                    </div>
+                    
+                    <!-- Filtro de Periodo -->
+                    <div class="period-filter bg-white p-2 rounded shadow-sm border">
+                        <form action="index.php" method="GET" class="d-flex align-items-center gap-2">
+                            <input type="hidden" name="ctrl" value="cliente">
+                            <input type="hidden" name="action" value="dashboard">
+                            <label class="small fw-bold text-muted mb-0"><i class="fas fa-filter me-1"></i>Periodo:</label>
+                            <select name="periodo" class="form-select form-select-sm border-0 bg-light" onchange="this.form.submit()" style="min-width: 150px;">
+                                <option value="">Todo el historial</option>
+                                <?php if (!empty($periodos_disponibles)): ?>
+                                    <?php foreach ($periodos_disponibles as $p): 
+                                        $val = $p['mes'] . '-' . $p['ano'];
+                                        $selected = (isset($filtro['mes']) && $filtro['mes'] == $p['mes'] && $filtro['ano'] == $p['ano']) ? 'selected' : '';
+                                        $meses_es = [
+                                            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio',
+                                            7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+                                        ];
+                                        $mes_texto = $meses_es[$p['mes']] ?? $p['mes'];
+                                    ?>
+                                        <option value="<?= $val ?>" <?= $selected ?>><?= $mes_texto ?> <?= $p['ano'] ?></option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -268,19 +329,19 @@ $stmt = $db->prepare("
             <!-- Statistics minimalistas -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-icon">
+                    <div class="stat-icon primary">
                         <i class="fas fa-shopping-bag"></i>
                     </div>
                     <div class="stat-number"><?= number_format($total_pedidos) ?></div>
-                    <div class="stat-label">Pedidos</div>
+                    <div class="stat-label"><?= (isset($filtro['mes']) && !empty($filtro['mes'])) ? 'Pedidos del Periodo' : 'Total Pedidos' ?></div>
                 </div>
 
                 <div class="stat-card">
-                    <div class="stat-icon">
+                    <div class="stat-icon warning">
                         <i class="fas fa-clock"></i>
                     </div>
                     <div class="stat-number"><?= number_format($pedidos_pendientes) ?></div>
-                    <div class="stat-label">Pedidos pendientes</div>
+                    <div class="stat-label">Pendientes de Envío</div>
                     <?php if ($pedidos_pendientes > 0): ?>
                         <div class="stat-change negative">
                             <i class="fas fa-exclamation-triangle"></i>
@@ -289,14 +350,27 @@ $stmt = $db->prepare("
                 </div>
 
                 <div class="stat-card">
-                    <div class="stat-icon">
+                    <div class="stat-icon danger">
                         <i class="fas fa-credit-card"></i>
                     </div>
                     <div class="stat-number"><?= number_format($pagos_pendientes) ?></div>
                     <div class="stat-label">Por Pagar</div>
-                    <?php if ($pagos_pendientes > 0): ?>
-                        
-                    <?php endif; ?>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon success">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-number"><?= number_format($pedidos_completados) ?></div>
+                    <div class="stat-label">Completados</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon info">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="stat-number">$<?= number_format($estadisticas['total_gastado'], 2) ?></div>
+                    <div class="stat-label"><?= (isset($filtro['mes']) && !empty($filtro['mes'])) ? 'Gastado en Periodo' : 'Total Gastado' ?></div>
                 </div>
             </div>
 
@@ -321,7 +395,7 @@ $stmt = $db->prepare("
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach (array_slice($pedidos_recientes, 0, 5) as $pedido): ?>
+                                        <?php foreach ($pedidos_recientes as $pedido): ?>
                                             <tr>
                                                 <td>
                                                     <strong>#<?= htmlspecialchars($pedido['numped']) ?></strong>
@@ -445,6 +519,6 @@ $stmt = $db->prepare("
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/dashboard-cliente.js"></script>
+    <script src="assets/js/dashboard-cliente.js"></script>
 </body>
 </html>

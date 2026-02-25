@@ -25,10 +25,29 @@ class empleado {
     public function dashboard() {
         $user = $_SESSION['user'];
         
-        // Obtener estadísticas del empleado
-        $stats = $this->obtenerEstadisticas();
+        // Manejar filtros de periodo
+        $mes = isset($_GET['mes']) ? (int)$_GET['mes'] : null;
+        $ano = isset($_GET['ano']) ? (int)$_GET['ano'] : null;
+        
+        if (isset($_GET['periodo']) && !empty($_GET['periodo'])) {
+            $parts = explode('-', $_GET['periodo']);
+            if (count($parts) === 2) {
+                $mes = (int)$parts[0];
+                $ano = (int)$parts[1];
+            }
+        }
+
+        // Obtener periodos disponibles para el filtro
+        require_once 'models/MDashboardGeneral.php';
+        $modeloGeneral = new MDashboardGeneral($this->db);
+        $periodos = $modeloGeneral->getPeriodosDisponibles();
+        $filtro = ['mes' => $mes, 'ano' => $ano];
+
+        // Obtener estadísticas del empleado con filtros
+        $stats = $this->obtenerEstadisticas($mes, $ano);
         $pedidos_pendientes = $this->obtenerPedidosPendientes();
         $pagos_pendientes = $this->obtenerPagosPendientes();
+        $stock_critico = $this->obtenerStockCritico();
         
         include 'views/empleado/dashboard.php';
     }
@@ -202,20 +221,39 @@ class empleado {
     }
     
     // Métodos privados para obtener datos
-    private function obtenerEstadisticas() {
+    private function obtenerEstadisticas($mes = null, $ano = null) {
         try {
             $stats = [];
             
-            // Pedidos de hoy
-            $stmt = $this->db->prepare("
-                SELECT COUNT(*) as total 
-                FROM ped 
-                WHERE DATE(fecha_pedido) = CURDATE()
-            ");
-            $stmt->execute();
+            // Si no se especifica mes/año, usar el mes actual
+            $where_date = "";
+            $params = [];
+            
+            if ($mes && $ano) {
+                $where_month_year = "WHERE MONTH(fecha_pedido) = ? AND YEAR(fecha_pedido) = ?";
+                $params = [$mes, $ano];
+                
+                // Pedidos del periodo
+                $stmt = $this->db->prepare("
+                    SELECT COUNT(*) as total 
+                    FROM ped 
+                    $where_month_year
+                ");
+                $stmt->execute($params);
+            } else {
+                $where_month_year = "WHERE MONTH(fecha_pedido) = MONTH(CURDATE()) AND YEAR(fecha_pedido) = YEAR(CURDATE())";
+                
+                // Pedidos de hoy
+                $stmt = $this->db->prepare("
+                    SELECT COUNT(*) as total 
+                    FROM ped 
+                    WHERE DATE(fecha_pedido) = CURDATE()
+                ");
+                $stmt->execute();
+            }
             $stats['pedidos_hoy'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
             
-            // Pedidos pendientes
+            // Pedidos pendientes (Globales, no filtrados por fecha usualmente)
             $stmt = $this->db->prepare("
                 SELECT COUNT(*) as total 
                 FROM ped 
@@ -224,7 +262,7 @@ class empleado {
             $stmt->execute();
             $stats['pedidos_pendientes'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
             
-            // Pagos pendientes
+            // Pagos pendientes (Globales)
             $stmt = $this->db->prepare("
                 SELECT COUNT(*) as total 
                 FROM pagos 
@@ -233,19 +271,20 @@ class empleado {
             $stmt->execute();
             $stats['pagos_pendientes'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
             
-            // Ventas del mes
-            $stmt = $this->db->prepare("
+            // Ventas del mes (ESTO SÍ SE FILTRA TOTALMENTE)
+            $sql_ventas = "
                 SELECT COALESCE(SUM(monto_total), 0) as total 
                 FROM ped 
-                WHERE MONTH(fecha_pedido) = MONTH(CURDATE()) 
-                AND YEAR(fecha_pedido) = YEAR(CURDATE())
+                $where_month_year
                 AND estado = 'Completado'
-            ");
-            $stmt->execute();
+            ";
+            $stmt = $this->db->prepare($sql_ventas);
+            $stmt->execute($params);
             $stats['ventas_mes'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
             
             return $stats;
         } catch (Exception $e) {
+            error_log("Error en obtenerEstadisticas: " . $e->getMessage());
             return [
                 'pedidos_hoy' => 0,
                 'pedidos_pendientes' => 0,
@@ -300,6 +339,28 @@ class empleado {
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    private function obtenerStockCritico() {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    tflor.nombre,
+                    tflor.naturaleza,
+                    COALESCE(inv.stock, 0) as stock
+                FROM tflor
+                LEFT JOIN inv ON tflor.idtflor = inv.tflor_idtflor
+                WHERE tflor.activo = 1 
+                AND COALESCE(inv.stock, 0) < 5
+                ORDER BY inv.stock ASC
+                LIMIT 5
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log('Error en obtenerStockCritico: ' . $e->getMessage());
             return [];
         }
     }
