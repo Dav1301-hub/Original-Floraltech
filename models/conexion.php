@@ -19,10 +19,12 @@ class conexion{
 			error_log($error_msg);
 			
 			// Mostrar mensaje específico según el tipo de error
-			if (strpos($e->getMessage(), 'Connection refused') !== false) {
-				throw new Exception("Error: No se puede conectar al servidor MySQL. Asegúrate de que XAMPP esté ejecutándose.");
+			if (strpos($e->getMessage(), 'could not find driver') !== false) {
+				throw new Exception("Error: Driver de base de datos no encontrado. Verifica la configuración de Railway.");
+			} elseif (strpos($e->getMessage(), 'Connection refused') !== false) {
+				throw new Exception("Error: No se puede conectar al servidor de base de datos.");
 			} elseif (strpos($e->getMessage(), 'Unknown database') !== false) {
-				throw new Exception("Error: La base de datos 'flores' no existe. Por favor, crea la base de datos primero.");
+				throw new Exception("Error: La base de datos no existe.");
 			} elseif (strpos($e->getMessage(), 'Access denied') !== false) {
 				throw new Exception("Error: Acceso denegado. Verifica el usuario y contraseña de la base de datos.");
 			} else {
