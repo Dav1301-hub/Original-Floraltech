@@ -1,5 +1,51 @@
-// gestion_empleados_handlers.js
 // Manejadores de eventos para Permisos, Turnos y Vacaciones
+
+// Opciones por temporada (Plantillas de Turnos)
+const opcionesPorTemporada = {
+    normal: [
+        { value: 'mañana', text: 'Turno Mañana (7am-3pm)', horario: '7:00-15:00', obs: 'Turno estándar en baja demanda.' },
+        { value: 'tarde', text: 'Turno Tarde (3pm-11pm)', horario: '15:00-23:00', obs: 'Turno estándar en baja demanda.' }
+    ],
+    alta: [
+        { value: 'doble', text: 'Turno Doble (7am-7pm)', horario: '7:00-19:00', obs: 'Turno extendido por alta demanda.' },
+        { value: 'extra', text: 'Turno Extra (11pm-7am)', horario: '23:00-7:00', obs: 'Turno nocturno especial.' }
+    ],
+    finsemana: [
+        { value: 'sabado', text: 'Sábado completo', horario: '7:00-19:00', obs: 'Cobertura especial sábado.' },
+        { value: 'domingo', text: 'Domingo completo', horario: '7:00-19:00', obs: 'Cobertura especial domingo.' }
+    ],
+    especial: [
+        { value: 'evento', text: 'Evento especial', horario: 'A definir', obs: 'Horario y observaciones según evento.' }
+    ]
+};
+
+function actualizarOpcionesTurno(temporadaId, tipoId, horarioId, obsId) {
+    const temporadaSelect = document.getElementById(temporadaId);
+    const tipoTurnoSelect = document.getElementById(tipoId);
+    const horarioInput = document.getElementById(horarioId);
+    const observacionesInput = document.getElementById(obsId);
+
+    if (!temporadaSelect || !tipoTurnoSelect) return;
+
+    const temporada = temporadaSelect.value;
+    tipoTurnoSelect.innerHTML = '';
+
+    if (opcionesPorTemporada[temporada]) {
+        opcionesPorTemporada[temporada].forEach(function(opt) {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.text;
+            option.dataset.horario = opt.horario;
+            option.dataset.obs = opt.obs;
+            tipoTurnoSelect.appendChild(option);
+        });
+
+        // Al cambiar temporada, actualizar horario y observaciones con el primer tipo
+        const firstOpt = opcionesPorTemporada[temporada][0];
+        if (horarioInput) horarioInput.value = firstOpt.horario;
+        if (observacionesInput) observacionesInput.value = firstOpt.obs;
+    }
+}
 
 // ============================================
 // PERMISOS
@@ -122,7 +168,18 @@ function editarTurno(id) {
             document.getElementById('edit_turnoEmpleado').value = data.idempleado || '';
             document.getElementById('edit_turnoFechaInicio').value = data.fecha_inicio || '';
             document.getElementById('edit_turnoFechaFin').value = data.fecha_fin || '';
+            
+            // Campos de temporada y turno
+            const temporadaSelect = document.getElementById('edit_turnoTemporada');
+            if (temporadaSelect) {
+                temporadaSelect.value = data.tipo_temporada || 'normal';
+                actualizarOpcionesTurno('edit_turnoTemporada', 'edit_turnoTipo', 'edit_turnoHorario', 'edit_turnoObservaciones');
+                document.getElementById('edit_turnoTipo').value = data.turno || '';
+            }
+            
             document.getElementById('edit_turnoHorario').value = data.horario || '';
+            document.getElementById('edit_turnoObservaciones').value = data.observaciones || '';
+            
             new bootstrap.Modal(document.getElementById('editarTurnoModal')).show();
         } else {
             alert('Error: ' + (data.error || 'No se pudo cargar el turno'));
@@ -155,6 +212,30 @@ function eliminarTurno(id) {
 
 // Evento submit para crear turno
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar lógica de plantillas de turnos
+    const setupTemplateLogic = (temporadaId, tipoId, horarioId, obsId) => {
+        const temporadaSelect = document.getElementById(temporadaId);
+        const tipoTurnoSelect = document.getElementById(tipoId);
+        
+        if (temporadaSelect && tipoTurnoSelect) {
+            temporadaSelect.addEventListener('change', () => actualizarOpcionesTurno(temporadaId, tipoId, horarioId, obsId));
+            
+            tipoTurnoSelect.addEventListener('change', function() {
+                const selected = this.options[this.selectedIndex];
+                const horarioInput = document.getElementById(horarioId);
+                const observacionesInput = document.getElementById(obsId);
+                if (horarioInput) horarioInput.value = selected ? selected.dataset.horario : '';
+                if (observacionesInput) observacionesInput.value = selected ? selected.dataset.obs : '';
+            });
+            
+            // Inicializar opciones
+            actualizarOpcionesTurno(temporadaId, tipoId, horarioId, obsId);
+        }
+    };
+
+    setupTemplateLogic('turnoTemporada', 'turnoTipo', 'turnoHorario', 'turnoObservaciones');
+    setupTemplateLogic('edit_turnoTemporada', 'edit_turnoTipo', 'edit_turnoHorario', 'edit_turnoObservaciones');
+
     const formNuevoTurno = document.getElementById('formNuevoTurno');
     if (formNuevoTurno) {
         formNuevoTurno.addEventListener('submit', function(e) {

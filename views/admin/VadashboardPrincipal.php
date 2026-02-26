@@ -7,6 +7,29 @@ $usu = $usu ?? ($_SESSION['user'] ?? []);
 $page = $page ?? ($_GET['page'] ?? 'general');
 $pg = $_GET['pg'] ?? null;
 
+// Cargar logo y avatar
+require_once __DIR__ . '/../../models/conexion.php';
+$conexion = (new conexion())->get_conexion();
+try {
+    $stmt_empresa = $conexion->prepare("SELECT logo FROM empresa LIMIT 1");
+    $stmt_empresa->execute();
+    $empresa_data = $stmt_empresa->fetch(PDO::FETCH_ASSOC);
+    $logo_empresa = $empresa_data['logo'] ?? null;
+    
+    $id_usuario = $_SESSION['user']['idusu'] ?? null;
+    if ($id_usuario) {
+        $stmt_usuario = $conexion->prepare("SELECT avatar FROM usu WHERE idusu = :id LIMIT 1");
+        $stmt_usuario->execute([':id' => $id_usuario]);
+        $usuario_data = $stmt_usuario->fetch(PDO::FETCH_ASSOC);
+        $avatar_usuario = $usuario_data['avatar'] ?? null;
+    } else {
+        $avatar_usuario = null;
+    }
+} catch (Exception $e) {
+    $logo_empresa = null;
+    $avatar_usuario = null;
+}
+
 $pages = [
     'general'       => 'VadashboardGeneral.php',
     'empleados'     => 'VagestionarEmpleados.php',
@@ -80,13 +103,21 @@ function render_admin_view(string $filePath, array $context = []): void
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/dashboard-admin.css?v=2">
-    <link rel="stylesheet" href="assets/admin-unificado.css?v=2">
+    <link rel="stylesheet" href="assets/css/dashboard-admin.css?v=2">
+    <link rel="stylesheet" href="assets/css/admin-unificado.css?v=2">
+    <!-- Charts and Calendar Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
 </head>
 <body class="app-shell">
     <header class="topbar">
         <div class="brand">
-            <i class="fa-solid fa-seedling"></i>
+            <?php if (!empty($logo_empresa) && file_exists(__DIR__ . '/../../' . $logo_empresa)): ?>
+                <img src="<?= htmlspecialchars($logo_empresa) ?>?v=<?= time() ?>" alt="Logo" style="height: 40px; width: auto; object-fit: contain; margin-right: 10px;">
+            <?php else: ?>
+                <i class="fa-solid fa-seedling"></i>
+            <?php endif; ?>
             <div>
                 <div style="font-size:13px; color:#94a3b8;">Panel administrativo</div>
                 <div style="font-size:16px;">FloralTech</div>
@@ -97,7 +128,11 @@ function render_admin_view(string $filePath, array $context = []): void
                 <i class="fa-solid fa-bars"></i>
             </button>
             <div class="user-chip">
-                <i class="fa-regular fa-circle-user"></i>
+                <?php if (!empty($avatar_usuario) && file_exists(__DIR__ . '/../../' . $avatar_usuario)): ?>
+                    <img src="<?= htmlspecialchars($avatar_usuario) ?>?v=<?= time() ?>" alt="Avatar" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid #fff;">
+                <?php else: ?>
+                    <i class="fa-regular fa-circle-user"></i>
+                <?php endif; ?>
                 <div class="d-flex flex-column">
                     <small style="color:#94a3b8;">Sesion</small>
                     <strong><?= htmlspecialchars($usu['nombre_completo'] ?? 'Administrador') ?></strong>

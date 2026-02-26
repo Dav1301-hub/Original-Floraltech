@@ -25,10 +25,29 @@ class empleado {
     public function dashboard() {
         $user = $_SESSION['user'];
         
-        // Obtener estadísticas del empleado
-        $stats = $this->obtenerEstadisticas();
+        // Manejar filtros de periodo
+        $mes = isset($_GET['mes']) ? (int)$_GET['mes'] : null;
+        $ano = isset($_GET['ano']) ? (int)$_GET['ano'] : null;
+        
+        if (isset($_GET['periodo']) && !empty($_GET['periodo'])) {
+            $parts = explode('-', $_GET['periodo']);
+            if (count($parts) === 2) {
+                $mes = (int)$parts[0];
+                $ano = (int)$parts[1];
+            }
+        }
+
+        // Obtener periodos disponibles para el filtro
+        require_once 'models/MDashboardGeneral.php';
+        $modeloGeneral = new MDashboardGeneral($this->db);
+        $periodos = $modeloGeneral->getPeriodosDisponibles();
+        $filtro = ['mes' => $mes, 'ano' => $ano];
+
+        // Obtener estadísticas del empleado con filtros
+        $stats = $this->obtenerEstadisticas($mes, $ano);
         $pedidos_pendientes = $this->obtenerPedidosPendientes();
         $pagos_pendientes = $this->obtenerPagosPendientes();
+        $stock_critico = $this->obtenerStockCritico();
         
         include 'views/empleado/dashboard.php';
     }
@@ -202,20 +221,39 @@ class empleado {
     }
     
     // Métodos privados para obtener datos
-    private function obtenerEstadisticas() {
+    private function obtenerEstadisticas($mes = null, $ano = null) {
         try {
             $stats = [];
             
-            // Pedidos de hoy
-            $stmt = $this->db->prepare("
-                SELECT COUNT(*) as total 
-                FROM ped 
-                WHERE DATE(fecha_pedido) = CURDATE()
-            ");
-            $stmt->execute();
+            // Si no se especifica mes/año, usar el mes actual
+            $where_date = "";
+            $params = [];
+            
+            if ($mes && $ano) {
+                $where_month_year = "WHERE MONTH(fecha_pedido) = ? AND YEAR(fecha_pedido) = ?";
+                $params = [$mes, $ano];
+                
+                // Pedidos del periodo
+                $stmt = $this->db->prepare("
+                    SELECT COUNT(*) as total 
+                    FROM ped 
+                    $where_month_year
+                ");
+                $stmt->execute($params);
+            } else {
+                $where_month_year = "WHERE MONTH(fecha_pedido) = MONTH(CURDATE()) AND YEAR(fecha_pedido) = YEAR(CURDATE())";
+                
+                // Pedidos de hoy
+                $stmt = $this->db->prepare("
+                    SELECT COUNT(*) as total 
+                    FROM ped 
+                    WHERE DATE(fecha_pedido) = CURDATE()
+                ");
+                $stmt->execute();
+            }
             $stats['pedidos_hoy'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
             
-            // Pedidos pendientes
+            // Pedidos pendientes (Globales, no filtrados por fecha usualmente)
             $stmt = $this->db->prepare("
                 SELECT COUNT(*) as total 
                 FROM ped 
@@ -224,7 +262,7 @@ class empleado {
             $stmt->execute();
             $stats['pedidos_pendientes'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
             
-            // Pagos pendientes
+            // Pagos pendientes (Globales)
             $stmt = $this->db->prepare("
                 SELECT COUNT(*) as total 
                 FROM pagos 
@@ -233,19 +271,20 @@ class empleado {
             $stmt->execute();
             $stats['pagos_pendientes'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
             
-            // Ventas del mes
-            $stmt = $this->db->prepare("
+            // Ventas del mes (ESTO SÍ SE FILTRA TOTALMENTE)
+            $sql_ventas = "
                 SELECT COALESCE(SUM(monto_total), 0) as total 
                 FROM ped 
-                WHERE MONTH(fecha_pedido) = MONTH(CURDATE()) 
-                AND YEAR(fecha_pedido) = YEAR(CURDATE())
+                $where_month_year
                 AND estado = 'Completado'
-            ");
-            $stmt->execute();
+            ";
+            $stmt = $this->db->prepare($sql_ventas);
+            $stmt->execute($params);
             $stats['ventas_mes'] = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
             
             return $stats;
         } catch (Exception $e) {
+            error_log("Error en obtenerEstadisticas: " . $e->getMessage());
             return [
                 'pedidos_hoy' => 0,
                 'pedidos_pendientes' => 0,
@@ -300,6 +339,28 @@ class empleado {
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    private function obtenerStockCritico() {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    tflor.nombre,
+                    tflor.naturaleza,
+                    COALESCE(inv.stock, 0) as stock
+                FROM tflor
+                LEFT JOIN inv ON tflor.idtflor = inv.tflor_idtflor
+                WHERE tflor.activo = 1 
+                AND COALESCE(inv.stock, 0) < 5
+                ORDER BY inv.stock ASC
+                LIMIT 5
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log('Error en obtenerStockCritico: ' . $e->getMessage());
             return [];
         }
     }
@@ -742,6 +803,9 @@ class empleado {
     
     private function actualizarEstadoPedido($id_pedido, $nuevo_estado) {
         try {
+            $this->db->beginTransaction();
+            
+            // Actualizar estado en tabla ped
             $stmt = $this->db->prepare("
                 UPDATE ped 
                 SET estado = ?, 
@@ -749,10 +813,332 @@ class empleado {
                     empleado_actualizacion = ?
                 WHERE idped = ?
             ");
-            return $stmt->execute([$nuevo_estado, $this->empleado_id, $id_pedido]);
+            $stmt->execute([$nuevo_estado, $this->empleado_id, $id_pedido]);
+            
+            // 🔑 Si el estado cambia a "En proceso", descontar del inventario
+            if ($nuevo_estado === 'En proceso') {
+                $alertas = $this->descontarInventarioPorPedido($id_pedido);
+                
+                // Guardar alertas en sesión para mostrar al usuario
+                if (!empty($alertas)) {
+                    $_SESSION['alertas_inventario'] = $alertas;
+                }
+            }
+            
+            $this->db->commit();
+            return true;
         } catch (Exception $e) {
+            $this->db->rollback();
             error_log("Error actualizando estado pedido: " . $e->getMessage());
+            $_SESSION['error'] = "Error al actualizar estado: " . $e->getMessage();
             return false;
+        }
+    }
+
+    /**
+     * Descuenta automáticamente las flores del inventario cuando se confirma un pedido
+     * OPCIÓN B: Descuenta lo disponible + alerta de faltante
+     * 
+     * @param int $id_pedido ID del pedido
+     * @return array Lista de alertas generadas
+     */
+    private function descontarInventarioPorPedido($id_pedido) {
+        $alertas = [];
+        
+        try {
+            // Validar que el pedido exista
+            $stmt_ped = $this->db->prepare("SELECT idped FROM ped WHERE idped = ?");
+            $stmt_ped->execute([$id_pedido]);
+            if (!$stmt_ped->fetch()) {
+                throw new Exception("Pedido #$id_pedido no encontrado");
+            }
+            
+            // Obtener todas las flores del pedido
+            $stmt = $this->db->prepare("
+                SELECT 
+                    dp.iddetped,
+                    dp.idtflor,
+                    dp.cantidad,
+                    i.idinv,
+                    i.stock,
+                    tf.nombre as nombre_flor
+                FROM detped dp
+                JOIN tflor tf ON dp.idtflor = tf.idtflor
+                LEFT JOIN inv i ON dp.idtflor = i.tflor_idtflor
+                WHERE dp.idped = ?
+            ");
+            $stmt->execute([$id_pedido]);
+            $flores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (empty($flores)) {
+                error_log("Pedido $id_pedido no tiene detalles de flores");
+                return $alertas;
+            }
+            
+            // Procesar cada flor
+            foreach ($flores as $flor) {
+                $alerta = $this->verificarYDescontarFlor(
+                    $flor['idtflor'],
+                    $flor['idinv'] ?? null,
+                    $flor['cantidad'],
+                    $flor['stock'] ?? 0,
+                    $flor['nombre_flor'],
+                    $id_pedido
+                );
+                
+                if ($alerta) {
+                    $alertas[] = $alerta;
+                }
+            }
+            
+        } catch (Exception $e) {
+            error_log("Error en descontarInventarioPorPedido: " . $e->getMessage());
+            $alertas[] = [
+                'tipo' => 'error',
+                'flor' => 'Sistema',
+                'mensaje' => 'Error al procesar descuentos: ' . $e->getMessage()
+            ];
+        }
+        
+        return $alertas;
+    }
+
+    /**
+     * Verifica stock y descuenta una flor individual
+     * VALIDACIONES:
+     * - No descuenta 2 veces (verifica inv_historial)
+     * - Descuento parcial si stock insuficiente
+     * - Genera alerta si hay problemas
+     * 
+     * @param int $idtflor ID del tipo de flor
+     * @param int|null $idinv ID del inventario (puede ser null si no existe)
+     * @param int $cantidad_solicitada Cantidad requerida en el pedido
+     * @param int $stock_actual Stock disponible
+     * @param string $nombre_flor Nombre de la flor (para alertas)
+     * @param int $id_pedido ID del pedido (para auditoría)
+     * @return array|null Alerta si hay, null si sin problemas
+     */
+    private function verificarYDescontarFlor($idtflor, $idinv, $cantidad_solicitada, $stock_actual, $nombre_flor, $id_pedido) {
+        try {
+            // VALIDACIÓN 1: Si no existe registro en inv, crear uno
+            if ($idinv === null) {
+                $stmt_tflor = $this->db->prepare("SELECT precio FROM tflor WHERE idtflor = ?");
+                $stmt_tflor->execute([$idtflor]);
+                $tflor = $stmt_tflor->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$tflor) {
+                    throw new Exception("Flor #$idtflor no existe");
+                }
+                
+                // Crear registro en inv
+                $stmt_ins = $this->db->prepare("
+                    INSERT INTO inv (tflor_idtflor, stock, precio, fecha_actualizacion)
+                    VALUES (?, 0, ?, NOW())
+                ");
+                $stmt_ins->execute([$idtflor, $tflor['precio']]);
+                
+                $idinv = $this->db->lastInsertId();
+                $stock_actual = 0;
+            }
+            
+            // VALIDACIÓN 2: Evitar doble descuento
+            // Verificar si ya existe un registro en inv_historial para este pedido y flor
+            $stmt_check = $this->db->prepare("
+                SELECT COUNT(*) as total 
+                FROM inv_historial 
+                WHERE idinv = ? 
+                AND motivo LIKE CONCAT('Descuento por pedido #', ?)
+            ");
+            $stmt_check->execute([$idinv, $id_pedido]);
+            $resultado = $stmt_check->fetch(PDO::FETCH_ASSOC);
+            
+            if ($resultado['total'] > 0) {
+                error_log("Descuento duplicado detectado: pedido $id_pedido, flor $idtflor");
+                return null; // Ya fue descontado, no hacer nada
+            }
+            
+            // VALIDACIÓN 3: Calcular cantidad a descontar
+            $cantidad_a_descontar = min($cantidad_solicitada, $stock_actual);
+            $nuevo_stock = $stock_actual - $cantidad_a_descontar;
+            
+            // ACTUALIZAR INVENTARIO
+            $stmt_upd = $this->db->prepare("
+                UPDATE inv 
+                SET stock = ?, 
+                    fecha_actualizacion = NOW()
+                WHERE idinv = ?
+            ");
+            $stmt_upd->execute([$nuevo_stock, $idinv]);
+            
+            // REGISTRAR EN HISTORIAL (campos correctos según BD)
+            $motivo = "Descuento por pedido #$id_pedido";
+            $stmt_hist = $this->db->prepare("
+                INSERT INTO inv_historial (idinv, stock_anterior, stock_nuevo, idusu, motivo, fecha_cambio)
+                VALUES (?, ?, ?, ?, ?, NOW())
+            ");
+            $stmt_hist->execute([
+                $idinv,
+                $stock_actual,
+                $nuevo_stock,
+                $this->empleado_id,
+                $motivo
+            ]);
+            
+            // GENERAR ALERTAS (Opción B)
+            $alerta = null;
+            
+            // Alerta: Stock insuficiente
+            if ($cantidad_solicitada > $stock_actual) {
+                $faltante = $cantidad_solicitada - $stock_actual;
+                $alerta = [
+                    'tipo' => 'advertencia',
+                    'flor' => $nombre_flor,
+                    'mensaje' => "⚠️ Stock Insuficiente: Solicitó $cantidad_solicitada " . 
+                                 ($nombre_flor === 'Rosas' ? 'Rosas' : $nombre_flor) . 
+                                 " pero solo había $stock_actual. Se descubrió $cantidad_a_descontar. Faltan $faltante."
+                ];
+            }
+            // Alerta: Stock agotado
+            elseif ($nuevo_stock == 0) {
+                $alerta = [
+                    'tipo' => 'crítica',
+                    'flor' => $nombre_flor,
+                    'mensaje' => "🔴 AGOTADO: $nombre_flor está SIN STOCK. Se requiere reorden urgente."
+                ];
+            }
+            // Alerta: Stock bajo
+            elseif ($nuevo_stock > 0 && $nuevo_stock < 5) {
+                $alerta = [
+                    'tipo' => 'baja',
+                    'flor' => $nombre_flor,
+                    'mensaje' => "⚡ Stock Bajo: Solo quedan $nuevo_stock de $nombre_flor."
+                ];
+            }
+            
+            return $alerta;
+            
+        } catch (Exception $e) {
+            error_log("Error en verificarYDescontarFlor (flor: $idtflor): " . $e->getMessage());
+            return [
+                'tipo' => 'error',
+                'flor' => $nombre_flor,
+                'mensaje' => 'Error al descontar: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Crea un nuevo pedido desde el panel de empleado
+     * Flujo similar al cliente pero registra al empleado como quien lo creó
+     */
+    public function crearPedidoEmpleado() {
+        try {
+            // Validar datos POST
+            if (!isset($_POST['cli_id']) || !isset($_POST['flores'])) {
+                throw new Exception("Datos incompletos");
+            }
+
+            $cli_id = intval($_POST['cli_id']);
+            $flores = $_POST['flores']; // Array de [idtflor => cantidad]
+            $direccion_entrega = $_POST['direccion_entrega'] ?? null;
+            $fecha_entrega = $_POST['fecha_entrega'] ?? null;
+            $notas = $_POST['notas'] ?? null;
+            $monto_total = floatval($_POST['monto_total'] ?? 0);
+
+            // Crear pedido base
+            require_once 'models/data.php';
+            $modelData = new data();
+            
+            // Generar número de pedido
+            $numped = 'PED-' . date('YmdHis') . '-' . $cli_id;
+            
+            // INSERT en ped tabla
+            $stmt = $this->db->prepare("
+                INSERT INTO ped (numped, fecha_pedido, monto_total, estado, cli_idcli, direccion_entrega, fecha_entrega_solicitada, empleado_id, notas)
+                VALUES (?, NOW(), ?, 'Pendiente', ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $numped,
+                $monto_total,
+                $cli_id,
+                $direccion_entrega,
+                $fecha_entrega,
+                $this->empleado_id,
+                $notas
+            ]);
+
+            $pedido_id = $this->db->lastInsertId();
+
+            // Agregar detalles (flores) al pedido
+            $stmt_det = $this->db->prepare("
+                INSERT INTO detped (idped, idtflor, cantidad, precio_unitario)
+                VALUES (?, ?, ?, ?)
+            ");
+
+            foreach ($flores as $idtflor => $data) {
+                $cantidad = intval($data['cantidad']);
+                $precio = floatval($data['precio']);
+                
+                if ($cantidad > 0) {
+                    $stmt_det->execute([
+                        $pedido_id,
+                        $idtflor,
+                        $cantidad,
+                        $precio
+                    ]);
+                }
+            }
+
+            $_SESSION['mensaje'] = "Pedido #$pedido_id creado exitosamente";
+            $_SESSION['tipo_mensaje'] = 'success';
+            
+            header('Location: index.php?ctrl=empleado&action=gestion_pedidos');
+            exit();
+
+        } catch (Exception $e) {
+            error_log("Error en crearPedidoEmpleado: " . $e->getMessage());
+            $_SESSION['mensaje'] = "Error al crear pedido: " . $e->getMessage();
+            $_SESSION['tipo_mensaje'] = 'danger';
+            header('Location: index.php?ctrl=empleado&action=gestion_pedidos');
+            exit();
+        }
+    }
+
+    /**
+     * Sirve el formulario de nuevo pedido como modal/fragmento
+     */
+    public function nuevoPedidoForm() {
+        // Similar a ajax_nuevo_pedido.php pero para empleados
+        try {
+            // Obtener clientes disponibles
+            $stmt = $this->db->prepare("
+                SELECT idcli, nombre, email, telefono, direccion 
+                FROM cli 
+                ORDER BY nombre ASC
+            ");
+            $stmt->execute();
+            $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Obtener flores disponibles
+            $stmt = $this->db->prepare("
+                SELECT 
+                    tf.idtflor,
+                    tf.nombre,
+                    tf.naturaleza as color,
+                    tf.descripcion,
+                    tf.precio,
+                    COALESCE(i.stock, 0) as stock
+                FROM tflor tf
+                LEFT JOIN inv i ON tf.idtflor = i.tflor_idtflor
+                ORDER BY tf.nombre
+            ");
+            $stmt->execute();
+            $flores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            include 'views/empleado/nuevo_pedido.php';
+        } catch (Exception $e) {
+            error_log("Error en nuevoPedidoForm: " . $e->getMessage());
+            echo "Error: " . $e->getMessage();
         }
     }
 }

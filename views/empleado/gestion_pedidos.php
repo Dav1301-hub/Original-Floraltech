@@ -37,9 +37,9 @@ if (!isset($pedidosPaginados)) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Gestión de Pedidos - FloralTech</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link rel="stylesheet" href="../../assets/dashboard-cliente.css">
-        <link rel="stylesheet" href="../../assets/dashboard-general.css">
-        <link rel="stylesheet" href="../../assets/styles.css">
+        <link rel="stylesheet" href="assets/css/dashboard-cliente.css">
+        <link rel="stylesheet" href="assets/css/dashboard-general.css">
+        <link rel="stylesheet" href="assets/css/styles.css">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
@@ -133,8 +133,8 @@ if (!isset($pedidosPaginados)) {
             }
 
             .content-wrapper {
-                max-width: 1400px;
-                margin: 0 auto;
+                max-width: 100%;
+                margin: 0;
             }
 
             .filter-card {
@@ -442,14 +442,19 @@ if (!isset($pedidosPaginados)) {
 
                     <!-- Lista de pedidos -->
                     <div class="content-card">
-                        <div class="pedido-list-header">
-                            <span><i class="fas fa-list me-2"></i>Lista de Pedidos</span>
-                            <span class="badge">
-                                <?= $totalPedidos ?> total 
-                                <?php if ($totalPedidos > 0): ?>
-                                    (Página <?= $paginaActual ?> de <?= $totalPaginas ?>)
-                                <?php endif; ?>
-                            </span>
+                        <div class="pedido-list-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <span><i class="fas fa-list me-2"></i>Lista de Pedidos</span>
+                                <span class="badge">
+                                    <?= $totalPedidos ?> total 
+                                    <?php if ($totalPedidos > 0): ?>
+                                        (Página <?= $paginaActual ?> de <?= $totalPaginas ?>)
+                                    <?php endif; ?>
+                                </span>
+                            </div>
+                            <a href="index.php?ctrl=empleado&action=nuevoPedidoForm" class="btn btn-success btn-sm">
+                                <i class="fas fa-plus me-2"></i>Nuevo Pedido
+                            </a>
                         </div>
                         <div class="card-body">
                             <?php if ($mensaje): ?>
@@ -458,6 +463,45 @@ if (!isset($pedidosPaginados)) {
                                     <?= htmlspecialchars($mensaje) ?>
                                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                                 </div>
+                            <?php endif; ?>
+
+                            <!-- 📊 Alertas de Inventario por Descuentos Automáticos -->
+                            <?php if (isset($_SESSION['alertas_inventario']) && !empty($_SESSION['alertas_inventario'])): ?>
+                                <div style="margin-bottom: 20px;">
+                                    <?php foreach ($_SESSION['alertas_inventario'] as $alerta): ?>
+                                        <?php 
+                                            $clase_bootstrap = 'alert-warning';
+                                            $icono_fas = 'fa-exclamation-triangle';
+                                            
+                                            switch ($alerta['tipo'] ?? 'advertencia') {
+                                                case 'crítica':
+                                                    $clase_bootstrap = 'alert-danger';
+                                                    $icono_fas = 'fa-circle-exclamation';
+                                                    break;
+                                                case 'baja':
+                                                    $clase_bootstrap = 'alert-warning';
+                                                    $icono_fas = 'fa-bolt';
+                                                    break;
+                                                case 'error':
+                                                    $clase_bootstrap = 'alert-danger';
+                                                    $icono_fas = 'fa-times-circle';
+                                                    break;
+                                                case 'advertencia':
+                                                default:
+                                                    $clase_bootstrap = 'alert-warning';
+                                                    $icono_fas = 'fa-exclamation-triangle';
+                                                    break;
+                                            }
+                                        ?>
+                                        <div class="alert <?= $clase_bootstrap ?> alert-dismissible fade show" role="alert">
+                                            <i class="fas <?= $icono_fas ?> me-2"></i>
+                                            <strong><?= htmlspecialchars($alerta['flor'] ?? 'Alerta') ?>:</strong>
+                                            <?= htmlspecialchars($alerta['mensaje']) ?>
+                                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php unset($_SESSION['alertas_inventario']); ?>
                             <?php endif; ?>
                             
                             <?php if (empty($pedidosPaginados)): ?>

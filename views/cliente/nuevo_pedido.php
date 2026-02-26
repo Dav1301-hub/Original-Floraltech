@@ -52,7 +52,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nuevo Pedido - FloralTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/dashboard-cliente.css">
+    <link rel="stylesheet" href="assets/css/dashboard-cliente.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .flower-card { border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 15px; transition: all 0.3s ease; position: relative; }

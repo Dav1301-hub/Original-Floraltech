@@ -39,7 +39,9 @@ if (!isset($dashboardData) || !is_array($dashboardData)) {
                 'cantidadManana' => 0
             ],
             'tendenciaVentas' => [],
-            'topProductos' => []
+            'topProductos' => [],
+            'periodos' => [],
+            'filtro' => ['mes' => null, 'ano' => null]
         ];
     }
 }
@@ -72,6 +74,8 @@ $mesReferencia = $dashboardData['resumenPedidosMes']['mesReferencia'] ?? date('m
 $entregasProximas = $dashboardData['entregasProximas'];
 $tendenciaVentas = $dashboardData['tendenciaVentas'];
 $topProductos = $dashboardData['topProductos'] ?? [];
+$periodos = $dashboardData['periodos'] ?? [];
+$filtro = $dashboardData['filtro'] ?? ['mes' => null, 'ano' => null];
 
 // Obtener lotes pr+�ximos a caducar
 require_once __DIR__ . '/../../models/Mlotes.php';
@@ -79,264 +83,6 @@ $lotesModel = new Mlotes();
 $lotesProximosCaducar = $lotesModel->getLotesProximosCaducar(7);
 $cantidadAlertasLotes = count($lotesProximosCaducar);
 ?>
-
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard General - FloralTech</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/dashboard-admin.css">
-    <link rel="stylesheet" href="/assets/styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        /* Responsive fixes para Dashboard General */
-        .dashboard-main {
-            width: 100%;
-            margin: 0;
-            padding: 32px 24px;
-        }
-        
-        /* Eliminar el grid de cards, ahora se muestran en columna */
-        .stats-card {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-            padding: 1.25rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            transition: transform 0.2s, box-shadow 0.2s;
-            height: 100%;
-            min-height: 140px;
-        }
-        
-        .stats-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        
-        .stats-card i {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            color: #1976d2;
-        }
-        
-        .stats-card h3 {
-            font-size: 2.25rem;
-            margin: 0.25rem 0;
-            font-weight: bold;
-            color: #333;
-        }
-        
-        .stats-card p {
-            margin: 0.25rem 0;
-            color: #666;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-        
-        .trend {
-            margin-top: 0.35rem;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-        
-        .trend.up {
-            color: #4caf50;
-        }
-        
-        .trend.down {
-            color: #f44336;
-        }
-        
-        /* Tablet */
-        @media (max-width: 992px) {
-            .dashboard-main {
-                padding: 24px 16px;
-            }
-            
-            .stats-card {
-                padding: 1rem;
-            }
-            
-            .stats-card h3 {
-                font-size: 1.75rem;
-            }
-        }
-        
-        /* Mobile */
-        @media (max-width: 576px) {
-            
-            .dashboard-main {
-                padding: 16px 12px;
-            }
-            
-            .dashboard-main h1 {
-                font-size: 1.5rem;
-            }
-            
-            .stats-card {
-                padding: 1rem;
-            }
-            
-            .stats-card h3 {
-                font-size: 1.75rem;
-            }
-            
-            .card-body {
-                padding: 0.75rem;
-            }
-            
-            .list-group-item {
-                padding: 0.5rem 0.75rem;
-                font-size: 0.85rem;
-            }
-        }
-        
-        /* Extra small devices */
-        @media (max-width: 380px) {
-            .dashboard-main {
-                padding: 12px 8px;
-            }
-            
-            .dashboard-main h1 {
-                font-size: 1.25rem;
-            }
-            
-            .welcome-text {
-                font-size: 0.85rem;
-            }
-        }
-        
-        /* Estilos para eventos del calendario con pedidos */
-        .fc-event.evento-pedido-con-flores {
-            background-color: #f8bbd0 !important;
-            border-color: #f48fb1 !important;
-            color: #880e4f !important;
-            font-weight: 500;
-            font-size: 0.75rem !important;
-            padding: 2px 4px !important;
-        }
-        
-        .fc-event.evento-pedido-con-flores:hover {
-            background-color: #f48fb1 !important;
-            border-color: #ec407a !important;
-        }
-        
-        .fc-daygrid-event.evento-pedido-con-flores {
-            cursor: pointer;
-            white-space: normal !important;
-            overflow: visible !important;
-        }
-        
-        .fc-event.evento-pedido-con-flores .fc-event-title {
-            white-space: nowrap !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-        }
-        
-        /* Estilos para alertas de entregas */
-        .alert-entregas {
-            border-left: 4px solid #28a745;
-            background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f4 100%);
-        }
-        
-        .alert-entregas.alert-warning {
-            border-left-color: #ffc107;
-            background: linear-gradient(135deg, #fff8e1 0%, #fffbf0 100%);
-        }
-        
-        /* Responsive: Alerta de caducidad en m+�viles */
-        @media (max-width: 768px) {
-            .alert.alert-danger {
-                flex-direction: column !important;
-                text-align: center;
-            }
-            
-            .alert.alert-danger > div:first-child {
-                margin-bottom: 1rem;
-            }
-            
-            .alert.alert-danger button {
-                width: 100%;
-                margin-top: 0.5rem;
-            }
-        }
-        
-        .entrega-item {
-            border-left: 3px solid #28a745;
-            padding-left: 0.75rem;
-            margin-bottom: 0.5rem;
-            transition: all 0.2s;
-        }
-        
-        .entrega-item:hover {
-            background-color: rgba(40, 167, 69, 0.05);
-            border-left-width: 4px;
-        }
-        
-        /* Estilos para Top Productos */
-        .producto-item {
-            padding: 0.75rem 0;
-            border-bottom: 1px solid #f0f0f0;
-            transition: background-color 0.2s;
-        }
-        
-        .producto-item:last-child {
-            border-bottom: none;
-        }
-        
-        .producto-item:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .producto-ranking {
-            font-size: 1.5rem;
-            width: 40px;
-            text-align: center;
-            display: inline-block;
-        }
-        
-        .producto-nombre {
-            font-weight: 600;
-            color: #333;
-            flex-grow: 1;
-        }
-        
-        .producto-stats {
-            font-size: 0.85rem;
-            color: #666;
-            margin-top: 0.25rem;
-        }
-        
-        .producto-progress {
-            height: 6px;
-            background-color: #e9ecef;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 0.5rem;
-        }
-        
-        .producto-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #1976d2, #42a5f5);
-            border-radius: 3px;
-            transition: width 0.3s ease;
-        }
-        
-        .producto-porcentaje {
-            font-weight: 600;
-            color: #1976d2;
-            min-width: 50px;
-            text-align: right;
-        }
-    </style>
-</head>
-<body>
 <div id="general-dashboard" class="dashboard-main">
     <header class="d-flex flex-wrap align-items-start align-items-md-center justify-content-between mb-4 p-4 rounded-4 shadow-sm text-white" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 50%, #1e1b4b 100%);">
         <div>
@@ -344,7 +90,29 @@ $cantidadAlertasLotes = count($lotesProximosCaducar);
             <h1 class="mb-1 fw-bold" style="color: #ffff">Dashboard General</h1>
             <p class="welcome-text mb-0 opacity-75" style="color: #ffff">Bienvenido al sistema de administracion de FloralTech</p>
         </div>
-        <div class="d-flex gap-2 mt-3 mt-md-0">
+        <div class="d-flex flex-wrap gap-2 mt-3 mt-md-0 align-items-center">
+            <form action="index.php" method="GET" class="d-flex gap-2" id="filter-form">
+                <input type="hidden" name="ctrl" value="dashboard">
+                <input type="hidden" name="action" value="admin">
+                <input type="hidden" name="page" value="general">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-0 opacity-75"><i class="fas fa-filter text-primary"></i></span>
+                    <select name="periodo" class="form-select border-0 shadow-sm fw-medium" onchange="this.form.submit()" style="min-width: 160px; cursor: pointer;">
+                        <?php 
+                        $mesFiltro = $filtro['mes'] ?? null;
+                        $anoFiltro = $filtro['ano'] ?? null;
+                        foreach ($periodos as $p): 
+                            $val = $p['mes'] . '-' . $p['ano'];
+                            $sel = ($mesFiltro == $p['mes'] && $anoFiltro == $p['ano']) ? 'selected' : '';
+                            $nombreMes = date('F', mktime(0, 0, 0, $p['mes'], 10));
+                            $mesesES = ['January'=>'Enero', 'February'=>'Febrero', 'March'=>'Marzo', 'April'=>'Abril', 'May'=>'Mayo', 'June'=>'Junio', 'July'=>'Julio', 'August'=>'Agosto', 'September'=>'Septiembre', 'October'=>'Octubre', 'November'=>'Noviembre', 'December'=>'Diciembre'];
+                            $label = ($mesesES[$nombreMes] ?? $nombreMes) . ' ' . $p['ano'];
+                        ?>
+                            <option value="<?= $val ?>" <?= $sel ?>><?= $label ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </form>
             <a class="btn btn-light btn-sm text-primary fw-semibold" href="index.php?ctrl=cinventario"><i class="fas fa-boxes me-2"></i>Inventario</a>
             <a class="btn btn-outline-light btn-sm" href="#calendar-pedidos"><i class="fas fa-calendar-alt me-2"></i>Agenda</a>
         </div>
@@ -675,25 +443,28 @@ $cantidadAlertasLotes = count($lotesProximosCaducar);
             </div>
         </div>
     </div>
-</div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<!-- FullCalendar -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
-<script>
+</div><script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ========== GR+�FICO DE TENDENCIA DE VENTAS ==========
+    // ========== GR+FICO DE TENDENCIA DE VENTAS ==========
     var ctxVentas = document.getElementById('chartVentas');
     if (ctxVentas) {
         var tendenciaData = <?= json_encode($tendenciaVentas) ?>;
-        
-        var labels = tendenciaData.map(item => item.fecha);
-        var dataPedidos = tendenciaData.map(item => item.pedidos);
-        var dataMonto = tendenciaData.map(item => item.monto);
-        
-        new Chart(ctxVentas, {
+        console.log('Datos de tendencia recibidos:', tendenciaData);
+
+        if (!Array.isArray(tendenciaData) || tendenciaData.length === 0) {
+            console.warn('No hay datos para mostrar en la gráfica de ventas.');
+            return;
+        }
+
+        var labels = tendenciaData.map(item => item.fecha || '');
+        var dataPedidos = tendenciaData.map(item => item.pedidos || 0);
+        var dataMonto = tendenciaData.map(item => item.monto || 0);
+
+        if (window.myChartVentas) {
+            window.myChartVentas.destroy();
+        }
+
+        window.myChartVentas = new Chart(ctxVentas, {
             type: 'line',
             data: {
                 labels: labels,
@@ -806,7 +577,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalLabel.textContent = 'Pedidos para: ' + fechaFormateada.charAt(0).toUpperCase() + fechaFormateada.slice(1);
             }
             
-            fetch('/Original-Floraltech/controllers/ccalendar_api.php?fecha=' + fecha)
+            fetch('controllers/ccalendar_api.php?fecha=' + fecha)
                 .then(response => response.json())
                 .then(data => {
                     var html = '';
@@ -853,8 +624,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
         }
         
+        var initialDate = '<?= ($filtro['ano'] && $filtro['mes']) ? $filtro['ano']."-".str_pad($filtro['mes'], 2, "0", STR_PAD_LEFT)."-01" : date('Y-m-d') ?>';
         var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
+            initialDate: initialDate,
             locale: 'es',
             height: 550,
             headerToolbar: {
@@ -865,7 +638,7 @@ document.addEventListener('DOMContentLoaded', function() {
             events: function(fetchInfo, successCallback, failureCallback) {
                 // Cargar pedidos como eventos para el rango visible
                 console.log('Solicitando pedidos del:', fetchInfo.startStr, 'al:', fetchInfo.endStr);
-                fetch('/Original-Floraltech/controllers/ccalendar_api.php?start=' + fetchInfo.startStr + '&end=' + fetchInfo.endStr)
+                fetch('controllers/ccalendar_api.php?start=' + fetchInfo.startStr + '&end=' + fetchInfo.endStr)
                     .then(response => response.json())
                     .then(events => {
                         console.log('Eventos recibidos:', events);
@@ -925,18 +698,20 @@ function getStatusBadgeClass(estado) {
 <script>
 // Actualizaci+�n autom+�tica de Actividad Reciente cada 30 segundos
 function actualizarActividadReciente() {
-    fetch('/Original-Floraltech/controllers/CDashboardGeneral.php?action=actividadReciente')
+    fetch('controllers/CDashboardGeneral.php?action=actividadReciente')
         .then(res => res.json())
         .then(data => {
             if (Array.isArray(data)) {
                 const ul = document.getElementById('actividad-reciente-list');
                 if (ul) {
-                    ul.innerHTML = data.map(item =>
-                        `<li class="list-group-item">
-                            <span class='icon'><i class='fas fa-history'></i></span>
-                            <span>${item.fecha ? new Date(item.fecha).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''} - ${item.descripcion ? item.descripcion.replace(/</g, '&lt;').replace(/>/g, '&gt;') : ''}</span>
-                        </li>`
-                    ).join('');
+                    ul.innerHTML = data.map(item => {
+                        const dateStr = item.fecha ? new Date(item.fecha.replace(' ', 'T')).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+                        const desc = item.descripcion ? item.descripcion.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+                        return `<li class="list-group-item d-flex align-items-start gap-2">
+                            <span class="text-primary mt-1"><i class="fas fa-history"></i></span>
+                            <span>${dateStr} - ${desc}</span>
+                        </li>`;
+                    }).join('');
                 }
             }
         })
@@ -1055,5 +830,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-</body>
-</html>
+</script>

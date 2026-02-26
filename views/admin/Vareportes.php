@@ -41,6 +41,7 @@ function badgeClaseEstado($estado)
     <link rel="stylesheet" href="assets/dashboard-admin.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         .filter-box {background:#f8fafc; border:1px solid #e5e7eb;}
         .filters-wrapper {display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;}
@@ -166,15 +167,35 @@ function badgeClaseEstado($estado)
                             </form>
                             <form id="formPdfPedidos" action="controllers/repopdf.php" method="POST" class="filters-export">
                                 <input type="hidden" name="ids" id="pdf_ids">
+                                <input type="hidden" name="grafico_ventas" id="grafico_ventas_data">
                                 <button type="submit" class="btn btn-outline-light text-primary fw-bold w-100" style="border-color:#7c3aed;">
                                     <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
                                 </button>
                             </form>
                         </div>
                     </div>
-                    <div class="alert alert-info d-flex align-items-center gap-2 py-2">
-                        <i class="bi bi-info-circle"></i>
-                        Usa los filtros para ocultar filas en vivo; solo se exportan los pedidos visibles/seleccionados.
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body">
+                                    <h6 class="text-muted mb-3"><i class="bi bi-graph-up me-2"></i>Tendencia de Ventas (Últimos 7 días)</h6>
+                                    <div style="height: 200px;"><canvas id="chartVentasTendencia"></canvas></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="alert alert-info d-flex align-items-center gap-2 py-2 mb-2">
+                                <i class="bi bi-info-circle"></i>
+                                Usa los filtros para ocultar filas.
+                            </div>
+                            <div class="card border-0 bg-light">
+                                <div class="card-body py-2">
+                                    <div class="small text-muted">Total Visible</div>
+                                    <div class="h4 mb-0 text-primary" id="totalVentasVisible">$0.00</div>
+                                    <div class="small text-muted mt-1">Pedidos: <span id="cantPedidosVisible">0</span></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="table-responsive mt-3">
                         <table class="table table-hover align-middle" id="tablaPedidosModal">
@@ -254,14 +275,45 @@ function badgeClaseEstado($estado)
                                 <input type="hidden" name="accion" value="usuarios_pdf">
                                 <input type="hidden" name="tipo" id="tipoSeleccionado">
                                 <input type="hidden" name="ids" id="pdf_ids_usuarios">
+                                <input type="hidden" name="grafico_usuarios" id="grafico_usuarios_data">
                                 <button type="submit" class="btn btn-outline-warning text-warning fw-bold w-100">
                                     <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
                                 </button>
                             </form>
                         </div>
                     </div>
-                    <div class="alert alert-warning bg-warning-subtle text-dark border-0 py-2">
-                        Usuarios activos: <strong><?= $datos['usuarios']['activos'] ?? 0 ?></strong> / <?= $totalUsuarios ?>
+                    <div class="row mb-3">
+                        <div class="col-md-5">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted mb-3"><i class="bi bi-pie-chart me-2"></i>Distribución por Rol</h6>
+                                    <div style="height: 250px;"><canvas id="chartUsuariosRol"></canvas></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="alert alert-warning bg-warning-subtle text-dark border-0 py-2 mb-2">
+                                Usuarios activos: <strong><?= $datos['usuarios']['activos'] ?? 0 ?></strong> / <?= $totalUsuarios ?>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="card border-0 bg-light">
+                                        <div class="card-body py-2">
+                                            <div class="small text-muted">Total Usuarios</div>
+                                            <div class="h4 mb-0 text-warning"><?= $totalUsuarios ?></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="card border-0 bg-light">
+                                        <div class="card-body py-2">
+                                            <div class="small text-muted">Inactivos</div>
+                                            <div class="h4 mb-0 text-muted"><?= $totalUsuarios - ($datos['usuarios']['activos'] ?? 0) ?></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="table-responsive mt-3">
                         <table class="table table-hover align-middle" id="tablaUsuariosModal">
@@ -343,14 +395,33 @@ function badgeClaseEstado($estado)
                             <form id="formPdfFlores" action="controllers/repopdf.php" method="POST" class="filters-export">
                                 <input type="hidden" name="accion" value="flores_pdf">
                                 <input type="hidden" name="ids" id="pdf_ids_flores">
+                                <input type="hidden" name="grafico_inventario" id="grafico_inventario_data">
                                 <button type="submit" class="btn btn-outline-success text-success fw-bold w-100">
                                     <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
                                 </button>
                             </form>
                         </div>
                     </div>
-                    <div class="alert alert-success bg-success-subtle border-0 py-2">
-                        Stock total: <strong><?= number_format($datos['inventario']['stock_total'] ?? 0) ?></strong> | Productos: <?= number_format($datos['inventario']['productos'] ?? 0) ?>
+                    <div class="row mb-3">
+                        <div class="col-md-7">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body">
+                                    <h6 class="text-muted mb-3"><i class="bi bi-bar-chart me-2"></i>Top 10 Productos por Stock</h6>
+                                    <div style="height: 300px;"><canvas id="chartInventarioTop"></canvas></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="alert alert-success bg-success-subtle text-dark border-0 py-2 mb-2">
+                                Total productos: <strong><?= $datos['inventario']['productos'] ?? 0 ?></strong> | Stock total: <strong><?= number_format($datos['inventario']['stock_total'] ?? 0) ?></strong>
+                            </div>
+                            <div class="card border-0 bg-light">
+                                <div class="card-body py-2">
+                                    <div class="small text-muted">Valor Total Inventario</div>
+                                    <div class="h4 mb-0 text-success">$<?= number_format($datos['inventario']['valor_total'] ?? 0, 2) ?></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="table-responsive mt-3">
                         <table class="table table-hover align-middle" id="tablaFloresModal">
@@ -440,23 +511,48 @@ function badgeClaseEstado($estado)
                             <form id="formPdfPagos" action="controllers/repopdf.php" method="POST" class="filters-export">
                                 <input type="hidden" name="accion" value="pagos_pdf">
                                 <input type="hidden" name="ids" id="pdf_ids_pagos">
+                                <input type="hidden" name="grafico_pagos" id="grafico_pagos_data">
                                 <button type="submit" class="btn btn-outline-danger text-danger fw-bold w-100">
                                     <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
                                 </button>
                             </form>
                         </div>
                     </div>
-                    <div class="row g-2 mb-3">
-                        <div class="col-12 col-md-6">
-                            <div class="p-3 rounded-3 bg-light border">
-                                <div class="small text-muted">Pagos completados</div>
-                                <div class="h5 mb-0 text-success">$<?= number_format($datos['pagos']['realizados'] ?? 0, 2) ?></div>
+                    <div class="row mb-3">
+                        <div class="col-md-5">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted mb-3"><i class="bi bi-pie-chart-fill me-2"></i>Estados de Pagos</h6>
+                                    <div style="height: 250px;"><canvas id="chartPagosEstados"></canvas></div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-12 col-md-6">
-                            <div class="p-3 rounded-3 bg-light border">
-                                <div class="small text-muted">Pagos pendientes</div>
-                                <div class="h5 mb-0 text-warning">$<?= number_format($datos['pagos']['pendientes'] ?? 0, 2) ?></div>
+                        <div class="col-md-7">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #d1fae5, #a7f3d0);">
+                                        <div class="card-body py-3">
+                                            <div class="small text-muted">Completados</div>
+                                            <div class="h4 mb-0 text-success">$<?= number_format($datos['pagos']['realizados'] ?? 0, 2) ?></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #fef3c7, #fde68a);">
+                                        <div class="card-body py-3">
+                                            <div class="small text-muted">Pendientes</div>
+                                            <div class="h4 mb-0 text-warning">$<?= number_format($datos['pagos']['pendientes'] ?? 0, 2) ?></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <div class="card border-0 bg-light">
+                                        <div class="card-body py-2">
+                                            <div class="small text-muted">Total General</div>
+                                            <div class="h4 mb-0 text-primary">$<?= number_format(($datos['pagos']['realizados'] ?? 0) + ($datos['pagos']['pendientes'] ?? 0), 2) ?></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -511,8 +607,327 @@ function badgeClaseEstado($estado)
         </div>
     </div>
 
-    <script src="assets/repo.js"></script>
+    <script src="assets/js/repo.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    // Gráfico de Tendencia de Ventas (Línea)
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. Gráfico de Ventas - Tendencia últimos 7 días
+        <?php
+        $ventasPorDia = [];
+        foreach ($pedidosFiltrados as $p) {
+            $dia = date('Y-m-d', strtotime($p['fecha_pedido']));
+            if (!isset($ventasPorDia[$dia])) $ventasPorDia[$dia] = 0;
+            $ventasPorDia[$dia] += floatval($p['monto_total']);
+        }
+        $ultimos7Dias = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $dia = date('Y-m-d', strtotime("-$i days"));
+            $ultimos7Dias[$dia] = $ventasPorDia[$dia] ?? 0;
+        }
+        ?>
+        const ctxVentas = document.getElementById('chartVentasTendencia');
+        if (ctxVentas) {
+            new Chart(ctxVentas, {
+                type: 'line',
+                data: {
+                    labels: <?= json_encode(array_map(function($d) { return date('d/m', strtotime($d)); }, array_keys($ultimos7Dias))) ?>,
+                    datasets: [{
+                        label: 'Ventas ($)',
+                        data: <?= json_encode(array_values($ultimos7Dias)) ?>,
+                        borderColor: '#6a5af9',
+                        backgroundColor: 'rgba(106, 90, 249, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { callback: v => '$' + v.toLocaleString() } }
+                    }
+                }
+            });
+        }
+
+        // 2. Gráfico de Inventario - Top 10 productos
+        <?php
+        usort($inventarioFiltrado, function($a, $b) { return ($b['stock'] ?? 0) - ($a['stock'] ?? 0); });
+        $top10 = array_slice($inventarioFiltrado, 0, 10);
+        ?>
+        const ctxInventario = document.getElementById('chartInventarioTop');
+        if (ctxInventario) {
+            new Chart(ctxInventario, {
+                type: 'bar',
+                data: {
+                    labels: <?= json_encode(array_map(function($i) { return substr($i['producto'] ?? 'N/D', 0, 15); }, $top10)) ?>,
+                    datasets: [{
+                        label: 'Stock',
+                        data: <?= json_encode(array_map(function($i) { return $i['stock'] ?? 0; }, $top10)) ?>,
+                        backgroundColor: [
+                            '#10b981', '#34d399', '#6ee7b7', '#a7f3d0',
+                            '#86efac', '#4ade80', '#22c55e', '#16a34a', '#15803d', '#166534'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // 3. Gráfico de Usuarios - Distribución por rol (Dona)
+        <?php
+        $usuariosPorRol = [];
+        foreach ($usuariosFiltrados as $u) {
+            $rol = $u['tipo_usuario'] ?? 'Sin rol';
+            $usuariosPorRol[$rol] = ($usuariosPorRol[$rol] ?? 0) + 1;
+        }
+        ?>
+        const ctxUsuarios = document.getElementById('chartUsuariosRol');
+        if (ctxUsuarios) {
+            new Chart(ctxUsuarios, {
+                type: 'doughnut',
+                data: {
+                    labels: <?= json_encode(array_keys($usuariosPorRol)) ?>,
+                    datasets: [{
+                        data: <?= json_encode(array_values($usuariosPorRol)) ?>,
+                        backgroundColor: ['#f59e0b', '#fb923c', '#fbbf24', '#fcd34d', '#fde047']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // 4. Gráfico de Pagos - Estados (Dona)
+        <?php
+        $pagosPorEstado = [];
+        foreach ($pagosFiltrados as $p) {
+            $estado = $p['estado_pag'] ?? 'Sin estado';
+            if (!isset($pagosPorEstado[$estado])) $pagosPorEstado[$estado] = 0;
+            $pagosPorEstado[$estado] += floatval($p['monto'] ?? 0);
+        }
+        ?>
+        const ctxPagos = document.getElementById('chartPagosEstados');
+        if (ctxPagos) {
+            new Chart(ctxPagos, {
+                type: 'doughnut',
+                data: {
+                    labels: <?= json_encode(array_keys($pagosPorEstado)) ?>,
+                    datasets: [{
+                        data: <?= json_encode(array_values($pagosPorEstado)) ?>,
+                        backgroundColor: ['#10b981', '#fbbf24', '#ef4444', '#6b7280', '#8b5cf6']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': $' + context.parsed.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Actualizar totales dinámicos en modal de ventas
+        function actualizarTotalesVentas() {
+            const filas = document.querySelectorAll('#tablaPedidosModal tbody tr:not([style*="display: none"])');
+            let total = 0;
+            let count = 0;
+            filas.forEach(fila => {
+                const checkbox = fila.querySelector('.select-row');
+                if (checkbox) {
+                    const montoText = fila.cells[3]?.textContent.replace('$', '').replace(',', '');
+                    total += parseFloat(montoText) || 0;
+                    count++;
+                }
+            });
+            document.getElementById('totalVentasVisible').textContent = '$' + total.toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('cantPedidosVisible').textContent = count;
+        }
+
+        // Llamar al cargar y al filtrar
+        const modalVentas = document.getElementById('tablaModal');
+        if (modalVentas) {
+            modalVentas.addEventListener('shown.bs.modal', actualizarTotalesVentas);
+            document.getElementById('btnFiltrarModal')?.addEventListener('click', () => {
+                setTimeout(actualizarTotalesVentas, 100);
+            });
+        }
+        
+        // ========== CAPTURAR GRÁFICOS PARA PDF ==========
+        let capturandoGrafico = false;
+        
+        // Capturar gráfico de Ventas antes de enviar formulario
+        document.getElementById('formPdfPedidos')?.addEventListener('submit', function(e) {
+            const inputGrafico = document.getElementById('grafico_ventas_data');
+            
+            if (inputGrafico.value) {
+                console.log('✅ Ya existe gráfico de Ventas capturado');
+                return true;
+            }
+            
+            e.preventDefault();
+            if (capturandoGrafico) return;
+            capturandoGrafico = true;
+            
+            const canvas = document.getElementById('chartVentasTendencia');
+            console.log('📊 VENTAS - Canvas encontrado:', canvas ? 'SÍ' : 'NO');
+            
+            if (canvas) {
+                console.log('📐 VENTAS - Dimensiones:', canvas.width, 'x', canvas.height);
+                try {
+                    const imgData = canvas.toDataURL('image/png');
+                    console.log('📸 VENTAS - Imagen generada:', imgData.length, 'caracteres');
+                    inputGrafico.value = imgData;
+                    console.log('✅ VENTAS - Gráfico capturado y guardado');
+                    capturandoGrafico = false;
+                    this.submit();
+                } catch (error) {
+                    console.error('❌ VENTAS - Error:', error);
+                    capturandoGrafico = false;
+                    this.submit();
+                }
+            } else {
+                console.warn('⚠️ VENTAS - Canvas no encontrado');
+                capturandoGrafico = false;
+                this.submit();
+            }
+        });
+        
+        // Capturar gráfico de Inventario antes de enviar formulario
+        document.getElementById('formPdfFlores')?.addEventListener('submit', function(e) {
+            const inputGrafico = document.getElementById('grafico_inventario_data');
+            
+            if (inputGrafico.value) {
+                console.log('✅ Ya existe gráfico capturado, enviando...');
+                return true;
+            }
+            
+            e.preventDefault();
+            if (capturandoGrafico) return;
+            capturandoGrafico = true;
+            
+            const canvas = document.getElementById('chartInventarioTop');
+            console.log('📊 Canvas encontrado:', canvas ? 'SÍ' : 'NO');
+            
+            if (canvas) {
+                console.log('📐 Dimensiones canvas:', canvas.width, 'x', canvas.height);
+                try {
+                    const imgData = canvas.toDataURL('image/png');
+                    console.log('📸 Imagen generada, tamaño:', imgData.length, 'caracteres');
+                    console.log('🔍 Primeros 50 caracteres:', imgData.substring(0, 50));
+                    inputGrafico.value = imgData;
+                    console.log('✅ Gráfico de Inventario capturado y guardado');
+                    capturandoGrafico = false;
+                    this.submit();
+                } catch (error) {
+                    console.error('❌ Error capturando gráfico:', error);
+                    capturandoGrafico = false;
+                    this.submit();
+                }
+            } else {
+                console.warn('⚠️ Canvas no encontrado, enviando sin gráfico');
+                capturandoGrafico = false;
+                this.submit();
+            }
+        });
+        
+        // Capturar gráfico de Usuarios antes de enviar formulario
+        document.getElementById('formPdfUsuarios')?.addEventListener('submit', function(e) {
+            const inputGrafico = document.getElementById('grafico_usuarios_data');
+            
+            if (inputGrafico.value) {
+                console.log('✅ Ya existe gráfico de Usuarios capturado');
+                return true;
+            }
+            
+            e.preventDefault();
+            if (capturandoGrafico) return;
+            capturandoGrafico = true;
+            
+            const canvas = document.getElementById('chartUsuariosRol');
+            console.log('📊 USUARIOS - Canvas encontrado:', canvas ? 'SÍ' : 'NO');
+            
+            if (canvas) {
+                console.log('📐 USUARIOS - Dimensiones:', canvas.width, 'x', canvas.height);
+                try {
+                    const imgData = canvas.toDataURL('image/png');
+                    console.log('📸 USUARIOS - Imagen generada:', imgData.length, 'caracteres');
+                    inputGrafico.value = imgData;
+                    console.log('✅ USUARIOS - Gráfico capturado y guardado');
+                    capturandoGrafico = false;
+                    this.submit();
+                } catch (error) {
+                    console.error('❌ USUARIOS - Error:', error);
+                    capturandoGrafico = false;
+                    this.submit();
+                }
+            } else {
+                console.warn('⚠️ USUARIOS - Canvas no encontrado');
+                capturandoGrafico = false;
+                this.submit();
+            }
+        });
+        
+        // Capturar gráfico de Pagos antes de enviar formulario
+        document.getElementById('formPdfPagos')?.addEventListener('submit', function(e) {
+            const inputGrafico = document.getElementById('grafico_pagos_data');
+            
+            if (inputGrafico.value) {
+                console.log('✅ Ya existe gráfico de Pagos capturado');
+                return true;
+            }
+            
+            e.preventDefault();
+            if (capturandoGrafico) return;
+            capturandoGrafico = true;
+            
+            const canvas = document.getElementById('chartPagosEstados');
+            console.log('📊 PAGOS - Canvas encontrado:', canvas ? 'SÍ' : 'NO');
+            
+            if (canvas) {
+                console.log('📐 PAGOS - Dimensiones:', canvas.width, 'x', canvas.height);
+                try {
+                    const imgData = canvas.toDataURL('image/png');
+                    console.log('📸 PAGOS - Imagen generada:', imgData.length, 'caracteres');
+                    inputGrafico.value = imgData;
+                    console.log('✅ PAGOS - Gráfico capturado y guardado');
+                    capturandoGrafico = false;
+                    this.submit();
+                } catch (error) {
+                    console.error('❌ PAGOS - Error:', error);
+                    capturandoGrafico = false;
+                    this.submit();
+                }
+            } else {
+                console.warn('⚠️ PAGOS - Canvas no encontrado');
+                capturandoGrafico = false;
+                this.submit();
+            }
+        });
+    });
+    </script>
 </body>
 </html>
 

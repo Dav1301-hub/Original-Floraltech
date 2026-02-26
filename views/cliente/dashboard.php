@@ -10,8 +10,11 @@ $usuario = $_SESSION['user'];
 
 // Conectar a la base de datos
 require_once 'models/conexion.php';
+require_once 'models/MDashboardGeneral.php';
 $conn = new conexion();
 $db = $conn->get_conexion();
+
+$modeloGeneral = new MDashboardGeneral($db);
 
 // Buscar el cliente asociado al usuario actual por email
 try {
@@ -33,13 +36,17 @@ try {
         $cliente_id = $cliente_data['idcli'];
     }
 
+
+    // Obtener estadísticas del cliente
+    $params_stats = [$cliente_id];
+
     // Obtener estadísticas del cliente con una sola consulta optimizada
 $stmt = $db->prepare("
     SELECT 
         COUNT(DISTINCT p.idped) as total_pedidos,
         COALESCE(SUM(
             CASE 
-                WHEN (pg.estado_pag = 'Completado' OR pg.estado_pag = 'COMPLETADO') 
+                WHEN LOWER(pg.estado_pag) = 'completado'
                 AND p.estado != 'Cancelado' 
                 THEN p.monto_total 
                 ELSE 0 
@@ -47,7 +54,7 @@ $stmt = $db->prepare("
         ), 0) as total_gastado,
         COALESCE(SUM(
             CASE 
-                WHEN (pg.estado_pag = 'Sin pago' OR pg.estado_pag IS NULL) 
+                WHEN (LOWER(pg.estado_pag) = 'sin pago' OR pg.estado_pag IS NULL) 
                 AND p.estado != 'Cancelado' 
                 THEN p.monto_total 
                 ELSE 0 
@@ -55,12 +62,12 @@ $stmt = $db->prepare("
         ), 0) as total_pendiente_pago,
         SUM(CASE WHEN p.estado = 'Pendiente' AND p.estado != 'Cancelado' THEN 1 ELSE 0 END) as pedidos_pendientes,
         SUM(CASE WHEN p.estado = 'Completado' THEN 1 ELSE 0 END) as pedidos_completados,
-        SUM(CASE WHEN (pg.estado_pag = 'Pendiente' AND p.estado != 'Cancelado') THEN 1 ELSE 0 END) as pagos_pendientes,
-        SUM(CASE WHEN (pg.estado_pag = 'Completado' OR pg.estado_pag = 'COMPLETADO') THEN 1 ELSE 0 END) as pagos_completados,
-        SUM(CASE WHEN (pg.estado_pag = 'Sin pago' OR pg.estado_pag IS NULL) THEN 1 ELSE 0 END) as pagos_sin_pago,
+        SUM(CASE WHEN (LOWER(pg.estado_pag) = 'pendiente' AND p.estado != 'Cancelado') THEN 1 ELSE 0 END) as pagos_pendientes,
+        SUM(CASE WHEN LOWER(pg.estado_pag) = 'completado' THEN 1 ELSE 0 END) as pagos_completados,
+        SUM(CASE WHEN (LOWER(pg.estado_pag) = 'sin pago' OR pg.estado_pag IS NULL) THEN 1 ELSE 0 END) as pagos_sin_pago,
         COALESCE(AVG(
             CASE 
-                WHEN (pg.estado_pag = 'Completado' OR pg.estado_pag = 'COMPLETADO') 
+                WHEN LOWER(pg.estado_pag) = 'completado'
                 AND p.estado != 'Cancelado' 
                 THEN p.monto_total 
                 ELSE NULL 
@@ -69,7 +76,7 @@ $stmt = $db->prepare("
         MAX(p.fecha_pedido) as ultimo_pedido
     FROM ped p 
     LEFT JOIN pagos pg ON p.idped = pg.ped_idped 
-    WHERE p.cli_idcli = ?
+    WHERE p.cli_idcli = ? 
 ");
     $stmt->execute([$cliente_id]);
     $estadisticas = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -87,7 +94,6 @@ $stmt = $db->prepare("
     $porcentaje_completados = $total_pedidos > 0 ? round(($pedidos_completados / $total_pedidos) * 100, 1) : 0;
     $dias_ultimo_pedido = $ultimo_pedido ? floor((time() - strtotime($ultimo_pedido)) / (60 * 60 * 24)) : null;
 
-    // Pedidos recientes con más detalles
     $stmt = $db->prepare("
         SELECT 
             p.*,
@@ -104,7 +110,6 @@ $stmt = $db->prepare("
         WHERE p.cli_idcli = ? 
         GROUP BY p.idped
         ORDER BY p.fecha_pedido DESC 
-        LIMIT 5
     ");
     $stmt->execute([$cliente_id]);
     $pedidos_recientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -210,7 +215,7 @@ $stmt = $db->prepare("
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= isset($pageTitle) ? $pageTitle : 'Dashboard - Cliente' ?> - FloralTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/dashboard-cliente.css">
+    <link rel="stylesheet" href="assets/css/dashboard-cliente.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -254,13 +259,13 @@ $stmt = $db->prepare("
         <?php endif; ?>
 
         <!-- Saludo Principal Estilizado -->
-        <div class="welcome-card card">
-            <div class="card-body">
-                <div class="welcome-header">
-                    <h2>¡Hola, <?= explode(' ', $usuario['nombre_completo'])[0] ?>!</h2>
-                    <p>
-                            Bienvenido a FloralTech
-                    </p>
+        <div class="welcome-card card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <div class="welcome-header text-start">
+                    <div>
+                        <h2 class="mb-1 text-primary">¡Hola, <?= explode(' ', $usuario['nombre_completo'])[0] ?>!</h2>
+                        <p class="text-muted mb-0">Bienvenido a FloralTech. Aquí tienes un resumen de toda tu actividad.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -268,19 +273,19 @@ $stmt = $db->prepare("
             <!-- Statistics minimalistas -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-icon">
+                    <div class="stat-icon primary">
                         <i class="fas fa-shopping-bag"></i>
                     </div>
                     <div class="stat-number"><?= number_format($total_pedidos) ?></div>
-                    <div class="stat-label">Pedidos</div>
+                    <div class="stat-label">Total Pedidos</div>
                 </div>
 
                 <div class="stat-card">
-                    <div class="stat-icon">
+                    <div class="stat-icon warning">
                         <i class="fas fa-clock"></i>
                     </div>
                     <div class="stat-number"><?= number_format($pedidos_pendientes) ?></div>
-                    <div class="stat-label">Pedidos pendientes</div>
+                    <div class="stat-label">Pendientes de Envío</div>
                     <?php if ($pedidos_pendientes > 0): ?>
                         <div class="stat-change negative">
                             <i class="fas fa-exclamation-triangle"></i>
@@ -289,14 +294,27 @@ $stmt = $db->prepare("
                 </div>
 
                 <div class="stat-card">
-                    <div class="stat-icon">
+                    <div class="stat-icon danger">
                         <i class="fas fa-credit-card"></i>
                     </div>
                     <div class="stat-number"><?= number_format($pagos_pendientes) ?></div>
                     <div class="stat-label">Por Pagar</div>
-                    <?php if ($pagos_pendientes > 0): ?>
-                        
-                    <?php endif; ?>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon success">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-number"><?= number_format($pedidos_completados) ?></div>
+                    <div class="stat-label">Completados</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon info">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="stat-number">$<?= number_format($estadisticas['total_gastado'], 2) ?></div>
+                    <div class="stat-label">Total Gastado</div>
                 </div>
             </div>
 
@@ -305,7 +323,8 @@ $stmt = $db->prepare("
                 <!-- Recent Orders simplificado -->
                 <div class="card">
                     <div class="card-header">
-                        <i class="fas fa-list-alt"></i> Pedidos Recientes
+                        <i class="fas fa-list-alt"></i> Todos tus Pedidos
+                        <!-- DEV: Filtros removidos, mostrando historial completo -->
                     </div>
                     <div class="card-body">
                         <?php if (!empty($pedidos_recientes)): ?>
@@ -318,10 +337,11 @@ $stmt = $db->prepare("
                                             <th>Monto</th>
                                             <th>Estado del pedido</th>
                                             <th>Estado del pago</th>
+                                            <th>Acción</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach (array_slice($pedidos_recientes, 0, 5) as $pedido): ?>
+                                        <?php foreach ($pedidos_recientes as $pedido): ?>
                                             <tr>
                                                 <td>
                                                     <strong>#<?= htmlspecialchars($pedido['numped']) ?></strong>
@@ -375,6 +395,26 @@ $stmt = $db->prepare("
                                                     <span class="badge <?= $pago_badge_class ?>">
                                                         <?= htmlspecialchars($estado_pago) ?>
                                                     </span>
+                                                </td>
+                                                <td>
+                                                    <?php if (strtolower($estado_pago) === 'pendiente' || strtolower($estado_pago) === 'sin pago'): ?>
+                                                        <button type="button"
+                                                        class="btn btn-outline-warning btn-sm"
+                                                        title="Pagar Pedido"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#modalPago"
+                                                        onclick="prepararModalPago('<?= htmlspecialchars($pedido['numped']) ?>', '<?= number_format($pedido['monto_total'], 2, '.', '') ?>')">
+                                                            <i class="fas fa-credit-card"></i> Pagar
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <!-- Mismo botón que el historial -->
+                                                        <a href="index.php?ctrl=cliente&action=generar_factura&idpedido=<?= $pedido['idped'] ?>" 
+                                                        class="btn btn-outline-primary btn-sm"
+                                                        title="Descargar Factura"
+                                                        target="_blank">
+                                                            <i class="fas fa-file-pdf"></i> Factura
+                                                        </a>
+                                                    <?php endif; ?>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -444,7 +484,135 @@ $stmt = $db->prepare("
         </div>
     </div>
 
+    <!-- Modal de Pago -->
+    <div class="modal fade" id="modalPago" tabindex="-1" aria-labelledby="modalPagoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalPagoLabel">
+                        <i class="fas fa-credit-card me-2"></i>Realizar Pago
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="text-center mb-4">
+                        <h4 class="mb-2">Pedido <span id="modalNumPed" class="text-primary"></span></h4>
+                        <div class="display-6 fw-bold text-success mb-2">
+                            $<span id="modalMontoTotal">0.00</span>
+                        </div>
+                        <p class="text-muted">Total a pagar</p>
+                    </div>
+
+                    <h6 class="mb-3 text-secondary">Seleccione un método de pago:</h6>
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <div class="payment-method text-center p-3 border rounded h-100" onclick="selectPaymentMethod('efectivo')" id="method-efectivo" style="cursor: pointer; transition: all 0.2s;">
+                                <i class="fas fa-money-bill-wave fa-2x text-success mb-2"></i>
+                                <h6>Efectivo</h6>
+                                <small class="text-muted d-block">Pago contra entrega</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="payment-method text-center p-3 border rounded h-100" onclick="selectPaymentMethod('nequi')" id="method-nequi" style="cursor: pointer; transition: all 0.2s;">
+                                <i class="fas fa-mobile-alt fa-2x text-primary mb-2"></i>
+                                <h6>Nequi</h6>
+                                <small class="text-muted d-block">Código QR</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contenedor QR QR (Oculto por defecto) -->
+                    <div id="qrContainer" class="text-center border rounded p-4 bg-light" style="display: none;">
+                        <h6 class="text-primary mb-3">
+                            <i class="fas fa-qrcode me-2"></i>Código QR Nequi
+                        </h6>
+                        <img src="assets/images/qr/qr_transferencia.png" alt="QR Nequi" class="img-fluid bg-white p-2 rounded shadow-sm mb-3" style="max-width: 180px;">
+                        <div class="text-start small text-muted">
+                            <p class="mb-1"><strong>Instrucciones:</strong></p>
+                            <ol class="ps-3 mb-0">
+                                <li>Abre tu app Nequi</li>
+                                <li>Escanea este código QR</li>
+                                <li>Confirma el pago por el monto indicado</li>
+                                <li>Envía el comprobante por WhatsApp al +57 300 000 0000</li>
+                            </ol>
+                        </div>
+                    </div>
+                    
+                    <!-- Contenedor Efectivo (Oculto por defecto) -->
+                    <div id="efectivoContainer" class="text-center border rounded p-4 bg-light shadow-sm" style="display: none;">
+                        <i class="fas fa-hand-holding-usd fa-3x text-success mb-3"></i>
+                        <h6>Pago Contra Entrega</h6>
+                        <p class="text-muted small mb-0">Por favor, ten el dinero exacto al momento de recibir tu pedido para facilitar el cambio al domiciliario.</p>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <!-- <button type="button" class="btn btn-primary">Notificar Pago</button> -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estilos adicionales para el modal -->
+    <style>
+        .payment-method:hover {
+            border-color: #0d6efd !important;
+            background-color: #f8f9fa;
+        }
+        .payment-method.selected {
+            border-color: #0d6efd !important;
+            background-color: #e9ecef;
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+        }
+    </style>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/dashboard-cliente.js"></script>
+    <script>
+    // Variables globales para el modal
+    let currentPedidoId = '';
+    
+    // Función para preparar el modal con los datos del pedido
+    function prepararModalPago(numPed, monto) {
+        document.getElementById('modalNumPed').textContent = numPed;
+        
+        // Formatear monto con comas para miles
+        const formatMonto = parseFloat(monto).toLocaleString('es-CO', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+        });
+        document.getElementById('modalMontoTotal').textContent = formatMonto;
+        
+        // Resetear selección
+        document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('selected'));
+        document.getElementById('qrContainer').style.display = 'none';
+        document.getElementById('efectivoContainer').style.display = 'none';
+        
+        // Guardar ID
+        currentPedidoId = numPed;
+    }
+
+    // Función para seleccionar método de pago en el modal
+    function selectPaymentMethod(method) {
+        // Remover clase selected de todos
+        document.querySelectorAll('.payment-method').forEach(el => {
+            el.classList.remove('selected');
+        });
+        
+        // Añadir clase selected al método elegido
+        document.getElementById('method-' + method).classList.add('selected');
+        
+        // Mostrar contenido correspondiente
+        if (method === 'nequi') {
+            document.getElementById('qrContainer').style.display = 'block';
+            document.getElementById('efectivoContainer').style.display = 'none';
+        } else if (method === 'efectivo') {
+            document.getElementById('efectivoContainer').style.display = 'block';
+            document.getElementById('qrContainer').style.display = 'none';
+        }
+    }
+    </script>
+    <script src="assets/js/dashboard-cliente.js"></script>
+    <script src="assets/js/dashboard-cliente.js"></script>
 </body>
 </html>

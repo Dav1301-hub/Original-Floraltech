@@ -600,8 +600,23 @@ $total_empleados = count($empleados);
                                 </select>
                             </div>
                             <div class="col-md-6">
+                                <label class="form-label">Temporada</label>
+                                <select class="form-select" name="tipo_temporada" id="turnoTemporada" required>
+                                    <option value="normal">Normal</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="finsemana">Fin de Semana</option>
+                                    <option value="especial">Especial</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tipo de Turno</label>
+                                <select class="form-select" name="turno" id="turnoTipo" required>
+                                    <!-- Se llena dinámicamente -->
+                                </select>
+                            </div>
+                            <div class="col-md-6">
                                 <label class="form-label">Horario</label>
-                                <input type="text" class="form-control" name="horario" placeholder="Ej: 08:00 - 16:00" required>
+                                <input type="text" class="form-control" name="horario" id="turnoHorario" placeholder="Ej: 08:00 - 16:00" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Fecha Inicio</label>
@@ -610,6 +625,10 @@ $total_empleados = count($empleados);
                             <div class="col-md-6">
                                 <label class="form-label">Fecha Fin</label>
                                 <input type="date" class="form-control" name="fecha_fin" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Observaciones</label>
+                                <textarea class="form-control" name="observaciones" id="turnoObservaciones" rows="2"></textarea>
                             </div>
                         </div>
                     </div>
@@ -644,6 +663,21 @@ $total_empleados = count($empleados);
                                 </select>
                             </div>
                             <div class="col-md-6">
+                                <label class="form-label">Temporada</label>
+                                <select class="form-select" name="tipo_temporada" id="edit_turnoTemporada" required>
+                                    <option value="normal">Normal</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="finsemana">Fin de Semana</option>
+                                    <option value="especial">Especial</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tipo de Turno</label>
+                                <select class="form-select" name="turno" id="edit_turnoTipo" required>
+                                    <!-- Se llena dinámicamente -->
+                                </select>
+                            </div>
+                            <div class="col-md-6">
                                 <label class="form-label">Horario</label>
                                 <input type="text" class="form-control" id="edit_turnoHorario" name="horario" required>
                             </div>
@@ -654,6 +688,10 @@ $total_empleados = count($empleados);
                             <div class="col-md-6">
                                 <label class="form-label">Fecha Fin</label>
                                 <input type="date" class="form-control" id="edit_turnoFechaFin" name="fecha_fin" required>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Observaciones</label>
+                                <textarea class="form-control" id="edit_turnoObservaciones" name="observaciones" rows="2"></textarea>
                             </div>
                         </div>
                     </div>
