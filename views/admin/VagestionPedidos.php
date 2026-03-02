@@ -252,112 +252,29 @@ try {
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
 <style>
-    /* Columna de acciones - solución para botones cortados */
-    .table-responsive {
-        overflow-x: auto !important;
-        overflow-y: visible;
-        width: 100%;
-        box-sizing: border-box;
-        -webkit-overflow-scrolling: touch;
+    /* Estilos unificados para la gestión de pedidos */
+    .table td, .table th {
+        vertical-align: middle;
     }
     
-    .table {
-        width: 100%;
-        table-layout: auto;
-        font-size: 0.65rem;
-        margin-bottom: 0;
-        min-width: 100%;
-    }
-    
-    .table th {
-        font-size: 0.6rem;
-        padding: 0.25rem 0.15rem !important;
-    }
-    
-    .table td {
-        padding: 0.25rem 0.15rem !important;
-        white-space: nowrap;
-        font-size: 0.65rem;
-    }
-    
-    /* Columna de acciones - fijar ancho y mostrar botones */
-    .table td:last-child,
-    .table th:last-child {
-        white-space: normal !important;
-        padding: 0.25rem 0.1rem !important;
-        min-width: 100px;
-        position: sticky;
-        right: 0;
-        background-color: #fff;
-    }
-    
-    /* Botones en columna de acciones - muy compactos */
-    .table .btn-group,
-    .table .btn-group-sm {
-        display: flex !important;
-        flex-wrap: wrap;
-        gap: 0.05rem;
-        width: 100%;
-    }
-    
-    .table .btn {
-        padding: 0.15rem 0.25rem;
-        font-size: 0.55rem;
-        flex: 0 1 auto;
-        min-width: auto;
-        white-space: nowrap;
-        line-height: 1;
-        border: 0.5px solid;
-    }
-    
-    .table .btn i,
-    .table .btn .fa {
-        margin-right: 0 !important;
-        font-size: 0.5rem;
-    }
-    
-    /* Badges más pequeños */
-    .table .badge {
-        padding: 0.15rem 0.25rem;
-        font-size: 0.5rem;
-    }
-    
-    /* Reducir espacios en filas */
-    .table tbody tr {
-        height: auto;
-    }
-    
-    /* En tablets */
-    @media (max-width: 992px) {
-        .table {
-            font-size: 0.6rem;
-        }
-        
-        .table th {
-            font-size: 0.55rem;
-        }
-        
-        .table th,
-        .table td {
-            padding: 0.2rem 0.1rem !important;
-        }
-        
-        .table .btn {
-            padding: 0.1rem 0.2rem;
-            font-size: 0.5rem;
-        }
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
     }
 </style>
 
 <div class="container-fluid">
-    <div class="d-flex align-items-center justify-content-between mb-4 py-3 px-3 rounded-4 shadow-sm text-white" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%);">
-        <div>
-            <p class="mb-1 opacity-75 text-uppercase" style="letter-spacing:1px; color: #ffff"><i class="fas fa-seedling me-2"></i>FloralTech Admin</p>
-            <h2 class="mb-0 fw-bold" style="color: #ffff">Gestion de Pedidos</h2>
+    <!-- Banner de encabezado unificado -->
+    <div class="content-banner mb-4">
+        <div class="banner-info">
+            <p class="banner-subtitle"><i class="fas fa-seedling me-2"></i>FloralTech Admin</p>
+            <h2 class="banner-title">Gestión de Pedidos</h2>
         </div>
-        <button class="btn btn-light text-primary fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#nuevoPedidoModal">
-            <i class="fas fa-plus me-2"></i>Nuevo pedido
-        </button>
+        <div class="banner-actions">
+            <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#nuevoPedidoModal">
+                <i class="fas fa-plus me-2"></i>Nuevo pedido
+            </button>
+        </div>
     </div>
 
     <?php if ($mensaje_exito): ?>
@@ -373,45 +290,41 @@ try {
         </div>
     <?php endif; ?>
 
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-md-2">
-            <div class="card shadow-sm border-0 h-100 metric-card metric-blue">
-                <div class="card-body text-center">
-                    <small class="text-muted text-uppercase">Total</small>
-                    <div class="fs-3 fw-bold text-primary"><?= $totalPedidos ?></div>
-                </div>
+    <!-- Tarjetas métricas responsivas -->
+    <div class="metrics-card">
+        <div class="metric-card metric-blue">
+            <div class="metric-icon"><i class="fas fa-shopping-bag"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Total Pedidos</span>
+                <h3 class="metric-value"><?= $totalPedidos ?></h3>
             </div>
         </div>
-        <div class="col-6 col-md-2">
-            <div class="card shadow-sm border-0 h-100 metric-card metric-yellow">
-                <div class="card-body text-center">
-                    <small class="text-muted text-uppercase">Pendientes</small>
-                    <div class="fs-4 fw-bold text-warning"><?= $totalPendientes ?></div>
-                </div>
+        <div class="metric-card metric-orange">
+            <div class="metric-icon"><i class="fas fa-clock"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Pendientes</span>
+                <h3 class="metric-value"><?= $totalPendientes ?></h3>
             </div>
         </div>
-        <div class="col-6 col-md-2">
-            <div class="card shadow-sm border-0 h-100 metric-card metric-purple">
-                <div class="card-body text-center">
-                    <small class="text-muted text-uppercase">En proceso</small>
-                    <div class="fs-4 fw-bold text-info"><?= $totalEnProceso ?></div>
-                </div>
+        <div class="metric-card metric-purple">
+            <div class="metric-icon"><i class="fas fa-spinner"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">En proceso</span>
+                <h3 class="metric-value"><?= $totalEnProceso ?></h3>
             </div>
         </div>
-        <div class="col-6 col-md-2">
-            <div class="card shadow-sm border-0 h-100 metric-card metric-green">
-                <div class="card-body text-center">
-                    <small class="text-muted text-uppercase">Completados</small>
-                    <div class="fs-4 fw-bold text-success"><?= $totalCompletados ?></div>
-                </div>
+        <div class="metric-card metric-green">
+            <div class="metric-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Completados</span>
+                <h3 class="metric-value"><?= $totalCompletados ?></h3>
             </div>
         </div>
-        <div class="col-12 col-md-4">
-            <div class="card shadow-sm border-0 h-100 metric-card metric-pink">
-                <div class="card-body text-center">
-                    <small class="text-muted text-uppercase">Ventas Totales</small>
-                    <div class="fs-4 fw-bold text-success">$<?= number_format($ventasTotales, 2) ?></div>
-                </div>
+        <div class="metric-card metric-pink">
+            <div class="metric-icon"><i class="fas fa-dollar-sign"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Ventas Totales</span>
+                <h3 class="metric-value">$<?= number_format($ventasTotales, 0) ?></h3>
             </div>
         </div>
     </div>

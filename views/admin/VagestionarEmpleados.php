@@ -65,15 +65,17 @@ $total_empleados = count($empleados);
 </head>
 <body>
     <div class="container-fluid py-4">
-        <!-- Encabezado con gradiente -->
-        <div class="d-flex align-items-center justify-content-between mb-4 py-3 px-3 rounded-4 shadow-sm text-white" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%);">
-            <div>
-                <p class="mb-1 opacity-75" style="letter-spacing:1px;text-transform:uppercase; color: #ffff" ><i class="fas fa-users me-2"></i>FloralTech Admin</p>
-                <h2 class="mb-0 fw-bold" style="color: #ffff">Gestión de Empleados</h2>
+        <!-- Banner de encabezado modernizado -->
+        <div class="content-banner mb-4">
+            <div class="banner-info">
+                <p class="banner-subtitle"><i class="fas fa-users me-2"></i>FloralTech Admin</p>
+                <h2 class="banner-title">Gestión de Empleados</h2>
             </div>
-            <button class="btn btn-light text-primary fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#nuevoEmpleadoModal">
-                <i class="fas fa-plus me-2"></i>Nuevo Empleado
-            </button>
+            <div class="banner-actions">
+                <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#nuevoEmpleadoModal">
+                    <i class="fas fa-plus me-2"></i>Nuevo Empleado
+                </button>
+            </div>
         </div>
 
         <?php if ($mensaje): ?>
@@ -83,34 +85,34 @@ $total_empleados = count($empleados);
             </div>
         <?php endif; ?>
 
-        <!-- Tarjetas de estadísticas -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <i class="fas fa-user-check"></i>
-                    <h3><?= $empleados_activos ?></h3>
-                    <p>Empleados Activos</p>
+        <!-- Tarjetas de estadísticas unificadas -->
+        <div class="metrics-card">
+            <div class="metric-card metric-blue">
+                <div class="metric-icon"><i class="fas fa-user-check"></i></div>
+                <div class="metric-info">
+                    <span class="metric-label">Empleados Activos</span>
+                    <h3 class="metric-value"><?= $empleados_activos ?></h3>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <i class="fas fa-calendar-check"></i>
-                    <h3><?= $permisos_pendientes ?></h3>
-                    <p>Permisos Pendientes</p>
+            <div class="metric-card metric-purple">
+                <div class="metric-icon"><i class="fas fa-calendar-check"></i></div>
+                <div class="metric-info">
+                    <span class="metric-label">Permisos Pendientes</span>
+                    <h3 class="metric-value"><?= $permisos_pendientes ?></h3>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <i class="fas fa-calendar-alt"></i>
-                    <h3><?= $turnos_semana ?></h3>
-                    <p>Turnos Esta Semana</p>
+            <div class="metric-card metric-orange">
+                <div class="metric-icon"><i class="fas fa-calendar-alt"></i></div>
+                <div class="metric-info">
+                    <span class="metric-label">Turnos Esta Semana</span>
+                    <h3 class="metric-value"><?= $turnos_semana ?></h3>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <i class="fas fa-sun"></i>
-                    <h3><?= $vacaciones_activas ?></h3>
-                    <p>Vacaciones Activas</p>
+            <div class="metric-card metric-green">
+                <div class="metric-icon"><i class="fas fa-sun"></i></div>
+                <div class="metric-info">
+                    <span class="metric-label">Vacaciones Activas</span>
+                    <h3 class="metric-value"><?= $vacaciones_activas ?></h3>
                 </div>
             </div>
         </div>

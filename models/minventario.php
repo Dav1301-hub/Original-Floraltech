@@ -38,6 +38,41 @@ class Minventario {
                 throw new Exception("La tabla '$tabla' no existe en la base de datos");
             }
         }
+
+        // Asegurar que exista la tabla de auditoría avanzada
+        $sql_auditoria = "CREATE TABLE IF NOT EXISTS auditoria_inventario (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            usuario_id INT,
+            producto_id INT,
+            accion VARCHAR(50),
+            detalles TEXT,
+            valor_anterior TEXT,
+            valor_nuevo TEXT,
+            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (usuario_id) REFERENCES usu(idusu) ON DELETE SET NULL
+        )";
+        $this->db->exec($sql_auditoria);
+    }
+
+    /**
+     * Registrar auditoría de inventario
+     */
+    private function registrarAuditoria($producto_id, $accion, $detalles, $anterior = null, $nuevo = null) {
+        try {
+            $sql = "INSERT INTO auditoria_inventario (usuario_id, producto_id, accion, detalles, valor_anterior, valor_nuevo) 
+                    VALUES (:uid, :pid, :accion, :detalles, :anterior, :nuevo)";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':uid' => $_SESSION['user']['idusu'] ?? null,
+                ':pid' => $producto_id,
+                ':accion' => $accion,
+                ':detalles' => $detalles,
+                ':anterior' => $anterior ? json_encode($anterior) : null,
+                ':nuevo' => $nuevo ? json_encode($nuevo) : null
+            ]);
+        } catch (Exception $e) {
+            error_log("Error en auditoria_inventario: " . $e->getMessage());
+        }
     }
     
     /**
@@ -506,6 +541,8 @@ class Minventario {
             $stmt_inventario->bindValue(':motivo', 'Producto nuevo agregado al inventario');
             
             if ($stmt_inventario->execute()) {
+                $producto_id = $this->db->lastInsertId();
+                $this->registrarAuditoria($producto_id, 'CREAR_PRODUCTO', 'Producto nuevo: ' . $data['nombre_producto'], null, $data);
                 $this->db->commit();
                 return true;
             } else {
@@ -1069,12 +1106,15 @@ class Minventario {
         try {
             $this->db->beginTransaction();
             
-            // Primero obtener el tflor_idtflor del producto en inventario
-            $sql_get_tflor = "SELECT tflor_idtflor FROM inv WHERE idinv = :producto_id";
-            $stmt_get_tflor = $this->db->prepare($sql_get_tflor);
-            $stmt_get_tflor->bindParam(':producto_id', $data['producto_id'], PDO::PARAM_INT);
-            $stmt_get_tflor->execute();
-            $resultado = $stmt_get_tflor->fetch(PDO::FETCH_ASSOC);
+            // Primero obtener el tflor_idtflor y datos actuales del producto en inventario
+            $sql_get_actual = "SELECT i.*, t.nombre, t.naturaleza, t.color 
+                               FROM inv i 
+                               LEFT JOIN tflor t ON i.tflor_idtflor = t.idtflor 
+                               WHERE i.idinv = :producto_id";
+            $stmt_get_actual = $this->db->prepare($sql_get_actual);
+            $stmt_get_actual->bindParam(':producto_id', $data['producto_id'], PDO::PARAM_INT);
+            $stmt_get_actual->execute();
+            $resultado = $stmt_get_actual->fetch(PDO::FETCH_ASSOC);
             
             if (!$resultado) {
                 $this->db->rollBack();
@@ -1114,6 +1154,7 @@ class Minventario {
             $stmt_inv->bindParam(':producto_id', $data['producto_id'], PDO::PARAM_INT);
             
             if ($stmt_inv->execute()) {
+                $this->registrarAuditoria($data['producto_id'], 'EDITAR_PRODUCTO', 'Cambio en propiedades del producto', $resultado, $data);
                 $this->db->commit();
                 return ['success' => true, 'message' => 'Producto actualizado correctamente'];
             } else {
@@ -1157,6 +1198,7 @@ class Minventario {
             $stmt_update->bindParam(':id', $id, PDO::PARAM_INT);
             
             if ($stmt_update->execute()) {
+                $this->registrarAuditoria($id, 'AJUSTE_STOCK', 'Agregado de stock manual: ' . $cantidad, ['stock' => $resultado['stock']], ['stock' => $nuevo_stock]);
                 // Registrar el movimiento en historial si existe la tabla
                 try {
                     $sql_historial = "INSERT INTO inv_historial (producto_id, tipo_movimiento, cantidad, stock_anterior, stock_nuevo, motivo, fecha) 

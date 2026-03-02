@@ -352,33 +352,65 @@ public function getAllInventario() {
     }
 }
 
-public function getAllPagos() {
-    try {
-        $sql = "SELECT 
-                    p.idpago,
-                    p.fecha_pago,
-                    p.metodo_pago,
-                    p.estado_pag,
-                    p.monto,
-                    p.transaccion_id,
-                    p.comprobante_transferencia,
-                    pe.numped,
-                    pe.idped,
-                    c.nombre AS cliente
-                FROM pagos p
-                LEFT JOIN ped pe ON p.ped_idped = pe.idped
-                LEFT JOIN cli c ON pe.cli_idcli = c.idcli";
-        $modelo = new conexion();
-        $conexion = $modelo->get_conexion();
-        $res = $conexion->prepare($sql);
-        $res->execute();
-        return $res->fetchAll(PDO::FETCH_ASSOC);
-    } catch(Exception $e) {
-        error_log("Mreportes getAllPagos: " . $e->getMessage());
-        return [];
+    public function getAllPagos() {
+        try {
+            $sql = "SELECT 
+                        p.idpago,
+                        p.fecha_pago,
+                        p.metodo_pago,
+                        p.estado_pag,
+                        p.monto,
+                        p.transaccion_id,
+                        p.comprobante_transferencia,
+                        pe.numped,
+                        pe.idped,
+                        c.nombre AS cliente
+                    FROM pagos p
+                    LEFT JOIN ped pe ON p.ped_idped = pe.idped
+                    LEFT JOIN cli c ON pe.cli_idcli = c.idcli";
+            $modelo = new conexion();
+            $conexion = $modelo->get_conexion();
+            $res = $conexion->prepare($sql);
+            $res->execute();
+            return $res->fetchAll(PDO::FETCH_ASSOC);
+        } catch(Exception $e) {
+            error_log("Mreportes getAllPagos: " . $e->getMessage());
+            return [];
+        }
     }
-}
 
+    /**
+     * Obtiene el reporte de utilidad cruzando inventario y pedidos pagos
+     */
+    public function getMargenUtilidad() {
+        try {
+            $sql = "SELECT 
+                        t.nombre as producto,
+                        i.precio_compra,
+                        i.precio as precio_venta_sugerido,
+                        SUM(dp.cantidad) as unidades_vendidas,
+                        SUM(dp.precio_unitario * dp.cantidad) as total_ventas,
+                        SUM(i.precio_compra * dp.cantidad) as costo_total_vendido,
+                        (SUM(dp.precio_unitario * dp.cantidad) - SUM(i.precio_compra * dp.cantidad)) as utilidad_neta
+                    FROM detped dp
+                    JOIN ped p ON dp.idped = p.idped
+                    JOIN tflor t ON dp.idtflor = t.idtflor
+                    LEFT JOIN inv i ON t.idtflor = i.tflor_idtflor
+                    JOIN pagos pag ON p.idped = pag.ped_idped
+                    WHERE pag.estado_pag = 'Completado'
+                    GROUP BY t.idtflor
+                    ORDER BY utilidad_neta DESC";
+            
+            $modelo = new conexion();
+            $conexion = $modelo->get_conexion();
+            $res = $conexion->prepare($sql);
+            $res->execute();
+            return $res->fetchAll(PDO::FETCH_ASSOC);
+        } catch(Exception $e) {
+            error_log("Mreportes getMargenUtilidad: " . $e->getMessage());
+            return [];
+        }
+    }
 }
 
 
