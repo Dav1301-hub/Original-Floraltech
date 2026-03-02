@@ -321,22 +321,21 @@ $stmt = $db->prepare("
             <!-- Content Grid minimalista -->
             <div class="content-grid">
                 <!-- Recent Orders simplificado -->
-                <div class="card">
-                    <div class="card-header">
-                        <i class="fas fa-list-alt"></i> Todos tus Pedidos
-                        <!-- DEV: Filtros removidos, mostrando historial completo -->
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="mb-0"><i class="fas fa-list-alt me-2 text-primary"></i> Todos tus Pedidos</h5>
                     </div>
                     <div class="card-body">
                         <?php if (!empty($pedidos_recientes)): ?>
-                            <div class="table-container">
-                                <table class="table">
-                                    <thead>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
                                         <tr>
                                             <th>Pedido</th>
-                                            <th>Fecha</th>
+                                            <th class="d-none d-md-table-cell">Fecha</th>
                                             <th>Monto</th>
-                                            <th>Estado del pedido</th>
-                                            <th>Estado del pago</th>
+                                            <th>Estado</th>
+                                            <th class="d-none d-sm-table-cell">Pago</th>
                                             <th>Acción</th>
                                         </tr>
                                     </thead>
@@ -345,51 +344,50 @@ $stmt = $db->prepare("
                                             <tr>
                                                 <td>
                                                     <strong>#<?= htmlspecialchars($pedido['numped']) ?></strong>
-                                                    <br><small class="text-muted"><?= $pedido['cantidad_items'] ?> items</small>
+                                                    <div class="d-md-none small text-muted"><?= htmlspecialchars($pedido['fecha_corta']) ?></div>
                                                 </td>
-                                                <td>
+                                                <td class="d-none d-md-table-cell">
                                                     <?= htmlspecialchars($pedido['fecha_corta']) ?>
                                                 </td>
                                                 <td>
-                                                    <strong>$<?= number_format($pedido['monto_total'], 2) ?></strong>
+                                                    <span class="fw-bold">$<?= number_format($pedido['monto_total'], 2) ?></span>
                                                 </td>
                                                 <td>
                                                     <?php
-                                                    // Mapeo de estados del PEDIDO (nuevo código)
                                                     $estado_pedido = strtolower($pedido['estado']);
                                                     $estados_pedido_clases = [
-                                                        'completado' => 'badge-success',
-                                                        'pendiente' => 'badge-warning',
-                                                        'procesando' => 'badge-info',
-                                                        'cancelado' => 'badge-danger',
-                                                        'enviado' => 'badge-primary',
-                                                        'entregado' => 'badge-success'
+                                                        'completado' => 'bg-success',
+                                                        'pendiente' => 'bg-warning text-dark',
+                                                        'procesando' => 'bg-info',
+                                                        'cancelado' => 'bg-danger',
+                                                        'enviado' => 'bg-primary',
+                                                        'entregado' => 'bg-success'
                                                     ];
-                                                    $badge_class = $estados_pedido_clases[$estado_pedido] ?? 'badge-secondary';
+                                                    $badge_class = $estados_pedido_clases[$estado_pedido] ?? 'bg-secondary';
                                                     ?>
                                                     <span class="badge <?= $badge_class ?>">
                                                         <?= htmlspecialchars($pedido['estado']) ?>
                                                     </span>
+                                                    <div class="d-sm-none mt-1">
+                                                        <?php
+                                                        $estado_pago = $pedido['estado_pago'] ?? 'Sin pago';
+                                                        $pago_bg = (strtolower($estado_pago) === 'completado') ? 'bg-success' : ((strtolower($estado_pago) === 'pendiente') ? 'bg-warning text-dark' : 'bg-danger');
+                                                        ?>
+                                                        <span class="badge <?= $pago_bg ?>" style="font-size: 0.65rem;">
+                                                            <?= htmlspecialchars($estado_pago) ?>
+                                                        </span>
+                                                    </div>
                                                 </td>
-                                                <td>
+                                                <td class="d-none d-sm-table-cell">
                                                     <?php
-                                                    // Mapeo de estados del PAGO (código existente)
                                                     $pago_badge_class = '';
                                                     $estado_pago = $pedido['estado_pago'] ?? 'Sin pago';
-                                                    
                                                     switch (strtolower($estado_pago)) {
-                                                        case 'completado':
-                                                            $pago_badge_class = 'badge-success';
-                                                            break;
-                                                        case 'pendiente':
-                                                            $pago_badge_class = 'badge-warning';
-                                                            break;
+                                                        case 'completado': $pago_badge_class = 'bg-success'; break;
+                                                        case 'pendiente': $pago_badge_class = 'bg-warning text-dark'; break;
                                                         case 'rechazado':
-                                                        case 'sin pago':
-                                                            $pago_badge_class = 'badge-danger';
-                                                            break;
-                                                        default:
-                                                            $pago_badge_class = 'badge-secondary';
+                                                        case 'sin pago': $pago_badge_class = 'bg-danger'; break;
+                                                        default: $pago_badge_class = 'bg-secondary';
                                                     }
                                                     ?>
                                                     <span class="badge <?= $pago_badge_class ?>">
@@ -397,24 +395,21 @@ $stmt = $db->prepare("
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <?php if (strtolower($estado_pago) === 'pendiente' || strtolower($estado_pago) === 'sin pago'): ?>
-                                                        <button type="button"
-                                                        class="btn btn-outline-warning btn-sm"
-                                                        title="Pagar Pedido"
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#modalPago"
-                                                        onclick="prepararModalPago('<?= htmlspecialchars($pedido['numped']) ?>', '<?= number_format($pedido['monto_total'], 2, '.', '') ?>')">
-                                                            <i class="fas fa-credit-card"></i> Pagar
-                                                        </button>
-                                                    <?php else: ?>
-                                                        <!-- Mismo botón que el historial -->
-                                                        <a href="index.php?ctrl=cliente&action=generar_factura&idpedido=<?= $pedido['idped'] ?>" 
-                                                        class="btn btn-outline-primary btn-sm"
-                                                        title="Descargar Factura"
-                                                        target="_blank">
-                                                            <i class="fas fa-file-pdf"></i> Factura
-                                                        </a>
-                                                    <?php endif; ?>
+                                                    <div class="btn-group">
+                                                        <?php if (strtolower($estado_pago) === 'pendiente' || strtolower($estado_pago) === 'sin pago'): ?>
+                                                            <button type="button"
+                                                            class="btn btn-warning btn-sm"
+                                                            onclick="prepararModalPago('<?= htmlspecialchars($pedido['numped']) ?>', '<?= number_format($pedido['monto_total'], 2, '.', '') ?>')">
+                                                                <i class="fas fa-credit-card"></i> <span class="d-none d-md-inline">Pagar</span>
+                                                            </button>
+                                                        <?php else: ?>
+                                                            <a href="index.php?ctrl=cliente&action=generar_factura&idpedido=<?= $pedido['idped'] ?>" 
+                                                            class="btn btn-outline-primary btn-sm"
+                                                            target="_blank">
+                                                                <i class="fas fa-file-pdf"></i> <span class="d-none d-md-inline">PDF</span>
+                                                            </a>
+                                                        <?php endif; ?>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
