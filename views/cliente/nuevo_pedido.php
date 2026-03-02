@@ -198,6 +198,54 @@ $isFragment = isset($_GET['fragment']) && $_GET['fragment'] == '1';
             border-radius: var(--border-radius); 
             margin-top: 1rem; 
         }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem 0.5rem;
+            }
+
+            .total-summary {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                top: auto;
+                z-index: 1000;
+                border-radius: 20px 20px 0 0;
+                padding: 1rem;
+                box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
+            }
+
+            .total-summary h5, #selectedFlowersSummary, hr, .d-flex.justify-content-between.mb-2 {
+                display: none !important;
+            }
+
+            .total-summary .bg-light {
+                margin-bottom: 0.5rem !important;
+                padding: 0.5rem !important;
+            }
+
+            .total-summary h4 {
+                font-size: 1.25rem;
+            }
+
+            .total-summary .btn-purple {
+                padding: 0.6rem;
+            }
+
+            .col-md-8 {
+                margin-bottom: 120px; /* Space for sticky summary */
+            }
+
+            .flower-card .row > div {
+                margin-bottom: 0.5rem;
+            }
+
+            .flower-card .text-end {
+                text-align: left !important;
+            }
+        }
     </style>
 </head>
 <body>

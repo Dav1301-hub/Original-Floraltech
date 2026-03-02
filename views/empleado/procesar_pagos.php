@@ -326,13 +326,40 @@ $pagos_completados_recientes = array_slice($pagos_verificados, 0, 5);
             }
             
             .header-content {
-                flex-direction: column;
-                gap: 1rem;
-                text-align: center;
+                gap: 0.5rem;
+                padding: 0.75rem 1rem;
+            }
+
+            .header-title {
+                font-size: 1.1rem;
+            }
+            
+            .header-user {
+                width: 100%;
+                justify-content: space-between;
+                border-top: 1px solid rgba(255,255,255,0.1);
+                padding-top: 0.5rem;
+                margin-top: 0.5rem;
+            }
+
+            .user-info {
+                text-align: left;
+            }
+
+            .btn-back span {
+                display: none;
             }
             
             .content {
+                padding: 1rem 0.5rem;
+            }
+
+            .payment-item {
                 padding: 1rem;
+            }
+
+            .payment-amount {
+                font-size: 1rem;
             }
         }
     </style>
