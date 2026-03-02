@@ -2,12 +2,65 @@
 // Modelo para dashboard general
 class MDashboardGeneral {
     private $db;
+    private $referenciaCache = null;
+
     public function __construct($db) {
         $this->db = $db;
     }
-    
-    public function getKPIs() {
+
+    private function getReferenciaFechas() {
+        if ($this->referenciaCache !== null) return $this->referenciaCache;
+
         try {
+            // Buscar la fecha del último pedido
+            $ultimoPedido = $this->db->query("SELECT fecha_pedido FROM ped ORDER BY fecha_pedido DESC LIMIT 1")->fetchColumn();
+            
+            if ($ultimoPedido) {
+                $fecha = new DateTime($ultimoPedido);
+                $this->referenciaCache = [
+                    'hoy' => $fecha->format('Y-m-d'),
+                    'mes' => $fecha->format('m'),
+                    'ano' => $fecha->format('Y'),
+                    'timestamp' => $fecha->getTimestamp()
+                ];
+            } else {
+                $this->referenciaCache = [
+                    'hoy' => date('Y-m-d'),
+                    'mes' => date('m'),
+                    'ano' => date('Y'),
+                    'timestamp' => time()
+                ];
+            }
+            return $this->referenciaCache;
+        } catch (Exception $e) {
+            return [
+                'hoy' => date('Y-m-d'),
+                'mes' => date('m'),
+                'ano' => date('Y'),
+                'timestamp' => time()
+            ];
+        }
+    }
+
+    public function getPeriodosDisponibles() {
+        try {
+            return $this->db->query("
+                SELECT DISTINCT MONTH(fecha_pedido) as mes, YEAR(fecha_pedido) as ano 
+                FROM ped 
+                ORDER BY ano DESC, mes DESC
+            ")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+    
+    public function getKPIs($mes = null, $ano = null) {
+        try {
+            if ($mes && $ano) {
+                $ref = ['mes' => $mes, 'ano' => $ano];
+            } else {
+                $ref = $this->getReferenciaFechas();
+            }
             $kpis = [];
             
             // Total pagos
@@ -20,24 +73,24 @@ class MDashboardGeneral {
             // Usuarios registrados
             $kpis['usuariosRegistrados'] = $this->db->query("SELECT COUNT(*) FROM usu WHERE activo = 1")->fetchColumn();
             
-            // Nuevos usuarios (últimos 7 días)
+            // Nuevos usuarios (últimos 7 días desde hoy real)
             $kpis['nuevosUsuarios'] = $this->db->query("SELECT COUNT(*) FROM usu WHERE fecha_registro >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetchColumn();
             
-            // Ingresos del mes actual (suma de monto de pagos completados)
-            $mesActual = date('m');
-            $anoActual = date('Y');
+            // Ingresos del mes de referencia
+            $mesRef = $ref['mes'];
+            $anoRef = $ref['ano'];
             $ingresosMes = $this->db->query("
                 SELECT COALESCE(SUM(monto), 0) 
                 FROM pagos 
                 WHERE estado_pag = 'Completado' 
-                AND MONTH(fecha_pago) = $mesActual 
-                AND YEAR(fecha_pago) = $anoActual
+                AND MONTH(fecha_pago) = $mesRef 
+                AND YEAR(fecha_pago) = $anoRef
             ")->fetchColumn();
             $kpis['ingresosMes'] = round($ingresosMes, 2);
             
-            // Tasa de conversión del mes actual
-            $totalPedidosMes = $this->db->query("SELECT COUNT(*) FROM ped WHERE MONTH(fecha_pedido) = $mesActual AND YEAR(fecha_pedido) = $anoActual")->fetchColumn();
-            $pedidosCompletadosMes = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND MONTH(fecha_pedido) = $mesActual AND YEAR(fecha_pedido) = $anoActual")->fetchColumn();
+            // Tasa de conversión del mes de referencia
+            $totalPedidosMes = $this->db->query("SELECT COUNT(*) FROM ped WHERE MONTH(fecha_pedido) = $mesRef AND YEAR(fecha_pedido) = $anoRef")->fetchColumn();
+            $pedidosCompletadosMes = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND MONTH(fecha_pedido) = $mesRef AND YEAR(fecha_pedido) = $anoRef")->fetchColumn();
             $kpis['tasaConversion'] = $totalPedidosMes > 0 ? round(($pedidosCompletadosMes / $totalPedidosMes) * 100, 1) : 0;
             
             return $kpis;
@@ -56,35 +109,42 @@ class MDashboardGeneral {
         }
     }
     
-    public function getTendencias() {
+    public function getTendencias($mes = null, $ano = null) {
         try {
-            // Tendencia de pagos (comparar semana actual vs anterior)
-            $pagosSemanaActual = $this->db->query("SELECT COUNT(*) FROM pagos WHERE YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)")->fetchColumn();
-            $pagosSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM pagos WHERE YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
+            if ($mes && $ano) {
+                $hoyRef = date('Y-m-t', strtotime("$ano-$mes-01"));
+            } else {
+                $ref = $this->getReferenciaFechas();
+                $hoyRef = $ref['hoy'];
+            }
+
+            // Tendencia de pagos (comparar semana de referencia vs anterior)
+            $pagosSemanaActual = $this->db->query("SELECT COUNT(*) FROM pagos WHERE YEARWEEK(fecha_pago,1) = YEARWEEK('$hoyRef',1)")->fetchColumn();
+            $pagosSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM pagos WHERE YEARWEEK(fecha_pago,1) = YEARWEEK('$hoyRef',1)-1")->fetchColumn();
             $tendenciaPagos = $pagosSemanaAnterior > 0 ? round((($pagosSemanaActual-$pagosSemanaAnterior)/$pagosSemanaAnterior)*100) : 0;
             
             // Tendencia de pagos pendientes
-            $pendientesSemanaActual = $this->db->query("SELECT COUNT(*) FROM pagos WHERE estado_pag = 'Pendiente' AND YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)")->fetchColumn();
-            $pendientesSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM pagos WHERE estado_pag = 'Pendiente' AND YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
+            $pendientesSemanaActual = $this->db->query("SELECT COUNT(*) FROM pagos WHERE estado_pag = 'Pendiente' AND YEARWEEK(fecha_pago,1) = YEARWEEK('$hoyRef',1)")->fetchColumn();
+            $pendientesSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM pagos WHERE estado_pag = 'Pendiente' AND YEARWEEK(fecha_pago,1) = YEARWEEK('$hoyRef',1)-1")->fetchColumn();
             $tendenciaPendientes = $pendientesSemanaAnterior > 0 ? round((($pendientesSemanaActual-$pendientesSemanaAnterior)/$pendientesSemanaAnterior)*100) : 0;
             
             // Tendencia de pagos rechazados
-            $rechazadosSemanaActual = $this->db->query("SELECT COUNT(*) FROM pagos WHERE estado_pag IN ('Rechazado','Reembolsado','Cancelado') AND YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)")->fetchColumn();
-            $rechazadosSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM pagos WHERE estado_pag IN ('Rechazado','Reembolsado','Cancelado') AND YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
+            $rechazadosSemanaActual = $this->db->query("SELECT COUNT(*) FROM pagos WHERE estado_pag IN ('Rechazado','Reembolsado','Cancelado') AND YEARWEEK(fecha_pago,1) = YEARWEEK('$hoyRef',1)")->fetchColumn();
+            $rechazadosSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM pagos WHERE estado_pag IN ('Rechazado','Reembolsado','Cancelado') AND YEARWEEK(fecha_pago,1) = YEARWEEK('$hoyRef',1)-1")->fetchColumn();
             $tendenciaRechazados = $rechazadosSemanaAnterior > 0 ? round((($rechazadosSemanaActual-$rechazadosSemanaAnterior)/$rechazadosSemanaAnterior)*100) : 0;
             
-            // Tendencia de ingresos (comparar semana actual vs anterior)
-            $ingresosSemanaActual = $this->db->query("SELECT COALESCE(SUM(monto), 0) FROM pagos WHERE estado_pag = 'Completado' AND YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)")->fetchColumn();
-            $ingresosSemanaAnterior = $this->db->query("SELECT COALESCE(SUM(monto), 0) FROM pagos WHERE estado_pag = 'Completado' AND YEARWEEK(fecha_pago,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
+            // Tendencia de ingresos
+            $ingresosSemanaActual = $this->db->query("SELECT COALESCE(SUM(monto), 0) FROM pagos WHERE estado_pag = 'Completado' AND YEARWEEK(fecha_pago,1) = YEARWEEK('$hoyRef',1)")->fetchColumn();
+            $ingresosSemanaAnterior = $this->db->query("SELECT COALESCE(SUM(monto), 0) FROM pagos WHERE estado_pag = 'Completado' AND YEARWEEK(fecha_pago,1) = YEARWEEK('$hoyRef',1)-1")->fetchColumn();
             $tendenciaIngresos = $ingresosSemanaAnterior > 0 ? round((($ingresosSemanaActual-$ingresosSemanaAnterior)/$ingresosSemanaAnterior)*100) : 0;
             
-            // Tendencia de tasa de conversión (comparar semana actual vs anterior)
-            $totalPedidosSemanaActual = $this->db->query("SELECT COUNT(*) FROM ped WHERE YEARWEEK(fecha_pedido,1) = YEARWEEK(NOW(),1)")->fetchColumn();
-            $completadosSemanaActual = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND YEARWEEK(fecha_pedido,1) = YEARWEEK(NOW(),1)")->fetchColumn();
+            // Tendencia de tasa de conversión
+            $totalPedidosSemanaActual = $this->db->query("SELECT COUNT(*) FROM ped WHERE YEARWEEK(fecha_pedido,1) = YEARWEEK('$hoyRef',1)")->fetchColumn();
+            $completadosSemanaActual = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND YEARWEEK(fecha_pedido,1) = YEARWEEK('$hoyRef',1)")->fetchColumn();
             $conversionSemanaActual = $totalPedidosSemanaActual > 0 ? ($completadosSemanaActual / $totalPedidosSemanaActual) * 100 : 0;
             
-            $totalPedidosSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM ped WHERE YEARWEEK(fecha_pedido,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
-            $completadosSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND YEARWEEK(fecha_pedido,1) = YEARWEEK(NOW(),1)-1")->fetchColumn();
+            $totalPedidosSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM ped WHERE YEARWEEK(fecha_pedido,1) = YEARWEEK('$hoyRef',1)-1")->fetchColumn();
+            $completadosSemanaAnterior = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND YEARWEEK(fecha_pedido,1) = YEARWEEK('$hoyRef',1)-1")->fetchColumn();
             $conversionSemanaAnterior = $totalPedidosSemanaAnterior > 0 ? ($completadosSemanaAnterior / $totalPedidosSemanaAnterior) * 100 : 0;
             
             $tendenciaConversion = $conversionSemanaAnterior > 0 ? round((($conversionSemanaActual-$conversionSemanaAnterior)/$conversionSemanaAnterior)*100) : 0;
@@ -139,36 +199,25 @@ class MDashboardGeneral {
         }
     }
     
-    public function getResumenPedidosMes() {
+    public function getResumenPedidosMes($mes = null, $ano = null) {
         try {
-            $mesActual = date('m');
-            $anoActual = date('Y');
-            
-            // Contar pedidos del mes actual
-            $pedidosMes = $this->db->query("SELECT COUNT(*) FROM ped WHERE MONTH(fecha_pedido) = $mesActual AND YEAR(fecha_pedido) = $anoActual")->fetchColumn();
-            $pedidosCompletados = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND MONTH(fecha_pedido) = $mesActual AND YEAR(fecha_pedido) = $anoActual")->fetchColumn();
-            $pedidosPendientes = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Pendiente' AND MONTH(fecha_pedido) = $mesActual AND YEAR(fecha_pedido) = $anoActual")->fetchColumn();
-            $pedidosEnProceso = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado LIKE '%proceso%' AND MONTH(fecha_pedido) = $mesActual AND YEAR(fecha_pedido) = $anoActual")->fetchColumn();
-            $pedidosCancelados = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado IN ('Cancelado','Rechazado') AND MONTH(fecha_pedido) = $mesActual AND YEAR(fecha_pedido) = $anoActual")->fetchColumn();
-            
-            // Si no hay datos del mes actual, buscar el último mes con datos
-            $mesReferencia = "$mesActual/$anoActual";
-            if($pedidosMes == 0) {
-                $ultimoMes = $this->db->query("SELECT MONTH(fecha_pedido) as mes, YEAR(fecha_pedido) as ano FROM ped ORDER BY fecha_pedido DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
-                
-                if($ultimoMes) {
-                    $mesConsulta = $ultimoMes['mes'];
-                    $anoConsulta = $ultimoMes['ano'];
-                    
-                    $pedidosMes = $this->db->query("SELECT COUNT(*) FROM ped WHERE MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
-                    $pedidosCompletados = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
-                    $pedidosPendientes = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Pendiente' AND MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
-                    $pedidosEnProceso = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado LIKE '%proceso%' AND MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
-                    $pedidosCancelados = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado IN ('Cancelado','Rechazado') AND MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
-                    
-                    $mesReferencia = "$mesConsulta/$anoConsulta";
-                }
+            if ($mes && $ano) {
+                $mesConsulta = $mes;
+                $anoConsulta = $ano;
+                $mesReferencia = "$mes/$ano";
+            } else {
+                $ref = $this->getReferenciaFechas();
+                $mesConsulta = $ref['mes'];
+                $anoConsulta = $ref['ano'];
+                $mesReferencia = "$mesConsulta/$anoConsulta";
             }
+            
+            // Contar pedidos del periodo
+            $pedidosMes = $this->db->query("SELECT COUNT(*) FROM ped WHERE MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
+            $pedidosCompletados = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Completado' AND MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
+            $pedidosPendientes = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado = 'Pendiente' AND MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
+            $pedidosEnProceso = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado LIKE '%proceso%' AND MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
+            $pedidosCancelados = $this->db->query("SELECT COUNT(*) FROM ped WHERE estado IN ('Cancelado','Rechazado') AND MONTH(fecha_pedido) = $mesConsulta AND YEAR(fecha_pedido) = $anoConsulta")->fetchColumn();
             
             return [
                 'pedidosMes' => $pedidosMes,
@@ -243,32 +292,51 @@ class MDashboardGeneral {
         }
     }
     
-    public function getTendenciaVentas($dias = 14) {
+    public function getTendenciaVentas($dias = 14, $mes = null, $ano = null) {
         try {
-            $tendencia = [];
+            if ($mes && $ano) {
+                // Si se filtra por mes, mostrar el mes completo (del 1 al último día)
+                $diasEnMes = (int)date('t', strtotime("$ano-$mes-01"));
+                $lastDay = date('Y-m-t', strtotime("$ano-$mes-01"));
+                $timestampRef = strtotime($lastDay);
+                $dias = $diasEnMes; // Sobrescribir días para mostrar todo el mes
+            } else {
+                $ref = $this->getReferenciaFechas();
+                $timestampRef = $ref['timestamp'];
+            }
             
+            $fechaFin = date('Y-m-d', $timestampRef);
+            $fechaInicio = date('Y-m-d', $timestampRef - (($dias - 1) * 24 * 60 * 60));
+            
+            // Obtener todos los datos en una sola consulta
+            $resultados = $this->db->query("
+                SELECT 
+                    DATE(fecha_pedido) as fecha,
+                    COUNT(*) as cantidad,
+                    SUM(monto_total) as monto
+                FROM ped 
+                WHERE DATE(fecha_pedido) BETWEEN '$fechaInicio' AND '$fechaFin'
+                GROUP BY DATE(fecha_pedido)
+            ")->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Indexar resultados por fecha para fácil acceso
+            $dataMap = [];
+            foreach ($resultados as $row) {
+                $dataMap[$row['fecha']] = $row;
+            }
+            
+            $tendencia = [];
             for($i = $dias - 1; $i >= 0; $i--) {
-                $fecha = date('Y-m-d', strtotime("-$i days"));
-                $fechaLabel = date('d/m', strtotime("-$i days"));
+                $targetTimestamp = $timestampRef - ($i * 24 * 60 * 60);
+                $fechaKey = date('Y-m-d', $targetTimestamp);
+                $fechaLabel = date('d/m', $targetTimestamp);
                 
-                // Contar pedidos del día
-                $pedidos = $this->db->query("
-                    SELECT COUNT(*) 
-                    FROM ped 
-                    WHERE DATE(fecha_pedido) = '$fecha'
-                ")->fetchColumn();
-                
-                // Sumar monto total de pedidos del día
-                $monto = $this->db->query("
-                    SELECT COALESCE(SUM(monto_total), 0) 
-                    FROM ped 
-                    WHERE DATE(fecha_pedido) = '$fecha'
-                ")->fetchColumn();
+                $row = $dataMap[$fechaKey] ?? null;
                 
                 $tendencia[] = [
                     'fecha' => $fechaLabel,
-                    'pedidos' => (int)$pedidos,
-                    'monto' => round($monto, 2)
+                    'pedidos' => $row ? (int)$row['cantidad'] : 0,
+                    'monto' => $row ? round($row['monto'], 2) : 0
                 ];
             }
             
@@ -280,9 +348,16 @@ class MDashboardGeneral {
         }
     }
     
-    public function getTopProductos($limite = 5, $dias = 30) {
+    public function getTopProductos($limite = 5, $mes = null, $ano = null) {
         try {
-            $fechaInicio = date('Y-m-d', strtotime("-$dias days"));
+            if ($mes && $ano) {
+                $fechaInicio = "$ano-$mes-01";
+                $fechaFin = date('Y-m-t', strtotime($fechaInicio));
+                $where = "p.fecha_pedido BETWEEN '$fechaInicio 00:00:00' AND '$fechaFin 23:59:59'";
+            } else {
+                $fechaInicio = date('Y-m-d', strtotime("-30 days"));
+                $where = "p.fecha_pedido >= '$fechaInicio'";
+            }
             
             $query = "
                 SELECT 
@@ -294,7 +369,7 @@ class MDashboardGeneral {
                 FROM detped d
                 JOIN tflor t ON d.idtflor = t.idtflor
                 JOIN ped p ON d.idped = p.idped
-                WHERE p.fecha_pedido >= '$fechaInicio'
+                WHERE $where
                 GROUP BY t.idtflor, t.nombre, t.color
                 ORDER BY total_vendido DESC
                 LIMIT $limite

@@ -13,402 +13,9 @@ unset($_SESSION['tipo_mensaje']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Empleado - FloralTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/dashboard-cliente.css">
+    <link rel="stylesheet" href="assets/css/dashboard-empleado.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --empleado-primary: #28a745;
-            --empleado-secondary: #20c997;
-            --empleado-accent: #17a2b8;
-            --bg-light: #f8f9fa;
-            --border-radius: 8px;
-            --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-            --shadow-hover: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        }
-        
-        body {
-            background-color: var(--bg-light);
-            font-family: 'Poppins', sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        
-        .dashboard-container {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .navbar {
-            background: linear-gradient(135deg, var(--empleado-primary), var(--empleado-secondary)) !important;
-            box-shadow: var(--shadow);
-            margin-bottom: 0;
-            padding: 0.75rem 0;
-        }
-        
-        .main-content {
-            padding: 1rem;
-            flex: 1;
-            max-width: 100%;
-            margin: 0 auto;
-        }
-        
-        /* Tarjeta de Bienvenida - Más compacta */
-        .welcome-section {
-            margin-bottom: 1rem;
-        }
-        
-        .welcome-card {
-            background: linear-gradient(135deg, var(--empleado-primary), var(--empleado-secondary));
-            border: none;
-            border-radius: var(--border-radius);
-            color: white;
-            box-shadow: var(--shadow-hover);
-        }
-        
-        .welcome-card .card-body {
-            padding: 1rem 1.5rem;
-        }
-        
-        .welcome-header h2 {
-            margin-bottom: 0.25rem;
-            font-size: 1.5rem;
-        }
-        
-        .welcome-header p {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-        
-        .welcome-stats {
-            margin-top: 0.75rem;
-            display: flex;
-            gap: 1.5rem;
-            font-size: 0.85rem;
-        }
-        
-        .welcome-stats span {
-            opacity: 0.9;
-        }
-        
-        /* Grid de Estadísticas - Más compacto */
-        .stats-section {
-            margin-bottom: 1rem;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-        
-        .stat-card {
-            background: white;
-            border-radius: var(--border-radius);
-            padding: 1rem;
-            display: flex;
-            align-items: center;
-            box-shadow: var(--shadow);
-            transition: all 0.3s ease;
-            border-left: 4px solid #dee2e6;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-hover);
-        }
-        
-        .stat-card.success { border-left-color: var(--empleado-primary); }
-        .stat-card.info { border-left-color: var(--empleado-accent); }
-        .stat-card.warning { border-left-color: #ffc107; }
-        .stat-card.danger { border-left-color: #dc3545; }
-        
-        .stat-icon {
-            background: var(--bg-light);
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 0.75rem;
-            font-size: 1.25rem;
-            flex-shrink: 0;
-        }
-        
-        .stat-card.success .stat-icon { color: var(--empleado-primary); }
-        .stat-card.info .stat-icon { color: var(--empleado-accent); }
-        .stat-card.warning .stat-icon { color: #ffc107; }
-        .stat-card.danger .stat-icon { color: #dc3545; }
-        
-        .stat-info h3 {
-            margin: 0;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #333;
-            line-height: 1;
-        }
-        
-        .stat-info p {
-            margin: 0;
-            color: #6c757d;
-            font-weight: 500;
-            font-size: 0.85rem;
-        }
-        
-        /* Grid Principal de Contenido - Optimizado */
-        .content-grid {
-            display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        @media (max-width: 1200px) {
-            .content-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        
-        /* Tarjetas de Contenido - Más compactas */
-        .content-card {
-            background: white;
-            border: none;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            transition: all 0.3s ease;
-        }
-        
-        .content-card:hover {
-            box-shadow: var(--shadow-hover);
-        }
-        
-        .card-header {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            border-bottom: 1px solid #dee2e6;
-            border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
-            padding: 0.75rem 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .card-header h5 {
-            margin: 0;
-            font-weight: 600;
-            color: #333;
-            font-size: 1rem;
-        }
-        
-        .card-body {
-            padding: 1rem;
-        }
-        
-        /* Estados Vacíos - Más compactos */
-        .empty-state {
-            text-align: center;
-            padding: 2rem 1rem;
-            color: #6c757d;
-        }
-        
-        .empty-state i {
-            font-size: 2.5rem;
-            margin-bottom: 0.75rem;
-            opacity: 0.5;
-        }
-        
-        .empty-state h4 {
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        /* Tablas más compactas */
-        .table-responsive {
-            border-radius: var(--border-radius);
-        }
-        
-        .table {
-            margin-bottom: 0;
-            font-size: 0.85rem;
-        }
-        
-        .table th {
-            background-color: var(--bg-light);
-            border-top: none;
-            font-weight: 600;
-            color: #495057;
-            padding: 0.5rem;
-        }
-        
-        .table td {
-            vertical-align: middle;
-            padding: 0.5rem;
-        }
-        
-        /* Lista de Pagos en Sidebar - Optimizada */
-        .payment-list {
-            max-height: 350px;
-            overflow-y: auto;
-        }
-        
-        .payment-item {
-            transition: all 0.2s ease;
-            padding: 0.5rem 0;
-        }
-        
-        .payment-item:hover {
-            background-color: var(--bg-light);
-            border-radius: 6px;
-            padding: 0.5rem !important;
-            margin: 0 -0.5rem 0.5rem -0.5rem !important;
-        }
-        
-        .payment-item:last-child {
-            border-bottom: none !important;
-            margin-bottom: 0 !important;
-        }
-        
-        /* Alertas */
-        .alert {
-            border: none;
-            border-radius: var(--border-radius);
-            margin-bottom: 1rem;
-            padding: 0.75rem 1rem;
-        }
-        
-        /* Navbar mejorado y compacto */
-        .navbar-brand {
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-        
-        .navbar-user {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .user-info {
-            text-align: right;
-        }
-        
-        .user-name {
-            margin: 0;
-            font-weight: 600;
-            color: white;
-            font-size: 0.9rem;
-        }
-        
-        .user-welcome {
-            margin: 0;
-            font-size: 0.8rem;
-            opacity: 0.9;
-            color: white;
-        }
-        
-        .logout-btn {
-            background: rgba(255, 255, 255, 0.2) !important;
-            border: 1px solid rgba(255, 255, 255, 0.3) !important;
-            color: white !important;
-            border-radius: 6px;
-            padding: 0.4rem 0.8rem;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            font-size: 0.85rem;
-        }
-        
-        .logout-btn:hover {
-            background: rgba(255, 255, 255, 0.3) !important;
-            color: white !important;
-            transform: translateY(-1px);
-        }
-        
-        /* Acciones rápidas más compactas */
-        .quick-actions {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 0.75rem;
-        }
-        
-        .action-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.75rem;
-            border-radius: var(--border-radius);
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-        
-        .action-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-hover);
-        }
-        
-        .action-btn i {
-            margin-right: 0.5rem;
-        }
-        
-        /* Responsivo mejorado */
-        @media (max-width: 768px) {
-            .main-content {
-                padding: 0.75rem;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 0.75rem;
-            }
-            
-            .welcome-stats {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-            
-            .welcome-card .card-body {
-                padding: 0.75rem 1rem;
-            }
-            
-            .content-grid {
-                gap: 0.75rem;
-            }
-            
-            .navbar-user .user-info {
-                display: none;
-            }
-        }
-        
-        @media (max-width: 576px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .main-content {
-                padding: 0.5rem;
-            }
-        }
-        
-        /* Ajustes para pantallas muy anchas */
-        @media (min-width: 1400px) {
-            .main-content {
-                max-width: 1320px;
-                padding: 1rem 2rem;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(4, 1fr);
-            }
-            
-            .content-grid {
-                grid-template-columns: 2fr 400px;
-                gap: 1.5rem;
-            }
-        }
-    </style>
 </head>
 <body>
     <div class="dashboard-container">
@@ -447,9 +54,38 @@ unset($_SESSION['tipo_mensaje']);
             <div class="welcome-section">
                 <div class="welcome-card card">
                     <div class="card-body">
-                        <div class="welcome-header">
-                            <h2><i class="fas fa-chart-line me-2"></i>Dashboard de Empleado</h2>
-                            <p class="mb-0">Gestiona pedidos, pagos e inventario desde tu panel de control</p>
+                        <div class="welcome-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div>
+                                <h2><i class="fas fa-chart-line me-2"></i>Dashboard de Empleado</h2>
+                                <p class="mb-0">Gestiona pedidos, pagos e inventario desde tu panel de control</p>
+                            </div>
+                            
+                            <!-- Filtro de Periodo -->
+                            <div class="period-filter bg-white p-2 rounded shadow-sm border">
+                                <form action="index.php" method="GET" class="d-flex align-items-center gap-2">
+                                    <input type="hidden" name="ctrl" value="empleado">
+                                    <input type="hidden" name="action" value="dashboard">
+                                    <label class="small fw-bold text-muted mb-0"><i class="fas fa-filter me-1"></i>Periodo:</label>
+                                    <select name="periodo" class="form-select form-select-sm border-0 bg-light" onchange="this.form.submit()" style="min-width: 150px;">
+                                        <option value="">Mes Actual</option>
+                                        <?php if (!empty($periodos)): ?>
+                                            <?php foreach ($periodos as $p): 
+                                                $val = $p['mes'] . '-' . $p['ano'];
+                                                $selected = (isset($filtro['mes']) && $filtro['mes'] == $p['mes'] && $filtro['ano'] == $p['ano']) ? 'selected' : '';
+                                                $nombre_mes = date("F", mktime(0, 0, 0, $p['mes'], 10));
+                                                // Traducir mes si es posible o usar formato numérico
+                                                $meses_es = [
+                                                    1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio',
+                                                    7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+                                                ];
+                                                $mes_texto = $meses_es[$p['mes']] ?? $nombre_mes;
+                                            ?>
+                                                <option value="<?= $val ?>" <?= $selected ?>><?= $mes_texto ?> <?= $p['ano'] ?></option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
+                                </form>
+                            </div>
                         </div>
                         <div class="welcome-stats">
                             <span><i class="fas fa-calendar-day me-1"></i><?= date('d/m/Y') ?></span>
@@ -488,7 +124,7 @@ unset($_SESSION['tipo_mensaje']);
                         </div>
                         <div class="stat-info">
                             <h3><?= number_format($stats['pedidos_hoy']) ?></h3>
-                            <p>Pedidos Hoy</p>
+                            <p><?= (isset($filtro['mes']) && !empty($filtro['mes'])) ? 'Pedidos del Periodo' : 'Pedidos Hoy' ?></p>
                         </div>
                     </div>
 
@@ -518,7 +154,7 @@ unset($_SESSION['tipo_mensaje']);
                         </div>
                         <div class="stat-info">
                             <h3>$<?= number_format($stats['ventas_mes'], 2) ?></h3>
-                            <p>Ventas del Mes</p>
+                            <p>Ventas <?= (isset($filtro['mes']) && !empty($filtro['mes'])) ? 'del Periodo' : 'del Mes' ?></p>
                         </div>
                     </div>
                 </div>
@@ -531,11 +167,12 @@ unset($_SESSION['tipo_mensaje']);
                     <div class="content-card card mb-4">
                         <div class="card-header">
                             <h5><i class="fas fa-list-alt me-2"></i>Ultimos pedidos pendientes</h5>
+                            <span class="badge bg-primary"><?= count($pedidos_pendientes) ?> pendientes</span>
                         </div>
                         <div class="card-body">
                             <?php if (!empty($pedidos_pendientes)): ?>
                                 <div class="table-responsive">
-                                    <table class="table table-hover">
+                                    <table class="table table-hover align-middle">
                                         <thead>
                                             <tr>
                                                 <th>Pedido</th>
@@ -547,24 +184,24 @@ unset($_SESSION['tipo_mensaje']);
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php foreach (array_slice($pedidos_pendientes, 0, 3) as $pedido): ?>
-
+                                            <?php foreach (array_slice($pedidos_pendientes, 0, 10) as $pedido): ?>
                                             <tr>
                                                 <td>
                                                     <strong class="text-primary"><?= htmlspecialchars($pedido['numped']) ?></strong>
                                                 </td>
                                                 <td><?= htmlspecialchars($pedido['cliente_nombre']) ?></td>
                                                 <td>
-                                                    <small class="text-muted"><?= date('d/m H:i', strtotime($pedido['fecha_pedido'])) ?></small>
+                                                    <small class="text-muted d-block"><?= date('d/m/Y', strtotime($pedido['fecha_pedido'])) ?></small>
+                                                    <small class="text-muted"><?= date('H:i', strtotime($pedido['fecha_pedido'])) ?></small>
                                                 </td>
                                                 <td><strong class="text-success">$<?= number_format($pedido['monto_total'], 2) ?></strong></td>
                                                 <td>
-                                                    <span class="badge bg-<?= $pedido['estado'] === 'Pendiente' ? 'warning' : 'info' ?>">
+                                                    <span class="badge rounded-pill bg-<?= $pedido['estado'] === 'Pendiente' ? 'warning' : 'info' ?> text-dark">
                                                         <?= htmlspecialchars($pedido['estado']) ?>
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <span class="badge bg-<?= $pedido['estado_pag'] === 'Completado' ? 'success' : ($pedido['estado_pag'] === 'Pendiente' ? 'warning' : 'secondary') ?>">
+                                                    <span class="badge rounded-pill bg-<?= $pedido['estado_pag'] === 'Completado' ? 'success' : ($pedido['estado_pag'] === 'Pendiente' ? 'warning' : 'secondary') ?>">
                                                         <?= htmlspecialchars($pedido['estado_pag'] ?? 'Sin pago') ?>
                                                     </span>
                                                 </td>
@@ -583,6 +220,40 @@ unset($_SESSION['tipo_mensaje']);
                         </div>
                     </div>
                 </div>
+
+                <!-- Columna Lateral - Alertas y Acciones -->
+                <div class="side-column">
+                    <!-- Inventario Crítico -->
+                    <div class="content-card card mb-4 border-start border-danger border-4">
+                        <div class="card-header bg-white">
+                            <h5 class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Stock Crítico</h5>
+                        </div>
+                        <div class="card-body">
+                            <?php if (!empty($stock_critico)): ?>
+                                <div class="critical-list">
+                                    <?php foreach ($stock_critico as $item): ?>
+                                        <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
+                                            <div>
+                                                <h6 class="mb-0 fs-6"><?= htmlspecialchars($item['nombre']) ?></h6>
+                                                <small class="text-muted"><?= htmlspecialchars($item['naturaleza']) ?></small>
+                                            </div>
+                                            <span class="badge bg-danger fs-6"><?= $item['stock'] ?></span>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="text-center mt-3">
+                                    <a href="index.php?ctrl=empleado&action=inventario" class="btn btn-sm btn-outline-danger w-100">
+                                        Ver Inventario Completo
+                                    </a>
+                                </div>
+                            <?php else: ?>
+                                <div class="text-center py-3 text-muted">
+                                    <i class="fas fa-check-circle text-success mb-2 d-block fs-3"></i>
+                                    <p class="mb-0">Todo el stock está bien</p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
 
 
 

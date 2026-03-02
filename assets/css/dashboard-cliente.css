@@ -24,7 +24,8 @@
     transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-html, body {
+html,
+body {
     background-color: #ffffff !important;
     color: var(--gray-900) !important;
 }
@@ -243,10 +244,25 @@ body {
     flex-shrink: 0;
 }
 
-.stat-icon.primary { background: #dbeafe; color: var(--primary); }
-.stat-icon.success { background: #d1fae5; color: var(--success); }
-.stat-icon.warning { background: #fef3c7; color: var(--warning); }
-.stat-icon.info { background: #dbeafe; color: var(--primary); }
+.stat-icon.primary {
+    background: #dbeafe;
+    color: var(--primary);
+}
+
+.stat-icon.success {
+    background: #d1fae5;
+    color: var(--success);
+}
+
+.stat-icon.warning {
+    background: #fef3c7;
+    color: var(--warning);
+}
+
+.stat-icon.info {
+    background: #dbeafe;
+    color: var(--primary);
+}
 
 .stat-icon i {
     font-weight: 600;
@@ -322,10 +338,25 @@ body {
     font-weight: 500;
 }
 
-.badge-success { background: #d1fae5; color: #065f46; }
-.badge-warning { background: #fef3c7; color: #92400e; }
-.badge-danger { background: #fee2e2; color: #991b1b; }
-.badge-info { background: #dbeafe; color: #1e40af; }
+.badge-success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.badge-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.badge-info {
+    background: #dbeafe;
+    color: #1e40af;
+}
 
 /* Botones sencillos */
 .quick-actions {
@@ -505,11 +536,25 @@ body {
 }
 
 /* Utilidades de texto */
-.text-center { text-align: center; }
-.text-muted { color: var(--gray-600); }
-.text-warning { color: var(--warning); }
-.text-success { color: var(--success); }
-.text-danger { color: var(--danger); }
+.text-center {
+    text-align: center;
+}
+
+.text-muted {
+    color: var(--gray-600);
+}
+
+.text-warning {
+    color: var(--warning);
+}
+
+.text-success {
+    color: var(--success);
+}
+
+.text-danger {
+    color: var(--danger);
+}
 
 .field-message {
     font-size: 0.8rem;
@@ -521,7 +566,7 @@ body {
     .stats-grid {
         grid-template-columns: repeat(1, 1fr);
     }
-    
+
     .quick-actions {
         grid-template-columns: repeat(1, 1fr);
     }
@@ -531,23 +576,23 @@ body {
     .dashboard-container {
         padding: 1.5rem;
     }
-    
+
     .content-grid {
         grid-template-columns: 2fr 1fr;
     }
-    
+
     .stats-grid {
         grid-template-columns: repeat(3, 1fr);
     }
-    
+
     .quick-actions {
         grid-template-columns: 1fr;
     }
-    
+
     .navbar {
         padding: 1.25rem 2rem;
     }
-    
+
     .welcome-header h2 {
         font-size: 2.5rem;
     }
@@ -555,13 +600,25 @@ body {
 
 @media (min-width: 1024px) {
     .dashboard-container {
-        padding: 2rem;
-        max-width: 1200px;
-        margin: 0 auto;
+        padding: 1.5rem 2rem;
+        max-width: 100%;
+        margin: 0;
     }
-    
+
     .content-grid {
         gap: 2rem;
+        grid-template-columns: 1fr 350px;
+    }
+}
+
+@media (min-width: 1400px) {
+    .dashboard-container {
+        padding: 2rem 3rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
     }
 }
 
@@ -573,24 +630,24 @@ body {
         text-align: center;
         padding: 1rem;
     }
-    
+
     .navbar-user {
         flex-direction: column;
         gap: 0.75rem;
     }
-    
+
     .user-info {
         align-items: center;
     }
-    
+
     .welcome-header h2 {
         font-size: 1.75rem;
     }
-    
+
     .welcome-card .card-body {
         padding: 1.5rem 1rem;
     }
-    
+
     .logout-btn {
         font-size: 0.8rem;
         padding: 0.4rem 0.8rem;
@@ -602,24 +659,24 @@ body {
     .dashboard-container {
         padding: 0.75rem;
     }
-    
+
     .card-body,
     .card-header {
         padding: 0.75rem;
     }
-    
+
     .config-form {
         padding: 1.5rem;
     }
-    
+
     .stats-grid {
         gap: 0.75rem;
     }
-    
+
     .stat-card {
         padding: 0.75rem;
     }
-    
+
     .table th,
     .table td {
         padding: 0.5rem;
@@ -633,11 +690,11 @@ body {
         min-height: 44px;
         font-size: 1rem;
     }
-    
+
     .stat-card {
         min-height: 80px;
     }
-    
+
     .table td,
     .table th {
         padding: 1rem 0.75rem;
@@ -650,6 +707,7 @@ body {
         transform: translateX(100%);
         opacity: 0;
     }
+
     to {
         transform: translateX(0);
         opacity: 1;
@@ -657,7 +715,9 @@ body {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Estados de carga */
@@ -688,26 +748,27 @@ body {
 
 /* Estilos para impresión */
 @media print {
+
     .navbar,
     .quick-actions,
     .btn {
         display: none;
     }
-    
+
     .dashboard-container {
         background: white !important;
         color: black !important;
     }
-    
+
     .card {
         border: 1px solid #ccc;
         box-shadow: none;
     }
-    
+
     .welcome-card::before {
         display: none;
     }
-    
+
     .welcome-header h2 {
         color: black !important;
         -webkit-text-fill-color: black !important;
@@ -725,7 +786,7 @@ body {
 }
 
 .flower-card:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border-color: var(--primary);
 }
 
@@ -821,18 +882,18 @@ body {
     .flower-card .row {
         text-align: center;
     }
-    
+
     .flower-card .col-md-1,
     .flower-card .col-md-2,
     .flower-card .col-md-6 {
         margin-bottom: 10px;
     }
-    
+
     .payment-method {
         margin: 5px 0;
         padding: 15px;
     }
-    
+
     .total-summary {
         position: static;
         margin-top: 20px;

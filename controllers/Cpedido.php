@@ -137,6 +137,49 @@ class Cpedido {
     }
 
     /**
+     * Crear pedido rápido desde el dashboard
+     */
+    public function crearRapido() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?ctrl=dashboard&action=admin&page=general');
+            exit();
+        }
+
+        try {
+            $idcli = intval($_POST['idcli'] ?? 0);
+            $fecha_entrega = $_POST['fecha_entrega'] ?? null;
+            $direccion = trim($_POST['direccion_entrega'] ?? '');
+            $notas = trim($_POST['notas'] ?? '');
+            $tipo_entrega = $_POST['tipo_entrega'] ?? 'Domicilio';
+            $prioridad = $_POST['prioridad'] ?? 'Normal';
+            
+            if (!$idcli || !$fecha_entrega) {
+                $_SESSION['error_message'] = 'Faltan datos obligatorios: cliente y fecha de entrega';
+                header('Location: index.php?ctrl=dashboard&action=admin&page=general');
+                exit();
+            }
+            
+            // Agregar info de tipo y prioridad a las notas
+            $notasCompletas = "Tipo: $tipo_entrega | Prioridad: $prioridad";
+            if ($notas) {
+                $notasCompletas .= "\n$notas";
+            }
+            
+            // Crear pedido con monto 0 (se actualizará al agregar productos)
+            $resultado = $this->crearPedido($idcli, 0, 'Pendiente', $direccion, $fecha_entrega, null, $notasCompletas);
+            
+            $_SESSION['success_message'] = "Pedido #{$resultado['numped']} creado exitosamente. Ahora agrega productos desde Gestión de Pedidos.";
+            header('Location: index.php?ctrl=dashboard&action=admin&page=pedidos');
+            exit();
+            
+        } catch (Exception $e) {
+            $_SESSION['error_message'] = 'Error al crear pedido: ' . $e->getMessage();
+            header('Location: index.php?ctrl=dashboard&action=admin&page=general');
+            exit();
+        }
+    }
+
+    /**
      * Actualiza campos editables de un pedido.
      */
     public function actualizarPedido($idPedido, array $data) {
@@ -552,16 +595,23 @@ if (php_sapi_name() !== 'cli' && basename(__FILE__) === basename($_SERVER['SCRIP
                 $prev = $controller->obtenerDetallePedido($id); // obtiene pedido con estado
                 $estadoPrev = $prev['estado'] ?? null;
                 $detalles = $controller->obtenerDetallesPedido($id);
+                
+                require_once __DIR__ . '/../models/minventario.php';
+                $invModel = new Minventario();
+                
                 if ($estado === 'Cancelado' && $estadoPrev !== 'Cancelado') {
                     foreach ($detalles as $d) {
-                        $controller->sumarStock($d['id'], $d['cantidad']);
+                        // Usar el nuevo método de restauración que también maneja cantidad_disponible
+                        $invModel->restaurarStock($d['id'], $d['cantidad'], "Pedido #$id cancelado - Restauración de stock");
                     }
                     // marcar pago como cancelado y monto en 0
                     $controller->actualizarPagoPorPedido($id, 'Cancelado', null, 0);
                 }
-                if ($estadoPrev === 'Cancelado' && $estado !== 'Cancelado') {
+                
+                if ($estadoPrev === 'Cancelado' && $estado !== 'Cancelado' && $estado !== 'Rechazado') {
                     foreach ($detalles as $d) {
-                        $controller->restarStock($d['id'], $d['cantidad']);
+                        // Usar el método oficial de descuento
+                        $invModel->descontarStock($d['id'], $d['cantidad']);
                     }
                 }
                 $ok = $controller->actualizarEstadoPedido($id, $estado);
