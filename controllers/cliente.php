@@ -212,7 +212,9 @@ class cliente {
 
                 foreach ($detalles_pedido as $detalle) {
                     // Descontar stock PRIMERO antes de insertar detalle
-                    $modeloInventario->descontarStock($detalle['idtflor'], $detalle['cantidad']);
+                    // MOTIVO UNIFICADO para evitar doble descuento en panel de empleado
+                    $motivo_unificado = "Descuento por pedido #$pedido_id";
+                    $modeloInventario->descontarStock($detalle['idtflor'], $detalle['cantidad'], $motivo_unificado);
 
                     $stmt = $this->db->prepare("
                         INSERT INTO detped (idped, idtflor, cantidad, precio_unitario) 
@@ -226,12 +228,23 @@ class cliente {
                     ]);
                 }
                 
-                $estado_pago = ($metodo_pago === 'transferencia') ? 'Pendiente' : 'Pendiente';
+                $referencia = $_POST['referencia_pago'] ?? null;
+                $comprobante_nombre = null;
+
+                if (isset($_FILES['comprobante']) && $_FILES['comprobante']['error'] === UPLOAD_ERR_OK) {
+                    $ext = pathinfo($_FILES['comprobante']['name'], PATHINFO_EXTENSION);
+                    $comprobante_nombre = 'comp_' . $pedido_id . '_' . time() . '.' . $ext;
+                    if (!is_dir('assets/comprobantes')) {
+                        mkdir('assets/comprobantes', 0777, true);
+                    }
+                    move_uploaded_file($_FILES['comprobante']['tmp_name'], 'assets/comprobantes/' . $comprobante_nombre);
+                }
+
                 $stmt = $this->db->prepare("
-                    INSERT INTO pagos (ped_idped, monto, metodo_pago, estado_pag, fecha_pago) 
-                    VALUES (?, ?, ?, ?, NOW())
+                    INSERT INTO pagos (ped_idped, monto, metodo_pago, estado_pag, fecha_pago, referencia, comprobante) 
+                    VALUES (?, ?, ?, ?, NOW(), ?, ?)
                 ");
-                $stmt->execute([$pedido_id, $monto_total, $metodo_pago, $estado_pago]);
+                $stmt->execute([$pedido_id, $monto_total, $metodo_pago, 'Pendiente', $referencia, $comprobante_nombre]);
                 
                 $this->db->commit();
                 

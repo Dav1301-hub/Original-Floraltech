@@ -595,16 +595,23 @@ if (php_sapi_name() !== 'cli' && basename(__FILE__) === basename($_SERVER['SCRIP
                 $prev = $controller->obtenerDetallePedido($id); // obtiene pedido con estado
                 $estadoPrev = $prev['estado'] ?? null;
                 $detalles = $controller->obtenerDetallesPedido($id);
+                
+                require_once __DIR__ . '/../models/minventario.php';
+                $invModel = new Minventario();
+                
                 if ($estado === 'Cancelado' && $estadoPrev !== 'Cancelado') {
                     foreach ($detalles as $d) {
-                        $controller->sumarStock($d['id'], $d['cantidad']);
+                        // Usar el nuevo método de restauración que también maneja cantidad_disponible
+                        $invModel->restaurarStock($d['id'], $d['cantidad'], "Pedido #$id cancelado - Restauración de stock");
                     }
                     // marcar pago como cancelado y monto en 0
                     $controller->actualizarPagoPorPedido($id, 'Cancelado', null, 0);
                 }
-                if ($estadoPrev === 'Cancelado' && $estado !== 'Cancelado') {
+                
+                if ($estadoPrev === 'Cancelado' && $estado !== 'Cancelado' && $estado !== 'Rechazado') {
                     foreach ($detalles as $d) {
-                        $controller->restarStock($d['id'], $d['cantidad']);
+                        // Usar el método oficial de descuento
+                        $invModel->descontarStock($d['id'], $d['cantidad']);
                     }
                 }
                 $ok = $controller->actualizarEstadoPedido($id, $estado);

@@ -412,9 +412,9 @@ class empleado {
                     pg.*,
                     p.numped,
                     c.nombre as cliente_nombre,
-                    COALESCE(pg.referencia_pago, '') as referencia_pago,
+                    COALESCE(pg.referencia, '') as referencia,
                     COALESCE(pg.observaciones, '') as observaciones,
-                    COALESCE(pg.archivo_comprobante, '') as archivo_comprobante
+                    COALESCE(pg.comprobante, '') as comprobante
                 FROM pagos pg
                 INNER JOIN ped p ON pg.ped_idped = p.idped
                 INNER JOIN cli c ON p.cli_idcli = c.idcli
@@ -426,9 +426,9 @@ class empleado {
             
             // Asegurar que todos los campos existan con valores por defecto
             foreach ($resultados as &$pago) {
-                $pago['referencia_pago'] = $pago['referencia_pago'] ?? '';
+                $pago['referencia'] = $pago['referencia'] ?? '';
                 $pago['observaciones'] = $pago['observaciones'] ?? '';
-                $pago['archivo_comprobante'] = $pago['archivo_comprobante'] ?? '';
+                $pago['comprobante'] = $pago['comprobante'] ?? '';
             }
             
             error_log("obtenerPagosPendientesDetallados: Encontrados " . count($resultados) . " pagos pendientes");
@@ -475,9 +475,9 @@ class empleado {
                         p.numped,
                         c.nombre as cliente_nombre,
                         u.nombre_completo as verificado_por_nombre,
-                        COALESCE(pg.referencia_pago, '') as referencia_pago,
+                        COALESCE(pg.referencia, '') as referencia,
                         COALESCE(pg.observaciones, '') as observaciones,
-                        COALESCE(pg.archivo_comprobante, '') as archivo_comprobante,
+                        COALESCE(pg.comprobante, '') as comprobante,
                         COALESCE(pg.observaciones_empleado, '') as observaciones_empleado
                     FROM pagos pg
                     INNER JOIN ped p ON pg.ped_idped = p.idped
@@ -724,7 +724,32 @@ class empleado {
                     fecha_verificacion = NOW()
                 WHERE idpago = ?
             ");
-            return $stmt->execute([$nuevo_estado, $observaciones, $empleado_id, $id_pago]);
+            $stmt->execute([$nuevo_estado, $observaciones, $empleado_id, $id_pago]);
+        
+        // 🔑 Si el pago es "Rechazado", restaurar stock
+        if ($nuevo_estado === 'Rechazado') {
+            // Obtener el ID del pedido asociado al pago
+            $stmt_ped = $this->db->prepare("SELECT ped_idped FROM pagos WHERE idpago = ?");
+            $stmt_ped->execute([$id_pago]);
+            $pago = $stmt_ped->fetch(PDO::FETCH_ASSOC);
+            
+            if ($pago) {
+                $id_pedido = $pago['ped_idped'];
+                require_once 'models/minventario.php';
+                $invModel = new Minventario();
+                
+                // Obtener flores del pedido
+                $stmt_det = $this->db->prepare("SELECT idtflor, cantidad FROM detped WHERE idped = ?");
+                $stmt_det->execute([$id_pedido]);
+                $detalles = $stmt_det->fetchAll(PDO::FETCH_ASSOC);
+                
+                foreach ($detalles as $detalle) {
+                    $invModel->restaurarStock($detalle['idtflor'], $detalle['cantidad'], "Pago rechazado (Pedido #$id_pedido) - Restauración de stock");
+                }
+            }
+        }
+        
+        return true;
         } catch (Exception $e) {
             error_log("Error en actualizarEstadoPago: " . $e->getMessage());
             return false;
@@ -822,6 +847,21 @@ class empleado {
                 // Guardar alertas en sesión para mostrar al usuario
                 if (!empty($alertas)) {
                     $_SESSION['alertas_inventario'] = $alertas;
+                }
+            }
+            
+            // 🔑 Si el estado cambia a "Cancelado", restaurar al inventario
+            if ($nuevo_estado === 'Cancelado') {
+                require_once 'models/minventario.php';
+                $invModel = new Minventario();
+                
+                // Obtener detalles del pedido
+                $stmt_det = $this->db->prepare("SELECT idtflor, cantidad FROM detped WHERE idped = ?");
+                $stmt_det->execute([$id_pedido]);
+                $detalles = $stmt_det->fetchAll(PDO::FETCH_ASSOC);
+                
+                foreach ($detalles as $detalle) {
+                    $invModel->restaurarStock($detalle['idtflor'], $detalle['cantidad'], "Pedido #$id_pedido cancelado - Restauración de stock");
                 }
             }
             
