@@ -57,9 +57,9 @@ try {
             'facebook' => '',
             'instagram' => '',
             'whatsapp' => '',
-            'moneda' => 'CRC',
-            'iva_porcentaje' => 13.00,
-            'zona_horaria' => 'America/Costa_Rica',
+            'moneda' => 'COP',
+            'iva_porcentaje' => 19.00,
+            'zona_horaria' => 'America/Bogota',
             'formato_fecha' => 'd/m/Y'
         ];
     }
@@ -74,9 +74,9 @@ try {
         'facebook' => '',
         'instagram' => '',
         'whatsapp' => '',
-        'moneda' => 'CRC',
-        'iva_porcentaje' => 13.00,
-        'zona_horaria' => 'America/Costa_Rica',
+        'moneda' => 'COP',
+        'iva_porcentaje' => 19.00,
+        'zona_horaria' => 'America/Bogota',
         'formato_fecha' => 'd/m/Y'
     ];
 }
@@ -503,7 +503,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <div class="col-md-3 mb-3">
                                     <label class="form-label fw-600">Moneda</label>
                                     <select class="form-select" name="moneda">
-                                        <option value="CRC" <?= ($empresa['moneda'] ?? 'CRC') === 'CRC' ? 'selected' : '' ?>>₡ Colón (CRC)</option>
+                                        <option value="COP" <?= ($empresa['moneda'] ?? 'COP') === 'COP' ? 'selected' : '' ?>>$ Peso Colombiano (COP)</option>
                                         <option value="USD" <?= ($empresa['moneda'] ?? '') === 'USD' ? 'selected' : '' ?>>$ Dólar (USD)</option>
                                         <option value="EUR" <?= ($empresa['moneda'] ?? '') === 'EUR' ? 'selected' : '' ?>>€ Euro (EUR)</option>
                                     </select>
@@ -511,17 +511,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                                 <div class="col-md-3 mb-3">
                                     <label class="form-label fw-600">IVA (%)</label>
-                                    <input type="number" class="form-control" name="iva_porcentaje" step="0.01" min="0" max="100" value="<?= htmlspecialchars($empresa['iva_porcentaje'] ?? 13.00) ?>">
+                                    <input type="number" class="form-control" name="iva_porcentaje" step="0.01" min="0" max="100" value="<?= htmlspecialchars($empresa['iva_porcentaje'] ?? 19.00) ?>">
                                     <small class="text-muted">Porcentaje de impuesto</small>
                                 </div>
 
                                 <div class="col-md-3 mb-3">
                                     <label class="form-label fw-600">Zona Horaria</label>
                                     <select class="form-select" name="zona_horaria">
-                                        <option value="America/Costa_Rica" <?= ($empresa['zona_horaria'] ?? 'America/Costa_Rica') === 'America/Costa_Rica' ? 'selected' : '' ?>>Costa Rica (GMT-6)</option>
+                                        <option value="America/Bogota" <?= ($empresa['zona_horaria'] ?? 'America/Bogota') === 'America/Bogota' ? 'selected' : '' ?>>Colombia (GMT-5)</option>
+                                        <option value="America/Costa_Rica" <?= ($empresa['zona_horaria'] ?? '') === 'America/Costa_Rica' ? 'selected' : '' ?>>Costa Rica (GMT-6)</option>
                                         <option value="America/New_York" <?= ($empresa['zona_horaria'] ?? '') === 'America/New_York' ? 'selected' : '' ?>>New York (GMT-5)</option>
                                         <option value="America/Los_Angeles" <?= ($empresa['zona_horaria'] ?? '') === 'America/Los_Angeles' ? 'selected' : '' ?>>Los Angeles (GMT-8)</option>
-                                        <option value="Europe/Madrid" <?= ($empresa['zona_horaria'] ?? '') === 'Europe/Madrid' ? 'selected' : '' ?>>Madrid (GMT+1)</option>
                                     </select>
                                 </div>
 

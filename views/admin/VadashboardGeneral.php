@@ -83,21 +83,21 @@ $lotesModel = new Mlotes();
 $lotesProximosCaducar = $lotesModel->getLotesProximosCaducar(7);
 $cantidadAlertasLotes = count($lotesProximosCaducar);
 ?>
-<div id="general-dashboard" class="dashboard-main">
-    <header class="d-flex flex-wrap align-items-start align-items-md-center justify-content-between mb-4 p-4 rounded-4 shadow-sm text-white" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 50%, #1e1b4b 100%);">
-        <div>
-            <p class="mb-1 text-uppercase fw-semibold small opacity-75" style="color: #ffff">Panel general</p>
-            <h1 class="mb-1 fw-bold" style="color: #ffff">Dashboard General</h1>
-            <p class="welcome-text mb-0 opacity-75" style="color: #ffff">Bienvenido al sistema de administracion de FloralTech</p>
+<div id="general-dashboard" class="dashboard-main px-0">
+    <header class="content-banner mb-4">
+        <div class="banner-info">
+            <span class="eyebrow">Panel de Control</span>
+            <h1 class="title">Dashboard General</h1>
+            <p class="subtitle">Bienvenido al sistema de administración de FloralTech</p>
         </div>
-        <div class="d-flex flex-wrap gap-2 mt-3 mt-md-0 align-items-center">
-            <form action="index.php" method="GET" class="d-flex gap-2" id="filter-form">
+        <div class="banner-actions">
+            <form action="index.php" method="GET" class="filter-group" id="filter-form">
                 <input type="hidden" name="ctrl" value="dashboard">
                 <input type="hidden" name="action" value="admin">
                 <input type="hidden" name="page" value="general">
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-white border-0 opacity-75"><i class="fas fa-filter text-primary"></i></span>
-                    <select name="periodo" class="form-select border-0 shadow-sm fw-medium" onchange="this.form.submit()" style="min-width: 160px; cursor: pointer;">
+                <div class="input-group input-group-sm shadow-sm">
+                    <span class="input-group-text bg-white border-0"><i class="fas fa-filter text-primary"></i></span>
+                    <select name="periodo" class="form-select border-0 fw-medium" onchange="this.form.submit()">
                         <?php 
                         $mesFiltro = $filtro['mes'] ?? null;
                         $anoFiltro = $filtro['ano'] ?? null;
@@ -113,93 +113,65 @@ $cantidadAlertasLotes = count($lotesProximosCaducar);
                     </select>
                 </div>
             </form>
-            <a class="btn btn-light btn-sm text-primary fw-semibold" href="index.php?ctrl=cinventario"><i class="fas fa-boxes me-2"></i>Inventario</a>
-            <a class="btn btn-outline-light btn-sm" href="#calendar-pedidos"><i class="fas fa-calendar-alt me-2"></i>Agenda</a>
+            <div class="quick-links">
+                <a class="btn btn-primary btn-sm rounded-3 shadow-sm" href="index.php?ctrl=cinventario">
+                    <i class="fas fa-boxes me-2"></i>Inventario
+                </a>
+                <a class="btn btn-outline-primary btn-sm rounded-3 shadow-sm bg-white" href="#calendar-pedidos">
+                    <i class="fas fa-calendar-alt me-2"></i>Agenda
+                </a>
+            </div>
         </div>
     </header>
 
-    <div class="row mb-4 g-3">
-        <div class="col-lg col-md-4 col-sm-6">
-            <div class="metric-card metric-purple h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <small>Total Pagos</small>
-                        <h3 class="mb-1"><?= $totalPagos ?></h3>
-                        <div class="trend <?= $tendenciaPagos >= 0 ? 'up' : 'down' ?>">
-                            <i class="fas fa-arrow-<?= $tendenciaPagos >= 0 ? 'up' : 'down' ?>"></i> <?= abs($tendenciaPagos) ?>%
-                        </div>
-                    </div>
-                    <span class="metric-icon"><i class="fas fa-credit-card"></i></span>
-                </div>
+    <div class="metrics-card mb-4">
+        <div class="metric-card metric-purple">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <small>Total Pagos</small>
+                <span class="metric-icon"><i class="fas fa-credit-card"></i></span>
+            </div>
+            <h3 class="mb-1"><?= $totalPagos ?></h3>
+            <div class="trend <?= $tendenciaPagos >= 0 ? 'up' : 'down' ?>">
+                <i class="fas fa-arrow-<?= $tendenciaPagos >= 0 ? 'up' : 'down' ?>"></i> <?= abs($tendenciaPagos) ?>%
             </div>
         </div>
-        <div class="col-lg col-md-4 col-sm-6">
-            <div class="metric-card metric-yellow h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <small>Pagos Pendientes</small>
-                        <h3 class="mb-1"><?= $pagosPendientes ?></h3>
-                        <div class="trend <?= $tendenciaPendientes >= 0 ? 'up' : 'down' ?>">
-                            <i class="fas fa-arrow-<?= $tendenciaPendientes >= 0 ? 'up' : 'down' ?>"></i> <?= abs($tendenciaPendientes) ?>%
-                        </div>
-                    </div>
-                    <span class="metric-icon"><i class="fas fa-clock"></i></span>
-                </div>
+        <div class="metric-card metric-yellow">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <small>Pagos Pendientes</small>
+                <span class="metric-icon"><i class="fas fa-clock"></i></span>
+            </div>
+            <h3 class="mb-1"><?= $pagosPendientes ?></h3>
+            <div class="trend <?= $tendenciaPendientes >= 0 ? 'up' : 'down' ?>">
+                <i class="fas fa-arrow-<?= $tendenciaPendientes >= 0 ? 'up' : 'down' ?>"></i> <?= abs($tendenciaPendientes) ?>%
             </div>
         </div>
-        <div class="col-lg col-md-4 col-sm-6">
-            <div class="metric-card metric-pink h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <small>Pagos Rechazados</small>
-                        <h3 class="mb-1"><?= $pagosRechazados ?></h3>
-                        <div class="trend <?= $tendenciaRechazados <= 0 ? 'up' : 'down' ?>">
-                            <i class="fas fa-arrow-<?= $tendenciaRechazados >= 0 ? 'up' : 'down' ?>"></i> <?= abs($tendenciaRechazados) ?>%
-                        </div>
-                    </div>
-                    <span class="metric-icon"><i class="fas fa-ban"></i></span>
-                </div>
+        <div class="metric-card metric-pink">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <small>Pagos Rechazados</small>
+                <span class="metric-icon"><i class="fas fa-ban"></i></span>
+            </div>
+            <h3 class="mb-1"><?= $pagosRechazados ?></h3>
+            <div class="trend <?= $tendenciaRechazados <= 0 ? 'up' : 'down' ?>">
+                <i class="fas fa-arrow-<?= $tendenciaRechazados >= 0 ? 'up' : 'down' ?>"></i> <?= abs($tendenciaRechazados) ?>%
             </div>
         </div>
-        <div class="col-lg col-md-4 col-sm-6">
-            <div class="metric-card metric-green h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <small>Ingresos del Mes</small>
-                        <h3 class="mb-1">$<?= number_format($ingresosMes, 0, ',', '.') ?></h3>
-                        <div class="trend <?= $tendenciaIngresos >= 0 ? 'up' : 'down' ?>">
-                            <i class="fas fa-arrow-<?= $tendenciaIngresos >= 0 ? 'up' : 'down' ?>"></i> <?= abs($tendenciaIngresos) ?>%
-                        </div>
-                    </div>
-                    <span class="metric-icon"><i class="fas fa-dollar-sign"></i></span>
-                </div>
+        <div class="metric-card metric-green">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <small>Ingresos del Mes</small>
+                <span class="metric-icon"><i class="fas fa-dollar-sign"></i></span>
+            </div>
+            <h3 class="mb-1">$<?= number_format($ingresosMes, 0, ',', '.') ?></h3>
+            <div class="trend <?= $tendenciaIngresos >= 0 ? 'up' : 'down' ?>">
+                <i class="fas fa-arrow-<?= $tendenciaIngresos >= 0 ? 'up' : 'down' ?>"></i> <?= abs($tendenciaIngresos) ?>%
             </div>
         </div>
-        <div class="col-lg col-md-4 col-sm-6">
-            <div class="metric-card metric-purple h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <small>Usuarios Registrados</small>
-                        <h3 class="mb-1"><?= $usuariosRegistrados ?></h3>
-                        <div class="trend up"><i class="fas fa-user"></i></div>
-                    </div>
-                    <span class="metric-icon"><i class="fas fa-users"></i></span>
-                </div>
+        <div class="metric-card metric-purple">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <small>Usuarios Registrados</small>
+                <span class="metric-icon"><i class="fas fa-users"></i></span>
             </div>
-        </div>
-        <div class="col-lg col-md-4 col-sm-6">
-            <div class="metric-card metric-yellow h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <small>Pedidos Exitosos</small>
-                        <h3 class="mb-1"><?= $tasaConversion ?>%</h3>
-                        <div class="trend <?= $tendenciaConversion >= 0 ? 'up' : 'down' ?>">
-                            <i class="fas fa-arrow-<?= $tendenciaConversion >= 0 ? 'up' : 'down' ?>"></i> <?= abs($tendenciaConversion) ?>%
-                        </div>
-                    </div>
-                    <span class="metric-icon"><i class="fas fa-check-circle"></i></span>
-                </div>
-            </div>
+            <h3 class="mb-1"><?= $usuariosRegistrados ?></h3>
+            <div class="trend up"><i class="fas fa-circle-check"></i> Activos</div>
         </div>
     </div>
 
@@ -236,7 +208,9 @@ $cantidadAlertasLotes = count($lotesProximosCaducar);
                     <span class="badge bg-light text-dark">Actualizado hoy</span>
                 </div>
                 <div style="height: 320px;">
-                    <canvas id="chartVentas"></canvas>
+                    <div class="chart-container">
+                        <canvas id="chartVentas"></canvas>
+                    </div>
                 </div>
                 <div class="row g-3 pt-3">
                     <div class="col-sm-4">

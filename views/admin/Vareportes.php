@@ -13,8 +13,15 @@ $pagosFiltrados = $modalPagos ?? ($dtAllPagos ?? []);
 $pedidosFiltrados = $modalPedidos ?? ($dtAll ?? []);
 $usuariosFiltrados = $modalUsuarios ?? ($dtAllUsu ?? []);
 $inventarioFiltrado = $modalInventario ?? ($dtAllInv ?? []);
+$utilidades = $utilidades ?? [];
 $totalUsuarios = $totalUsuarios ?? 0;
 $tiposUsuarios = $tiposUsuarios ?? [];
+
+// Totales de utilidad para la tarjeta
+$total_ventas_utilidad = array_sum(array_column($utilidades, 'total_ventas'));
+$total_costos_utilidad = array_sum(array_column($utilidades, 'costo_total_vendido'));
+$total_utilidad_neta = $total_ventas_utilidad - $total_costos_utilidad;
+$margen_global_utilidad = $total_ventas_utilidad > 0 ? ($total_utilidad_neta / $total_ventas_utilidad) * 100 : 0;
 
 function badgeClaseEstado($estado)
 {
@@ -80,48 +87,59 @@ function badgeClaseEstado($estado)
             </div>
         </div>
 
-        <div class="row g-3 mb-4">
-            <div class="col-12 col-md-3">
+        <div class="row g-3 mb-4 row-cols-1 row-cols-md-5">
+            <div class="col">
                 <div class="card shadow-sm border-0 rounded-4 h-100" data-bs-toggle="modal" data-bs-target="#tablaModal" role="button" style="background: linear-gradient(135deg,#e0e7ff,#eef2ff);">
-                    <div class="card-body text-center">
-                        <i class="bi bi-bar-chart-line display-6 text-primary"></i>
+                    <div class="card-body text-center p-3">
+                        <i class="bi bi-bar-chart-line h4 text-primary"></i>
                         <h6 class="fw-bold mt-2 mb-1">Ventas</h6>
                         <div class="small text-muted">Total</div>
-                        <div class="h5 fw-bold text-primary">$<?= number_format($datos['ventas']['total'] ?? 0, 2) ?></div>
-                        <div class="small text-muted">Pedidos: <?= $datos['ventas']['pedidos'] ?? 0 ?></div>
+                        <div class="h6 fw-bold text-primary mb-1">$<?= number_format($datos['ventas']['total'] ?? 0, 2) ?></div>
+                        <div class="small text-muted" style="font-size: 0.75rem;">Pedidos: <?= $datos['ventas']['pedidos'] ?? 0 ?></div>
                     </div>
                 </div>
             </div>
-            <div class="col-12 col-md-3">
+            <div class="col">
                 <div class="card shadow-sm border-0 rounded-4 h-100" data-bs-toggle="modal" data-bs-target="#tablaModalFlores" role="button" style="background: linear-gradient(135deg,#dcfce7,#ecfdf3);">
-                    <div class="card-body text-center">
-                        <i class="bi bi-box-seam display-6 text-success"></i>
+                    <div class="card-body text-center p-3">
+                        <i class="bi bi-box-seam h4 text-success"></i>
                         <h6 class="fw-bold mt-2 mb-1">Inventario</h6>
                         <div class="small text-muted">Stock total</div>
-                        <div class="h5 fw-bold text-success"><?= number_format($datos['inventario']['stock_total'] ?? 0) ?></div>
-                        <div class="small text-muted">Productos: <?= $datos['inventario']['productos'] ?? 0 ?></div>
+                        <div class="h6 fw-bold text-success mb-1"><?= number_format($datos['inventario']['stock_total'] ?? 0) ?></div>
+                        <div class="small text-muted" style="font-size: 0.75rem;">Productos: <?= $datos['inventario']['productos'] ?? 0 ?></div>
                     </div>
                 </div>
             </div>
-            <div class="col-12 col-md-3">
+            <div class="col">
                 <div class="card shadow-sm border-0 rounded-4 h-100" data-bs-toggle="modal" data-bs-target="#modalUsuario" role="button" style="background: linear-gradient(135deg,#fef9c3,#fffbeb);">
-                    <div class="card-body text-center">
-                        <i class="bi bi-people-fill display-6 text-warning"></i>
+                    <div class="card-body text-center p-3">
+                        <i class="bi bi-people-fill h4 text-warning"></i>
                         <h6 class="fw-bold mt-2 mb-1">Usuarios</h6>
                         <div class="small text-muted">Registrados</div>
-                        <div class="h5 fw-bold text-warning"><?= number_format($totalUsuarios) ?></div>
-                        <div class="small text-muted">Activos: <?= $datos['usuarios']['activos'] ?? 0 ?></div>
+                        <div class="h6 fw-bold text-warning mb-1"><?= number_format($totalUsuarios) ?></div>
+                        <div class="small text-muted" style="font-size: 0.75rem;">Activos: <?= $datos['usuarios']['activos'] ?? 0 ?></div>
                     </div>
                 </div>
             </div>
-            <div class="col-12 col-md-3">
+            <div class="col">
                 <div class="card shadow-sm border-0 rounded-4 h-100" data-bs-toggle="modal" data-bs-target="#modalPagos" role="button" style="background: linear-gradient(135deg,#ffe2e5,#fff1f2);">
-                    <div class="card-body text-center">
-                        <i class="bi bi-cash-stack display-6 text-danger"></i>
+                    <div class="card-body text-center p-3">
+                        <i class="bi bi-cash-stack h4 text-danger"></i>
                         <h6 class="fw-bold mt-2 mb-1">Pagos</h6>
                         <div class="small text-muted">Completados</div>
-                        <div class="h5 fw-bold text-danger">$<?= number_format($datos['pagos']['realizados'] ?? 0, 2) ?></div>
-                        <div class="small text-muted">Pendientes: $<?= number_format($datos['pagos']['pendientes'] ?? 0, 2) ?></div>
+                        <div class="h6 fw-bold text-danger mb-1">$<?= number_format($datos['pagos']['realizados'] ?? 0, 2) ?></div>
+                        <div class="small text-muted" style="font-size: 0.75rem;">Pendientes: $<?= number_format($datos['pagos']['pendientes'] ?? 0, 2) ?></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card shadow-sm border-0 rounded-4 h-100" data-bs-toggle="modal" data-bs-target="#modalUtilidad" role="button" style="background: linear-gradient(135deg,#f0f9ff,#e0f2fe);">
+                    <div class="card-body text-center p-3">
+                        <i class="bi bi-graph-up-arrow h4 text-info"></i>
+                        <h6 class="fw-bold mt-2 mb-1">Utilidad Real</h6>
+                        <div class="small text-muted">Neta Real</div>
+                        <div class="h6 fw-bold text-info mb-1">$<?= number_format($total_utilidad_neta, 2) ?></div>
+                        <div class="small text-muted" style="font-size: 0.75rem;">Margen: <?= number_format($margen_global_utilidad, 1) ?>%</div>
                     </div>
                 </div>
             </div>
@@ -595,6 +613,92 @@ function badgeClaseEstado($estado)
                                     <tr>
                                         <td colspan="9" class="text-center text-warning">No hay pagos registrados.</td>
                                     </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Utilidad -->
+    <div class="modal fade" id="modalUtilidad" tabindex="-1" aria-labelledby="modalUtilidadLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-header text-white rounded-top-4" style="background: linear-gradient(120deg,#0ea5e9,#2563eb);">
+                    <div>
+                        <h5 class="modal-title" id="modalUtilidadLabel">Análisis de Utilidad Real</h5>
+                        <small class="text-white-50">Comparativa de ingresos netos vs costos de adquisición.</small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm rounded-3 bg-light">
+                                <div class="card-body py-3">
+                                    <div class="small text-muted">Ventas Netas (Pagos)</div>
+                                    <div class="h4 mb-0 text-primary">$<?= number_format($total_ventas_utilidad, 2) ?></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm rounded-3 bg-light">
+                                <div class="card-body py-3">
+                                    <div class="small text-muted">Costo de lo Vendido</div>
+                                    <div class="h4 mb-0 text-danger">$<?= number_format($total_costos_utilidad, 2) ?></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm rounded-3 bg-primary text-white">
+                                <div class="card-body py-3">
+                                    <div class="small text-white-50">Utilidad Neta Real</div>
+                                    <div class="h4 mb-0 text-white">$<?= number_format($total_utilidad_neta, 2) ?></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Producto</th>
+                                    <th class="text-center">Unidades</th>
+                                    <th class="text-end">Costo Unit.</th>
+                                    <th class="text-end">Venta Unit.</th>
+                                    <th class="text-end">Ventas Totales</th>
+                                    <th class="text-end">Utilidad</th>
+                                    <th class="text-center">Margen %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($utilidades as $item): 
+                                    $margen = $item['total_ventas'] > 0 ? ($item['utilidad_neta'] / $item['total_ventas']) * 100 : 0;
+                                ?>
+                                <tr>
+                                    <td class="fw-600"><?= htmlspecialchars($item['producto']) ?></td>
+                                    <td class="text-center"><?= $item['unidades_vendidas'] ?></td>
+                                    <td class="text-end text-muted small">$<?= number_format($item['precio_compra'], 2) ?></td>
+                                    <td class="text-end">$<?= number_format($item['total_ventas'] / $item['unidades_vendidas'], 2) ?></td>
+                                    <td class="text-end fw-600">$<?= number_format($item['total_ventas'], 2) ?></td>
+                                    <td class="text-end text-success fw-bold">$<?= number_format($item['utilidad_neta'], 2) ?></td>
+                                    <td class="text-center">
+                                        <span class="badge <?= $margen > 30 ? 'bg-success' : 'bg-warning' ?>">
+                                            <?= number_format($margen, 1) ?>%
+                                        </span>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                                <?php if (empty($utilidades)): ?>
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted">No hay datos suficientes para calcular utilidades.</td>
+                                </tr>
                                 <?php endif; ?>
                             </tbody>
                         </table>

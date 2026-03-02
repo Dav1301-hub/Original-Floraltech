@@ -44,6 +44,9 @@ class ReportesController {
             return strtolower($p['estado_pag']) === 'pendiente' ? $p['monto'] : 0;
         }, $dtAllPagos));
 
+        // Utilidades
+        $utilidades = $this->model->getMargenUtilidad();
+
         return compact(
             'datos',
             'totalUsuarios',
@@ -55,7 +58,8 @@ class ReportesController {
             'dtAllInv',
             'modalInventario',
             'dtAllPagos',
-            'modalPagos'
+            'modalPagos',
+            'utilidades'
         );
     }
 
