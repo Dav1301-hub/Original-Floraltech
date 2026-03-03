@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 27-08-2025 a las 17:46:18
+-- Tiempo de generación: 26-02-2026 a las 14:34:56
 -- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.0.30
+-- Versión de PHP: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -17,13 +17,33 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-
 --
 -- Base de datos: `flores`
 --
-CREATE DATABASE IF NOT EXISTS `flores` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `flores`;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `auditoria_empleados`
+--
+
+CREATE TABLE `auditoria_empleados` (
+  `id` int(11) NOT NULL,
+  `usuario_id` int(11) NOT NULL,
+  `empleado_id` int(11) DEFAULT NULL,
+  `accion` varchar(20) NOT NULL,
+  `datos_anteriores` text DEFAULT NULL,
+  `datos_nuevos` text DEFAULT NULL,
+  `fecha` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `auditoria_empleados`
+--
+
+INSERT INTO `auditoria_empleados` (`id`, `usuario_id`, `empleado_id`, `accion`, `datos_anteriores`, `datos_nuevos`, `fecha`) VALUES
+(2, 49, 63, 'crear', NULL, '{\"nombre_completo\":\"Test Auditor\\u00eda\",\"username\":\"testauditoria_1764598677\",\"email\":\"test1764598677@auditoria.com\",\"telefono\":\"123456789\",\"tpusu_idtpusu\":2,\"naturaleza\":\"Vendedor\",\"password\":\"Test1234\"}', '2025-12-01 09:17:58'),
+(3, 49, 64, 'crear', NULL, '{\"nombre_completo\":\"Test Auditor\\u00eda\",\"username\":\"testauditoria_1764599194\",\"email\":\"test1764599194@auditoria.com\",\"telefono\":\"123456789\",\"tpusu_idtpusu\":2,\"naturaleza\":\"Vendedor\",\"password\":\"Test1234\"}', '2025-12-01 09:26:34');
 
 -- --------------------------------------------------------
 
@@ -32,9 +52,8 @@ USE `flores`;
 --
 
 CREATE TABLE `cfg_sis` (
-  `id_cfg` int(11) NOT NULL AUTO_INCREMENT,
-  `idusu` int(11) NOT NULL,
-  `moneda` varchar(10) NOT NULL DEFAULT 'COP',
+  `id_cfg` int(11) NOT NULL,
+  `moneda` varchar(50) NOT NULL DEFAULT 'COP',
   `idioma` varchar(50) NOT NULL DEFAULT 'Español',
   `zona_hor` varchar(100) NOT NULL DEFAULT 'America/Bogota',
   `fmt_fecha` varchar(50) NOT NULL DEFAULT 'dd/mm/yyyy',
@@ -49,15 +68,20 @@ CREATE TABLE `cfg_sis` (
   `retencion_log` int(11) NOT NULL DEFAULT 365,
   `id_usu_mod` int(11) DEFAULT NULL,
   `fch_ult_mod` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id_cfg`)
+  `horario_atencion` varchar(100) DEFAULT '',
+  `dias_festivos` varchar(255) DEFAULT '',
+  `whatsapp` varchar(100) DEFAULT '',
+  `instagram` varchar(100) DEFAULT '',
+  `facebook` varchar(100) DEFAULT '',
+  `mensaje_confirmacion` text DEFAULT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `cfg_sis`
 --
 
-INSERT INTO `cfg_sis` (`id_cfg`, `idusu`, `moneda`, `idioma`, `zona_hor`, `fmt_fecha`, `estilo_ui`, `act_auto`, `notif_act`, `act_prog`, `auth_2fa`, `intentos_max`, `bloqueo_min`, `log_cambios`, `retencion_log`, `id_usu_mod`, `fch_ult_mod`) VALUES
-(1, 4, 'USD', 'Inglés', 'America/New_York', 'dd/mm/yyyy', 'Oscuro', 0, 0, '', 0, 3, 30, 1, 365, NULL, '2025-07-07 20:28:26');
+INSERT INTO `cfg_sis` (`id_cfg`, `moneda`, `idioma`, `zona_hor`, `fmt_fecha`, `estilo_ui`, `act_auto`, `notif_act`, `act_prog`, `auth_2fa`, `intentos_max`, `bloqueo_min`, `log_cambios`, `retencion_log`, `id_usu_mod`, `fch_ult_mod`, `horario_atencion`, `dias_festivos`, `whatsapp`, `instagram`, `facebook`, `mensaje_confirmacion`) VALUES
+(1, 'USD', 'Inglés', 'America/New_York', 'dd/mm/yyyy', 'Oscuro', 0, 0, '', 0, 3, 30, 1, 365, NULL, '2025-12-01 17:30:53', 'Lunes a Sábado 8am-6pm', '25/12, 01/01', '573001234567', '@floraltech', 'facebook.com/floraltech', '¡Gracias por tu pedido! Pronto recibirás confirmación.');
 
 -- --------------------------------------------------------
 
@@ -91,7 +115,11 @@ INSERT INTO `cli` (`idcli`, `nombre`, `direccion`, `telefono`, `email`, `fecha_r
 (8, 'Jorge Luis Puentes Brochero', 'Sin dirección', '3217837594', 'jorgepb2007@gmail.com', '2025-07-30', NULL, NULL),
 (9, 'juan', 'Sin dirección', '789456', 'juan@gmail.com', '2025-08-05', NULL, NULL),
 (10, 'david parada', 'Sin dirección', '32135', 'david@gmail.com', '2025-08-11', NULL, NULL),
-(11, 'maria sanchez', 'Sin dirección', '456', 'maria@gmail.com', '2025-08-14', NULL, NULL);
+(11, 'maria sanchez', 'Sin dirección', '456', 'maria@gmail.com', '2025-08-14', NULL, NULL),
+(12, 'wfv', 'Sin dirección', '3142729682', 'admin@floreria.com', '2025-09-03', NULL, NULL),
+(13, 'maury echeverria', 'Sin dirección', '3137970263', 'mauryecheverria278@gmail.com', '2025-09-29', NULL, NULL),
+(14, 'mauricio', 'Cliente', '32145', 'mau@gmail.com', '2025-12-09', NULL, NULL),
+(15, 'Jorge Luis Puentes Brochero', 'Sin dirección', '3217837594', 'glomigue07@gmail.com', '2025-12-10', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -154,7 +182,29 @@ INSERT INTO `detped` (`iddetped`, `idped`, `idtflor`, `cantidad`, `precio_unitar
 (40, 20, 3, 1, 4.75),
 (41, 21, 6, 1, 10000.00),
 (42, 22, 6, 180, 10000.00),
-(43, 23, 6, 1, 10000.00);
+(43, 23, 6, 1, 10000.00),
+(57, 26, 3, 6, 6000.00),
+(58, 26, 25, 1, 15000.00),
+(59, 27, 8, 20, 10000.00),
+(60, 27, 2, 10, 18000.00),
+(61, 28, 3, 30, 10000.00),
+(62, 29, 3, 9, 10000.00),
+(63, 30, 31, 10, 3.50);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `empresa`
+--
+
+CREATE TABLE `empresa` (
+  `id` int(11) NOT NULL,
+  `nombre` varchar(255) DEFAULT NULL,
+  `direccion` varchar(255) DEFAULT NULL,
+  `telefono` varchar(50) DEFAULT NULL,
+  `email_contacto` varchar(255) DEFAULT NULL,
+  `horarios_apertura` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -186,19 +236,36 @@ INSERT INTO `ent` (`ident`, `fecha_ent`, `hora_ent`, `direccion`, `estado_ent`, 
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `histenvfac`
+--
+
+CREATE TABLE `histenvfac` (
+  `id` int(11) NOT NULL,
+  `idpedido` int(11) NOT NULL,
+  `email_destino` varchar(255) NOT NULL,
+  `fecha_envio` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `histenvfac`
+--
+
+INSERT INTO `histenvfac` (`id`, `idpedido`, `email_destino`, `fecha_envio`) VALUES
+(1, 25, 'glomigue07@gmail.com', '2025-12-10 19:12:19');
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `inv`
 --
 
 CREATE TABLE `inv` (
   `idinv` int(11) NOT NULL,
-  `idproducto` int(11) NOT NULL UNIQUE COMMENT 'ID único del producto para compatibilidad',
-  `producto` varchar(255) DEFAULT NULL COMMENT 'Nombre del producto',
-  `color` varchar(100) DEFAULT 'Sin especificar' COMMENT 'Color del producto',
-  `estado` varchar(50) DEFAULT 'disponible' COMMENT 'Estado del producto (disponible, agotado, descontinuado)',
   `alimentacion` varchar(255) DEFAULT NULL,
   `tflor_idtflor` int(11) NOT NULL,
   `stock` int(11) NOT NULL DEFAULT 0,
   `precio` decimal(10,2) NOT NULL,
+  `precio_compra` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Precio unitario de compra al proveedor',
   `fecha_actualizacion` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `empleado_id` int(11) DEFAULT NULL COMMENT 'ID del empleado que realizó el movimiento',
   `motivo` varchar(255) DEFAULT NULL COMMENT 'Motivo del movimiento de inventario',
@@ -209,22 +276,22 @@ CREATE TABLE `inv` (
 -- Volcado de datos para la tabla `inv`
 --
 
-INSERT INTO `inv` (`idinv`, `idproducto`, `producto`, `color`, `estado`, `alimentacion`, `tflor_idtflor`, `stock`, `precio`, `fecha_actualizacion`, `empleado_id`, `motivo`, `cantidad_disponible`) VALUES
-(1, 1, 'Rosas', 'Multicolor', 'disponible', 'Agua y nutrientes', 1, 150, 5.99, '2025-07-28 22:13:32', NULL, NULL, 150),
-(2, 2, 'Tulipanes', 'Multicolor', 'disponible', 'Agua y nutrientes', 2, 80, 7.50, '2025-07-28 22:13:32', NULL, NULL, 80),
-(3, 3, 'Girasoles', 'Multicolor', 'disponible', 'Agua y luz solar', 3, 59, 4.75, '2025-07-28 22:13:32', NULL, NULL, 59),
-(4, 4, 'Orquídeas', 'Multicolor', 'disponible', 'Humedad controlada', 4, 40, 12.99, '2025-07-28 22:13:32', NULL, NULL, 40),
-(5, 5, 'Lirios', 'Multicolor', 'disponible', 'Agua y nutrientes', 5, 70, 6.25, '2025-07-28 22:13:32', NULL, NULL, 70),
-(6, 6, 'Flores Artificiales', 'Multicolor', 'disponible', 'N/A', 6, 18, 3.50, '2025-08-11 15:57:37', NULL, NULL, 199),
-(7, 7, 'Plantas de Interior', 'Multicolor', 'disponible', 'Luz indirecta', 7, 90, 8.99, '2025-07-28 22:13:32', NULL, NULL, 90),
-(8, 8, 'Suculentas', 'Multicolor', 'disponible', 'Poca agua', 8, 120, 2.99, '2025-07-28 22:13:32', NULL, NULL, 120),
-(9, 9, 'Rosas Premium', 'Multicolor', 'disponible', 'Agua diaria', 1, 50, 25.99, '2025-07-28 22:13:32', NULL, NULL, 50),
-(10, 10, 'Tulipanes Premium', 'Multicolor', 'disponible', 'Agua cada 2 días', 2, 30, 18.50, '2025-07-28 22:13:32', NULL, NULL, 30),
-(11, 11, 'Girasoles Premium', 'Multicolor', 'disponible', 'Agua semanal', 3, 25, 35.00, '2025-07-28 22:13:32', NULL, NULL, 25),
-(12, 12, 'Orquídeas Premium', 'Multicolor', 'disponible', 'Agua diaria', 4, 40, 22.75, '2025-07-28 22:13:32', NULL, NULL, 40),
-(13, 13, 'Lirios Premium', 'Multicolor', 'disponible', 'Agua semanal', 5, 15, 85.00, '2025-07-28 22:13:32', NULL, NULL, 15),
-(14, 14, 'Producto Especial', 'Sin especificar', 'agotado', 'Agua diaria', 20, 22, 16.55, '2025-08-05 13:28:10', NULL, NULL, 0),
-(15, 15, 'Producto Extra', 'Sin especificar', 'agotado', 'Agua diaria', 21, 16, 15.96, '2025-08-05 13:28:10', NULL, NULL, 0);
+INSERT INTO `inv` (`idinv`, `alimentacion`, `tflor_idtflor`, `stock`, `precio`, `precio_compra`, `fecha_actualizacion`, `empleado_id`, `motivo`, `cantidad_disponible`) VALUES
+(1, 'Agua y nutrientes', 1, 1, 0.03, 0.02, '2025-12-11 02:37:13', NULL, NULL, 150),
+(2, 'Agua y nutrientes', 2, 15, 25000.00, 18000.00, '2025-12-11 00:26:12', NULL, NULL, 80),
+(3, 'Agua y luz solar', 3, 45, 4.75, 0.00, '2026-02-10 15:44:06', NULL, NULL, 50),
+(4, 'Humedad controlada', 4, 41, 12.99, 0.00, '2025-12-11 02:37:13', NULL, NULL, 40),
+(5, 'Agua y nutrientes', 5, 71, 6.25, 0.00, '2025-12-11 02:37:13', NULL, NULL, 70),
+(6, 'N/A', 6, 37, 3.50, 0.00, '2025-12-11 02:40:18', NULL, NULL, 199),
+(7, 'Luz indirecta', 7, 90, 8.99, 0.00, '2025-07-28 22:13:32', NULL, NULL, 90),
+(8, 'Poca agua', 8, 30, 2.99, 0.00, '2025-12-11 00:26:42', NULL, NULL, 120),
+(14, 'Agua diaria', 20, 22, 16.55, 0.00, '2025-08-05 13:28:10', NULL, NULL, 0),
+(15, 'Agua diaria', 21, 65, 15.96, 0.00, '2025-11-27 21:17:20', NULL, NULL, 0),
+(17, 'Ambiente fresco y seco', 23, 21, 8000.00, 5000.00, '2025-12-11 02:37:13', NULL, 'Producto de prueba', 50),
+(18, 'No requiere', 24, 36, 12.00, 0.00, '2025-12-11 02:37:13', NULL, 'Producto de prueba', 30),
+(19, 'No requiere', 25, 99, 2.50, 0.00, '2025-12-11 03:24:10', NULL, 'Producto de prueba', 100),
+(24, 'Agua y nutrientes', 30, 8, 35000.00, 25000.00, '2025-12-11 02:00:07', NULL, 'Producto de prueba para lotes', 0),
+(25, 'Ambiente fresco y seco', 31, 5, 750000.00, 50000.00, '2026-02-10 15:44:59', NULL, 'Producto de prueba', 40);
 
 -- --------------------------------------------------------
 
@@ -254,7 +321,39 @@ INSERT INTO `inv_historial` (`idhistorial`, `idinv`, `stock_anterior`, `stock_nu
 (5, 5, 70, 69, '2025-07-07 14:43:34', 4, 'Venta PED-20230002'),
 (6, 1, 145, 143, '2025-07-07 14:43:34', 4, 'Venta PED-20230004'),
 (7, 6, 200, 195, '2025-07-07 14:43:34', 4, 'Venta PED-20230004'),
-(8, 8, 117, 111, '2025-07-07 14:43:34', 4, 'Venta PED-20230006');
+(8, 8, 117, 111, '2025-07-07 14:43:34', 4, 'Venta PED-20230006'),
+(9, 3, 54, 45, '2026-02-10 10:44:06', 41, 'Venta online - Reducción de stock'),
+(10, 25, 15, 5, '2026-02-10 10:44:59', 41, 'Venta online - Reducción de stock');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `lotes`
+--
+
+CREATE TABLE `lotes` (
+  `idlote` int(11) NOT NULL,
+  `inv_idinv` int(11) NOT NULL,
+  `numero_lote` varchar(50) NOT NULL,
+  `cantidad` int(11) NOT NULL DEFAULT 0,
+  `fecha_ingreso` date NOT NULL,
+  `fecha_caducidad` date NOT NULL,
+  `proveedor` varchar(255) DEFAULT NULL,
+  `precio_compra` decimal(10,2) DEFAULT NULL,
+  `estado` enum('activo','vendido','caducado','devuelto') DEFAULT 'activo',
+  `observaciones` text DEFAULT NULL,
+  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
+  `fecha_actualizacion` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `lotes`
+--
+
+INSERT INTO `lotes` (`idlote`, `inv_idinv`, `numero_lote`, `cantidad`, `fecha_ingreso`, `fecha_caducidad`, `proveedor`, `precio_compra`, `estado`, `observaciones`, `fecha_creacion`, `fecha_actualizacion`) VALUES
+(1, 15, 'LOTE-LIRIOS-001', 15, '2025-11-26', '2025-12-03', 'Flores del Valle', 180000.00, 'activo', '', '2025-11-26 17:31:42', '2025-11-26 17:31:42'),
+(2, 15, 'LOTE-LIRIOS-002', 50, '2025-11-27', '2025-12-06', 'Jardines Tropicales', 90000.00, 'activo', '', '2025-11-27 15:45:12', '2025-11-27 15:45:12'),
+(3, 8, 'LOTE-SUCULENTAS-001', 30, '2025-12-11', '2025-12-17', 'Decoraciones Modernas', 150000.00, 'activo', '', '2025-12-11 00:24:47', '2025-12-11 00:24:47');
 
 -- --------------------------------------------------------
 
@@ -317,7 +416,7 @@ INSERT INTO `pagos` (`idpago`, `fecha_pago`, `metodo_pago`, `estado_pag`, `monto
 (6, '2025-07-07 14:43:34', 'Tarjeta crédito', 'Procesando', 18.00, 6, 'TXN654321987', NULL, NULL, NULL),
 (7, '2025-07-19 20:32:07', 'Tarjeta', 'Completado', 150.75, 9, 'TXN-001', NULL, NULL, NULL),
 (8, '2025-07-20 20:32:07', 'PayPal', 'Completado', 89.50, 10, 'TXN-002', NULL, NULL, NULL),
-(9, '2025-07-21 20:32:07', 'Tarjeta', 'Pendiente', 245.00, 11, 'TXN-003', NULL, NULL, NULL),
+(9, '2025-12-10 19:30:48', 'efectivo', 'Completado', 24500.00, 11, 'TXN-003', NULL, NULL, NULL),
 (10, '2025-07-22 20:32:07', 'Efectivo', 'Pendiente', 67.25, 12, 'TXN-004', NULL, NULL, NULL),
 (11, '2025-07-17 20:32:07', 'Tarjeta', 'Completado', 320.99, 13, 'TXN-005', NULL, NULL, NULL),
 (12, '2025-07-28 17:41:30', 'efectivo', 'Pendiente', 15.00, 14, NULL, NULL, NULL, NULL),
@@ -326,14 +425,21 @@ INSERT INTO `pagos` (`idpago`, `fecha_pago`, `metodo_pago`, `estado_pag`, `monto
 (15, '2025-07-29 08:01:51', 'efectivo', 'Pendiente', 15.00, 17, NULL, NULL, NULL, NULL),
 (16, '2025-07-29 08:23:47', 'efectivo', 'Pendiente', 210.00, 18, NULL, NULL, NULL, NULL),
 (17, '2025-08-05 08:31:14', 'nequi', 'Pendiente', 706.21, 19, NULL, NULL, NULL, NULL),
-(18, '2025-08-05 08:53:16', 'nequi', 'Pendiente', 4.75, 20, NULL, NULL, NULL, NULL),
+(18, '2025-12-10 22:27:37', 'efectivo', 'Cancelado', 0.00, 20, NULL, NULL, NULL, NULL),
 (19, '2025-08-05 10:40:06', 'nequi', 'Pendiente', 10000.00, 21, NULL, NULL, NULL, NULL),
 (20, '2025-08-11 09:35:36', 'efectivo', 'Pendiente', 1800000.00, 22, NULL, NULL, NULL, NULL),
 (21, '2025-08-11 10:57:37', 'efectivo', 'Pendiente', 10000.00, 23, NULL, NULL, NULL, NULL),
 (22, '2025-08-14 22:38:49', 'nequi', 'Completado', 50000.00, 1, 'TXN001', NULL, NULL, NULL),
 (23, '2025-08-14 22:38:49', 'transferencia', 'Completado', 75000.00, 2, 'TXN002', NULL, NULL, NULL),
 (24, '2025-08-14 22:38:49', 'nequi', 'Completado', 25000.00, 3, 'TXN003', NULL, NULL, NULL),
-(25, '2025-08-14 22:38:49', 'transferencia', 'Pendiente', 10000.00, 4, 'TXN004', NULL, NULL, NULL);
+(25, '2025-08-14 22:38:49', 'transferencia', 'Pendiente', 10000.00, 4, 'TXN004', NULL, NULL, NULL),
+(26, '2025-10-02 11:42:06', 'efectivo', 'Completado', 140000.00, 24, NULL, NULL, NULL, NULL),
+(27, '2025-12-10 19:12:04', 'efectivo', 'Pendiente', 50015.50, 25, NULL, NULL, NULL, NULL),
+(28, '2025-12-10 22:04:43', 'efectivo', 'Pendiente', 18000.00, 26, NULL, NULL, NULL, NULL),
+(29, '2026-02-05 11:22:24', 'efectivo', 'Completado', 380000.00, 27, NULL, NULL, 40, '2026-02-05 11:23:24'),
+(30, '2026-02-10 10:34:14', 'efectivo', 'Pendiente', 300000.00, 28, NULL, NULL, NULL, NULL),
+(31, '2026-02-10 10:44:06', 'efectivo', 'Pendiente', 90000.00, 29, NULL, NULL, NULL, NULL),
+(32, '2026-02-10 10:44:59', 'efectivo', 'Pendiente', 35.00, 30, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -370,7 +476,7 @@ INSERT INTO `ped` (`idped`, `numped`, `fecha_pedido`, `monto_total`, `cli_idcli`
 (8, 'PED-2025-8989', '2025-07-22 12:01:05', 8.25, 6, 'Pendiente', NULL, NULL, NULL, NULL, NULL, NULL),
 (9, 'PED-001', '2025-07-18 20:32:07', 150.75, 7, 'Completado', NULL, NULL, NULL, NULL, NULL, NULL),
 (10, 'PED-002', '2025-07-19 20:32:07', 89.50, 7, 'Completado', NULL, NULL, NULL, NULL, NULL, NULL),
-(11, 'PED-003', '2025-07-20 20:32:07', 245.00, 7, 'En Preparación', NULL, NULL, NULL, NULL, NULL, NULL),
+(11, 'PED-003', '2025-07-20 20:32:07', 245.00, 7, 'En proceso', NULL, NULL, NULL, NULL, NULL, NULL),
 (12, 'PED-004', '2025-07-21 20:32:07', 67.25, 7, 'Pendiente', NULL, NULL, NULL, NULL, NULL, NULL),
 (13, 'PED-005', '2025-07-22 20:32:07', 320.99, 7, 'Completado', NULL, NULL, NULL, NULL, NULL, NULL),
 (14, 'PED-20250729004130-6', '2025-07-28 17:41:30', 15.00, 6, 'Pendiente', NULL, NULL, NULL, NULL, 'Carrera5 #20-65', '2025-07-30'),
@@ -379,10 +485,17 @@ INSERT INTO `ped` (`idped`, `numped`, `fecha_pedido`, `monto_total`, `cli_idcli`
 (17, 'PED-20250729150151-6', '2025-07-29 08:01:51', 15.00, 6, 'Pendiente', NULL, NULL, NULL, NULL, 'CAreraass#3e2', '2025-07-30'),
 (18, 'PED-20250729152347-6', '2025-07-29 08:23:47', 210.00, 6, 'Pendiente', NULL, NULL, NULL, NULL, 'CArara', '2025-07-30'),
 (19, 'PED-20250805153114-6', '2025-08-05 08:31:14', 706.21, 6, 'Pendiente', NULL, NULL, NULL, NULL, 'career', '2025-08-06'),
-(20, 'PED-20250805155316-6', '2025-08-05 08:53:16', 4.75, 6, 'Pendiente', NULL, NULL, NULL, NULL, '3r3r', '2025-08-06'),
+(20, 'PED-20250805155316-6', '2025-08-05 08:53:16', 4.75, 6, 'Cancelado', NULL, NULL, NULL, NULL, '3r3r', '2025-08-06'),
 (21, 'PED-20250805174006-8', '2025-08-05 10:40:06', 10000.00, 8, 'Pendiente', NULL, NULL, NULL, NULL, 'cc', '2025-08-06'),
 (22, 'PED-20250811163536-8', '2025-08-11 09:35:36', 1800000.00, 8, 'Pendiente', NULL, NULL, NULL, NULL, 'jh', '2025-08-12'),
-(23, 'PED-20250811175737-8', '2025-08-11 10:57:37', 10000.00, 8, 'Pendiente', NULL, NULL, NULL, NULL, 'kjnv', '2025-08-12');
+(23, 'PED-20250811175737-8', '2025-08-11 10:57:37', 10000.00, 8, 'Pendiente', NULL, NULL, NULL, NULL, 'kjnv', '2025-08-12'),
+(24, 'PED-20251002184206-13', '2025-10-02 11:42:06', 140000.00, 13, 'Pendiente', NULL, NULL, NULL, NULL, 'calrfsdfvsdfddsfd', '2025-10-31'),
+(25, 'PED-20251211011204-15', '2025-12-10 19:12:04', 50015.50, 15, 'En proceso', NULL, NULL, NULL, NULL, 'zipaquira', '2025-12-19'),
+(26, 'PED-20251211040443-5', '2025-12-10 22:04:43', 51000.00, 5, 'En proceso', 43, NULL, NULL, 'Feliz Cumpleaños', 'Transversal 45 #67-89', '2025-12-10'),
+(27, 'PED-20260205172224-10', '2026-02-05 11:22:24', 380000.00, 10, 'Completado', NULL, '2026-02-05 11:23:41', 40, NULL, 'scfcv', '2026-02-12'),
+(28, 'PED-20260210163414-10', '2026-02-10 10:34:14', 300000.00, 10, 'Pendiente', NULL, NULL, NULL, NULL, 'wfedgh', '2026-02-12'),
+(29, 'PED-20260210164406-10', '2026-02-10 10:44:06', 90000.00, 10, 'Pendiente', NULL, NULL, NULL, NULL, 'sdsefcv', '2026-02-12'),
+(30, 'PED-20260210164459-10', '2026-02-10 10:44:59', 35.00, 10, 'Pendiente', NULL, NULL, NULL, NULL, 'wedsaf', '2026-02-14');
 
 -- --------------------------------------------------------
 
@@ -482,6 +595,32 @@ INSERT INTO `perm` (`idperm`, `nombre`, `codigo`, `descripcion`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `permisos`
+--
+
+CREATE TABLE `permisos` (
+  `idpermiso` int(11) NOT NULL,
+  `idempleado` int(11) NOT NULL,
+  `tipo` varchar(100) NOT NULL,
+  `fecha_inicio` date NOT NULL,
+  `fecha_fin` date NOT NULL,
+  `estado` varchar(50) NOT NULL DEFAULT 'Pendiente'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `permisos`
+--
+
+INSERT INTO `permisos` (`idpermiso`, `idempleado`, `tipo`, `fecha_inicio`, `fecha_fin`, `estado`) VALUES
+(1, 46, 'Licencia no remunerada', '2025-09-05', '2025-09-05', 'Aprobado'),
+(2, 4, 'Citas médicas', '2025-09-04', '2025-09-04', 'Pendiente'),
+(3, 41, 'Estudio/capacitación', '2025-09-03', '2025-09-03', 'Aprobado'),
+(4, 45, 'Licencia no remunerada', '2025-09-01', '2025-09-01', 'Rechazado'),
+(7, 53, 'dia de la familia', '2025-12-19', '2025-12-19', 'Pendiente');
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `perm_tpusu`
 --
 
@@ -512,6 +651,72 @@ INSERT INTO `perm_tpusu` (`idtpusu`, `idperm`) VALUES
 (2, 6),
 (3, 7),
 (4, 4);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `proveedores`
+--
+
+CREATE TABLE `proveedores` (
+  `id` int(11) NOT NULL,
+  `nombre` varchar(255) NOT NULL,
+  `categoria` varchar(100) NOT NULL,
+  `telefono` varchar(20) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `direccion` text DEFAULT NULL,
+  `notas` text DEFAULT NULL,
+  `estado` varchar(20) DEFAULT 'activo',
+  `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `proveedores`
+--
+
+INSERT INTO `proveedores` (`id`, `nombre`, `categoria`, `telefono`, `email`, `direccion`, `notas`, `estado`, `fecha_registro`) VALUES
+(1, 'Flores de Paloquemado', 'flores_frescas', '3143625258', 'info@floresvalle.com', 'Av. Principal 123', 'Proveedor principal de rosas y tulipanes', 'activo', '2025-11-24 16:37:32'),
+(2, 'Decoraciones Modernas', 'flores_artificiales', '555-56785', 'ventas@decomodernas.com', 'Calle Comercio 456', 'Especialistas en flores artificiales', 'activo', '2025-11-24 16:37:32');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `proveedor_producto`
+--
+
+CREATE TABLE `proveedor_producto` (
+  `id` int(11) NOT NULL,
+  `proveedor_id` int(11) NOT NULL,
+  `producto_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `proyecciones_pagos`
+--
+
+CREATE TABLE `proyecciones_pagos` (
+  `idproy` int(11) NOT NULL,
+  `titulo` varchar(150) NOT NULL DEFAULT 'Meta de pagos',
+  `monto_objetivo` decimal(12,2) NOT NULL,
+  `fecha_inicio` date NOT NULL,
+  `fecha_fin` date NOT NULL,
+  `creado_por` int(11) DEFAULT NULL,
+  `estado` varchar(20) DEFAULT 'Activa',
+  `notas` text DEFAULT NULL,
+  `fecha_creacion` datetime DEFAULT current_timestamp(),
+  `fecha_cierre` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `proyecciones_pagos`
+--
+
+INSERT INTO `proyecciones_pagos` (`idproy`, `titulo`, `monto_objetivo`, `fecha_inicio`, `fecha_fin`, `creado_por`, `estado`, `notas`, `fecha_creacion`, `fecha_cierre`) VALUES
+(1, 'Meta mensual inicial', 1000000.00, '2025-10-01', '2025-10-31', NULL, 'Activa', 'Objetivo base cargado desde el script', '2025-10-01 00:00:00', NULL),
+(2, 'Meta mensual inicial', 1000000.00, '2025-08-01', '2025-10-31', 53, 'Activa', 'Objetivo base cargado desde el script', '2025-11-23 15:41:11', NULL),
+(3, 'Meta mensual inicial', 1000000.00, '2025-05-01', '2025-10-31', 53, 'Activa', 'dssds', '2025-11-24 08:34:04', NULL);
 
 -- --------------------------------------------------------
 
@@ -573,12 +778,12 @@ CREATE TABLE `tflor` (
 --
 
 INSERT INTO `tflor` (`idtflor`, `nombre`, `naturaleza`, `descripcion`, `precio`, `fecha_creacion`, `activo`, `color`, `precio_venta`, `estado`) VALUES
-(1, 'Rosas', 'Natural', 'Rosas de diversos colores, ideales para arreglos florales', 15000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
+(1, 'Rosass', 'Natural', 'Rosas de diversos colores, ideales para arreglos florales', 15000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
 (2, 'Tulipanes', 'Natural', 'Tulipanes frescos importados de Holanda', 18000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
 (3, 'Girasoles', 'Natural', 'Girasoles grandes y brillantes', 10000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
 (4, 'Orquídeas', 'Natural', 'Orquídeas exóticas de diversas variedades', 25000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
 (5, 'Lirios', 'Natural', 'Lirios elegantes y fragantes', 10000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
-(6, 'Flores Artificiales', 'Artificial', 'Flores decorativas de alta calidad', 10000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
+(6, 'Flores Artificiales', 'Artificial', 'Flores decorativas de alta calidad', 40000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
 (7, 'Plantas de Interior', 'Natural', 'Variedad de plantas para decoración interior', 10000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
 (8, 'Suculentas', 'Natural', 'Pequeñas plantas suculentas para arreglos', 10000.00, '2025-07-22 12:07:00', 1, 'Multicolor', 15.00, 'activo'),
 (9, 'Rosa Roja', 'Natural', 'Rosa roja clásica para ocasiones especiales', 15000.00, '2025-07-22 13:32:07', 1, 'Multicolor', 15.00, 'activo'),
@@ -590,8 +795,49 @@ INSERT INTO `tflor` (`idtflor`, `nombre`, `naturaleza`, `descripcion`, `precio`,
 (15, 'Tulipán Amarillo', 'Flor natural', 'Tulipán amarillo vibrante, ideal para primavera', 18000.00, '2025-07-28 17:15:22', 1, 'Amarillo', 12.00, 'activo'),
 (17, 'Orquídea Blanca', 'Flor natural', 'Elegante orquídea blanca para ocasiones elegantes', 25000.00, '2025-07-28 17:15:22', 1, 'Blanco', 35.00, 'activo'),
 (19, 'Margarita', 'Flor natural', 'Margarita blanca simple y hermosa', 10000.00, '2025-07-28 17:15:22', 1, 'Blanco', 6.75, 'activo'),
-(20, 'Margarita Blanca', 'Blanco', 'Margarita blanca pura, representa la inocencia', 10000.00, '2025-08-05 08:28:10', 1, 'Multicolor', 0.00, 'activo'),
-(21, 'Lirio Morado', 'Morado', 'Elegante lirio morado, representa la nobleza', 10000.00, '2025-08-05 08:28:10', 1, 'Multicolor', 0.00, 'activo');
+(20, 'Margarita Blanca', 'Natural', 'Margarita blanca pura, representa la inocencia', 10000.00, '2025-08-05 08:28:10', 1, 'Blanco', 0.00, 'activo'),
+(21, 'Lirios', 'Natural', 'Elegante lirio morado, representa la nobleza', 10000.00, '2025-08-05 08:28:10', 1, 'Morado', 0.00, 'activo'),
+(22, 'Rosa Premium', 'Natural', 'Rosa roja premium para pruebas de lotes', 5.00, '2025-11-26 11:30:46', 1, 'Rojo', 8.00, 'activo'),
+(23, 'Chocolate FerreroX3', 'No aplica', 'Producto de prueba', 3.50, '2025-11-26 11:30:46', 1, 'Dorado', 3.50, 'activo'),
+(24, 'Peluche Osito', 'Decorativo', 'Producto de prueba', 12.00, '2025-11-26 11:30:46', 1, 'Marrón', 12.00, 'activo'),
+(25, 'Globo Corazón', 'Decorativo', 'Producto de prueba', 2.50, '2025-11-26 11:30:46', 1, 'Rojo', 2.50, 'activo'),
+(26, 'Rosa Premium', 'Natural', 'Rosa roja premium para pruebas de lotes', 5.00, '2025-11-26 11:30:53', 1, 'Rojo', 8.00, 'activo'),
+(27, 'Chocolate Ferrero', 'Comestible', 'Producto de prueba', 3.50, '2025-11-26 11:30:53', 1, 'Dorado', 3.50, 'activo'),
+(28, 'Peluche Osito', 'Decorativo', 'Producto de prueba', 12.00, '2025-11-26 11:30:53', 1, 'Marrón', 12.00, 'activo'),
+(29, 'Globo Corazón', 'Decorativo', 'Producto de prueba', 2.50, '2025-11-26 11:30:53', 1, 'Rojo', 2.50, 'activo'),
+(30, 'Rosa Premium', 'Natural', 'Rosa roja premium para pruebas de lotes', 5.00, '2025-11-26 11:30:55', 1, 'Rojo', 8.00, 'activo'),
+(31, 'Chocolate Ferrero', NULL, 'Producto de prueba', 3.50, '2025-11-26 11:30:55', 1, 'Dorado', 3.50, 'activo'),
+(32, 'Peluche Osito', 'Decorativo', 'Producto de prueba', 12.00, '2025-11-26 11:30:55', 1, 'Marrón', 12.00, 'activo'),
+(33, 'Globo Corazón', 'Decorativo', 'Producto de prueba', 2.50, '2025-11-26 11:30:55', 1, 'Rojo', 2.50, 'activo');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `tickets_soporte`
+--
+
+CREATE TABLE `tickets_soporte` (
+  `id` int(11) NOT NULL,
+  `admin_id` int(11) NOT NULL,
+  `asunto` varchar(255) NOT NULL,
+  `descripcion` longtext NOT NULL,
+  `archivo` varchar(255) DEFAULT NULL,
+  `estado` enum('abierto','en_proceso','respondido','cerrado') DEFAULT 'abierto',
+  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp(),
+  `fecha_respuesta` datetime DEFAULT NULL,
+  `respuesta` longtext DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `tickets_soporte`
+--
+
+INSERT INTO `tickets_soporte` (`id`, `admin_id`, `asunto`, `descripcion`, `archivo`, `estado`, `fecha_creacion`, `fecha_respuesta`, `respuesta`) VALUES
+(1, 43, 'Problema al crear nuevos empleados', 'Cuando intento crear un nuevo empleado, me sale un error que dice \"Duplicate entry\". ¿Qué puedo hacer?', NULL, 'abierto', '2025-12-10 22:00:54', NULL, NULL),
+(2, 43, 'Solicitud: Aumentar límite de productos', 'Necesito poder registrar más de 100 productos en el inventario. ¿Es posible aumentar este límite?', NULL, 'respondido', '2025-12-10 22:00:54', '2025-12-08 23:00:54', 'Hola, el límite se puede aumentar fácilmente. Te envío los pasos en el manual de administración.'),
+(3, 43, 'El reporte PDF no genera correctamente', 'Intento generar un reporte de ventas en PDF pero se queda cargando. He esperado 5 minutos y nada.', NULL, 'en_proceso', '2025-12-10 22:00:54', NULL, NULL),
+(4, 43, 'Consulta sobre backup de datos', '¿Con qué frecuencia debería hacer backup de la base de datos? ¿Tienen una función automática?', NULL, 'cerrado', '2025-12-10 22:00:54', '2025-12-05 23:00:54', 'Sí, el sistema realiza backups automáticos diarios. Puedes descargarlos desde Configuración → Backups.'),
+(6, 43, 'no puedo crear un nuevo producto', 'al momento de crear el producto , me redirige al dashboard principal.', NULL, 'abierto', '2025-12-11 03:33:35', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -612,7 +858,7 @@ CREATE TABLE `tokens_recuperacion` (
 --
 
 INSERT INTO `tokens_recuperacion` (`id`, `idUsuario`, `token`, `expiracion`, `creado_en`) VALUES
-(7, 40, 'cce08aa5f07ffd1f1efb5154d512ea9b47036a8110a19a984e4823ea259178dc', '2025-08-26 18:40:30', '2025-08-26 15:40:30');
+(8, 53, '5aa5b31ae70a9a965fbe7bec5c8bb523ef6928e9f90963a3c81f081dd6e5e304', '2025-10-29 19:07:10', '2025-10-29 17:07:10');
 
 -- --------------------------------------------------------
 
@@ -640,11 +886,37 @@ INSERT INTO `tpusu` (`idtpusu`, `nombre`, `descripcion`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `turnos`
+--
+
+CREATE TABLE `turnos` (
+  `idturno` int(11) NOT NULL,
+  `idempleado` int(11) NOT NULL,
+  `fecha_inicio` date NOT NULL,
+  `fecha_fin` date NOT NULL,
+  `horario` varchar(100) NOT NULL,
+  `tipo_temporada` varchar(50) DEFAULT '',
+  `turno` varchar(50) DEFAULT '',
+  `observaciones` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `turnos`
+--
+
+INSERT INTO `turnos` (`idturno`, `idempleado`, `fecha_inicio`, `fecha_fin`, `horario`, `tipo_temporada`, `turno`, `observaciones`) VALUES
+(2, 4, '2025-08-31', '2025-08-31', '9:00 am – 6:00 pm', '', '', NULL),
+(3, 41, '2025-09-01', '2025-09-06', '9:00 am – 8:00 pm', '', '', ''),
+(6, 57, '2025-08-31', '2025-08-31', '9:00 am - 6:00 pm', 'Temporada normal (baja demanda)', 'Turno Mañana (7am-3pm)', 'Turno estándar en baja demanda.');
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `usu`
 --
 
 CREATE TABLE `usu` (
-  `idusu` int(11) NOT NULL AUTO_INCREMENT,
+  `idusu` int(11) NOT NULL,
   `username` varchar(255) NOT NULL,
   `nombre_completo` varchar(255) NOT NULL,
   `naturaleza` varchar(255) DEFAULT NULL,
@@ -653,75 +925,38 @@ CREATE TABLE `usu` (
   `clave` varchar(255) NOT NULL,
   `tpusu_idtpusu` int(11) NOT NULL,
   `fecha_registro` datetime DEFAULT current_timestamp(),
+  `fecha_ultimo_acceso` datetime DEFAULT NULL COMMENT 'Marca el último login exitoso',
   `activo` tinyint(1) DEFAULT 1,
-  PRIMARY KEY (`idusu`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
-CREATE TABLE `permisos` (
-  `idpermiso` INT NOT NULL AUTO_INCREMENT,
-  `idempleado` INT NOT NULL,
-  `tipo` VARCHAR(100) NOT NULL,
-  `fecha_inicio` DATE NOT NULL,
-  `fecha_fin` DATE NOT NULL,
-  `estado` VARCHAR(50) NOT NULL DEFAULT 'Pendiente',
-  PRIMARY KEY (`idpermiso`),
-  FOREIGN KEY (`idempleado`) REFERENCES `usu`(`idusu`) ON DELETE CASCADE
+  `vacaciones` int(11) DEFAULT 0,
+  `intentos_fallidos` int(11) DEFAULT 0,
+  `fecha_bloqueo` datetime DEFAULT NULL,
+  `motivo_bloqueo` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Volcado de datos para la tabla `usu`
 --
 
-INSERT INTO `usu` (`idusu`, `username`, `nombre_completo`, `naturaleza`, `telefono`, `email`, `clave`, `tpusu_idtpusu`, `fecha_registro`, `activo`) VALUES
-(4, 'inventario', 'Pedro Rojas', 'Persona', '3204567890', 'pedro@floreria.com', '35de1a09ec425493170e5b83380e4fd5fba692fc2e6b48f2b9c042644bcfef74', 3, '2025-07-07 14:43:34', 1),
-(40, 'jorge', 'Jorge Luis Puentes Brochero', 'Carrera 5#20-65', '3217837594', 'jorgepb2007@gmail.com', '$2y$10$7nY2k7SQxRQ8rPXf/mcZW..il8iOAZZs.IGOonV4eHMZAPvtlV7nK', 5, '2025-08-05 09:52:19', 1),
-(41, 'david', 'david parada', 'ljjhh', '32135', 'david@gmail.com', '$2y$10$zykB2BQdQwivfueZ6a1KF.IXDvnODmn2vo9n1N8a1sZkqzc6DL8TW', 2, '2025-08-05 10:41:00', 1),
-(42, 'juan', 'juan luis', '23', '5', 'juan@gmail.com', '$2y$10$GSHbrGQ2eZDJDHeyviNxluSZcMvm8MjTi8E7IGm8rkyM8XT8A/Xpy', 1, '2025-08-14 21:27:21', 1),
-(43, 'maria', 'maria sanchez', 'sd', '456', 'maria@gmail.com', '$2y$10$KIkPfVcQMKLKVDGFbh9sCO1vgk9N4m.fzIopEV8bzh02Vl6fgCMVG', 5, '2025-08-14 21:28:27', 1),
-(44, 'mauecheveria', 'mauricio', 'vcs#', '32145', 'mau@gmail.com', '$2y$10$gqUA70VS4LNnmsj9mKdUbeA4OP.VRU4Z0CVFjZjRtST4tsSoVn/KK', 5, '2025-08-26 10:03:00', 1);
-
--- --------------------------------------------------------
-
---
--- Tabla de turnos para gestión de empleados
---
-
-CREATE TABLE `turnos` (
-  `idturno` INT NOT NULL AUTO_INCREMENT,
-  `idempleado` INT NOT NULL,
-  `fecha_inicio` DATE NOT NULL,
-  `fecha_fin` DATE NOT NULL,
-  `horario` VARCHAR(100) NOT NULL,
-  PRIMARY KEY (`idturno`),
-  FOREIGN KEY (`idempleado`) REFERENCES `usu`(`idusu`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Puedes agregar más campos si lo necesitas (tipo_turno, temporada, observaciones)
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `empresa`
---
-
-CREATE TABLE `empresa` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nombre` varchar(255) NOT NULL DEFAULT '',
-  `direccion` varchar(255) DEFAULT '',
-  `telefono` varchar(100) DEFAULT '',
-  `email` varchar(255) DEFAULT '',
-  `horario` varchar(255) DEFAULT '',
-  `fecha_creacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `fecha_actualizacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `empresa`
---
-
-INSERT INTO `empresa` (`nombre`, `direccion`, `telefono`, `email`, `horario`) VALUES
-('FloralTech', 'Dirección de la empresa', '555-0123', 'info@floraltech.com', 'Lunes a Viernes 8:00 AM - 6:00 PM');
+INSERT INTO `usu` (`idusu`, `username`, `nombre_completo`, `naturaleza`, `telefono`, `email`, `clave`, `tpusu_idtpusu`, `fecha_registro`, `fecha_ultimo_acceso`, `activo`, `vacaciones`, `intentos_fallidos`, `fecha_bloqueo`, `motivo_bloqueo`) VALUES
+(4, 'inventario', 'Pedro Rojas pinilla', 'Inventario', '3204567890', 'pedro@floreria.com', '35de1a09ec425493170e5b83380e4fd5fba692fc2e6b48f2b9c042644bcfef74', 3, '2025-07-07 00:00:00', NULL, 1, 0, 0, NULL, NULL),
+(40, 'jorge', 'Jorge Luis Puentes Brochero', 'Cliente', '3217837594', 'glomigue07@gmail.com', '$2y$10$7nY2k7SQxRQ8rPXf/mcZW..il8iOAZZs.IGOonV4eHMZAPvtlV7nK', 2, '2025-08-05 09:52:19', '2026-02-05 11:24:59', 1, 0, 0, NULL, NULL),
+(41, 'david', 'david parada', 'Vendedor', '32135', 'david@gmail.com', '$2y$10$zykB2BQdQwivfueZ6a1KF.IXDvnODmn2vo9n1N8a1sZkqzc6DL8TW', 5, '2025-08-05 10:41:00', '2026-02-25 10:43:42', 1, 0, 0, NULL, NULL),
+(43, 'maria', 'maria sanchez', 'Administrador', '3153646053', 'maria@gmail.com', '$2y$10$3Niqc0FgAX8drTAaN45Eg.ObF7HMeUfGDpsNFeuPLr2Z5pGftk4W.', 1, '2025-08-14 00:00:00', '2025-12-11 01:52:59', 1, 0, 0, NULL, NULL),
+(44, 'mauecheveria', 'mauricio', 'Cliente', '32145', 'mau@gmail.com', '$2y$10$gqUA70VS4LNnmsj9mKdUbeA4OP.VRU4Z0CVFjZjRtST4tsSoVn/KK', 5, '2025-08-26 10:03:00', NULL, 1, 0, 0, NULL, NULL),
+(45, '1070981833', 'Laura Lucia Moreno Gonzalez', 'Vendedor', '', '1070981833@floraltech.local', '$2y$10$0KQL6Cu.7PEjImNczbMCTegryo.EN97opFUNuNQc757yxKOl4G/na', 2, '2025-08-29 00:00:00', NULL, 0, 0, 0, NULL, NULL),
+(46, '1015449927', 'Gloria Lopez Ruiz', 'Vendedor', '', '1015449927@floraltech.local', '$2y$10$WkCKuFvepdXcCrdCif6bHeeO1Xk7/YkFUBhGbiF2o6.4MWEJsBRX2', 2, '2025-09-01 00:00:00', NULL, 1, 0, 0, NULL, NULL),
+(49, '35529431', 'Claudia Patricia Gonzalez Jimenez', 'Vendedor', '', '35529431@floraltech.local', '$2y$10$a3F2S2qlNC4UI3NJ0eOK8O0ZWtRUplR1ibducKvEBTwzwI4uldlRu', 2, '2025-08-27 00:00:00', NULL, 1, 0, 0, NULL, NULL),
+(52, 'asde', 'wfv', 'Cliente', '3142729682', 'admin@floreria.com', '$2y$10$D4h.gx3HeWr/ZgFTg59WL.uJe9NspyscIDGY0S257toJDU2k6YAVC', 5, '2025-09-03 12:28:22', NULL, 1, 0, 0, NULL, NULL),
+(53, 'maury278', 'maury echeverria', 'Administrador', '3137970263', 'mauryecheverria278@gmail.com', '$2y$10$Rl1aTNetTgyq3Cs/zZNqBOkJE6ezXAgEEpqZ2YfJNvYpwfZLi2OSm', 1, '2025-09-29 07:57:29', '2025-11-24 09:17:45', 1, 0, 0, NULL, NULL),
+(54, 'pepito', 'pepitotc', 'Cliente', '3137970263', 'comunicacionesk9@gmail.com', '$2y$10$CFeq3bBu9e9xfxZ/KgFlCeERAc6JU.RWegcJGkWxla0fgDKSrFaaG', 5, '2025-10-12 18:51:34', NULL, 1, 0, 0, NULL, NULL),
+(55, 'fdfdf', 'fgdfdf select * usuarios;', 'Vendedor', '', 'fdfdf@floraltech.local', '$2y$10$85O0tmixQ9ZLMReOft/wpe2HJsODixPPbFrUnTLNSkJyaBdYZ57Xe', 2, '2025-11-18 00:00:00', NULL, 1, 0, 0, NULL, NULL),
+(56, 'hyhyh', 'yuyhy hyhy', 'Vendedor', '', 'hyhyh@floraltech.local', '$2y$10$oX3Lve7i1zgKkXKZCpC6Ne3Nu6pruseVBKYar4XeIPfashZIeZ7YC', 2, '2025-11-06 00:00:00', NULL, 0, 0, 0, NULL, NULL),
+(57, 'testauditoria', 'Test Auditoría', 'Vendedor', '123456789', 'test@auditoria.com', '$2y$10$O8TG7u2dABJRCuhr6jEs.uK96dQ7.Auj5XsgXVMMAzRtOW0g1Qf4q', 2, '2025-12-01 09:10:52', NULL, 1, 0, 0, NULL, NULL),
+(59, 'testauditoria2', 'Test Auditoría', 'Vendedor', '123456789', 'test2@auditoria.com', '$2y$10$H.O0WmVP3fS6B0a3jqxJmO/U5YGFgMPuOT1.g2eZpiK9qJafSqLbi', 2, '2025-12-01 09:11:59', NULL, 1, 0, 0, NULL, NULL),
+(61, 'testauditoria_1764598375', 'Test Auditoría', 'Vendedor', '123456789', 'test1764598375@auditoria.com', '$2y$10$/Mfgiom0CQepyWEo5mMhCO3hvfcaaLAe.mKJqwAZdksVOzp//H4.K', 2, '2025-12-01 09:12:55', NULL, 1, 0, 0, NULL, NULL),
+(62, 'testauditoria_1764598508', 'Test Auditoría', 'Vendedor', '123456789', 'test1764598508@auditoria.com', '$2y$10$Wi5V2uYXc6UZv50iVyOu0.P2ipF885vVMJ1jwJrTxuM1WGWZPAMze', 2, '2025-12-01 09:15:08', NULL, 1, 0, 0, NULL, NULL),
+(63, 'testauditoria_1764598677', 'Test Auditoría', 'Vendedor', '123456789', 'test1764598677@auditoria.com', '$2y$10$Ad2vONPC1ZxGY7e6sq95G.VNVg7FVQSzYi1LL8Njb/k74URVmEv6C', 2, '2025-12-01 09:17:58', NULL, 0, 0, 0, NULL, NULL),
+(64, 'testauditoria_1764599194', 'Test Auditoría', 'Vendedor', '123456789', 'test1764599194@auditoria.com', '$2y$10$6T1ejNgLNyDIDCkmnofhcOG/6W.kO2ZVUa.JJj7Oj3tDfOQsK3IBa', 2, '2025-12-01 09:26:34', NULL, 0, 0, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -730,31 +965,43 @@ INSERT INTO `empresa` (`nombre`, `direccion`, `telefono`, `email`, `horario`) VA
 --
 
 CREATE TABLE `vacaciones` (
-    `id` int(11) NOT NULL AUTO_INCREMENT,
-    `id_empleado` int(11) NOT NULL,
-    `fecha_inicio` date NOT NULL,
-    `fecha_fin` date NOT NULL,
-    `motivo` varchar(255) NOT NULL,
-    `estado` enum('Programadas','Aprobadas','Denegadas','Finalizadas') DEFAULT 'Programadas',
-    `fecha_solicitud` timestamp DEFAULT CURRENT_TIMESTAMP,
-    `fecha_actualizacion` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    KEY `fk_vacaciones_empleado` (`id_empleado`),
-    CONSTRAINT `fk_vacaciones_empleado` FOREIGN KEY (`id_empleado`) REFERENCES `usu` (`idusu`) ON DELETE CASCADE
+  `id` int(11) NOT NULL,
+  `id_empleado` int(11) NOT NULL,
+  `fecha_inicio` date NOT NULL,
+  `fecha_fin` date NOT NULL,
+  `estado` varchar(20) DEFAULT 'En curso',
+  `motivo` varchar(255) DEFAULT NULL,
+  `fecha_creacion` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
+--
+-- Volcado de datos para la tabla `vacaciones`
+--
+
+INSERT INTO `vacaciones` (`id`, `id_empleado`, `fecha_inicio`, `fecha_fin`, `estado`, `motivo`, `fecha_creacion`) VALUES
+(7, 45, '2025-09-08', '2025-09-13', 'Programadas', 'vacaciones', '2025-09-01 14:18:55'),
+(10, 46, '2025-09-15', '2025-09-20', 'En curso', 'vacaciones', '2025-09-01 14:20:43'),
+(19, 4, '2025-10-01', '2025-10-05', 'Aprobada', 'vacaciones ', '2025-09-01 17:36:51'),
+(20, 57, '2025-09-08', '2025-09-13', 'Programadas', 'vacaciones', '2025-12-01 14:43:51');
 
 --
 -- Índices para tablas volcadas
 --
 
 --
+-- Indices de la tabla `auditoria_empleados`
+--
+ALTER TABLE `auditoria_empleados`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `usuario_id` (`usuario_id`),
+  ADD KEY `empleado_id` (`empleado_id`);
+
+--
 -- Indices de la tabla `cfg_sis`
 --
 ALTER TABLE `cfg_sis`
-  ADD KEY `fk_cfg_usu` (`id_usu_mod`),
-  ADD KEY `fk_cfg_usu_idusu` (`idusu`);
+  ADD PRIMARY KEY (`id_cfg`),
+  ADD KEY `fk_cfg_usu` (`id_usu_mod`);
 
 --
 -- Indices de la tabla `cli`
@@ -774,6 +1021,12 @@ ALTER TABLE `detped`
   ADD KEY `fk_detped_tflor` (`idtflor`);
 
 --
+-- Indices de la tabla `empresa`
+--
+ALTER TABLE `empresa`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indices de la tabla `ent`
 --
 ALTER TABLE `ent`
@@ -781,15 +1034,19 @@ ALTER TABLE `ent`
   ADD KEY `fk_ent_ped` (`ped_idped`);
 
 --
+-- Indices de la tabla `histenvfac`
+--
+ALTER TABLE `histenvfac`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_pedido` (`idpedido`);
+
+--
 -- Indices de la tabla `inv`
 --
 ALTER TABLE `inv`
   ADD PRIMARY KEY (`idinv`),
-  ADD UNIQUE KEY `idx_idproducto` (`idproducto`),
   ADD KEY `fk_inv_tflor` (`tflor_idtflor`),
-  ADD KEY `idx_inv_empleado` (`empleado_id`),
-  ADD KEY `idx_producto_estado` (`estado`),
-  ADD KEY `idx_producto_stock` (`stock`);
+  ADD KEY `idx_inv_empleado` (`empleado_id`);
 
 --
 -- Indices de la tabla `inv_historial`
@@ -798,6 +1055,16 @@ ALTER TABLE `inv_historial`
   ADD PRIMARY KEY (`idhistorial`),
   ADD KEY `fk_invhist_inv` (`idinv`),
   ADD KEY `fk_invhist_usu` (`idusu`);
+
+--
+-- Indices de la tabla `lotes`
+--
+ALTER TABLE `lotes`
+  ADD PRIMARY KEY (`idlote`),
+  ADD UNIQUE KEY `unique_lote` (`inv_idinv`,`numero_lote`),
+  ADD KEY `idx_fecha_caducidad` (`fecha_caducidad`),
+  ADD KEY `idx_estado` (`estado`),
+  ADD KEY `idx_inv_idinv` (`inv_idinv`);
 
 --
 -- Indices de la tabla `pag`
@@ -810,7 +1077,8 @@ ALTER TABLE `pag`
 --
 ALTER TABLE `pagos`
   ADD PRIMARY KEY (`idpago`),
-  ADD KEY `fk_pagos_ped` (`ped_idped`);
+  ADD KEY `fk_pagos_ped` (`ped_idped`),
+  ADD KEY `idx_pagos_fecha_estado` (`fecha_pago`,`estado_pag`);
 
 --
 -- Indices de la tabla `ped`
@@ -845,12 +1113,41 @@ ALTER TABLE `perm`
   ADD UNIQUE KEY `codigo` (`codigo`);
 
 --
+-- Indices de la tabla `permisos`
+--
+ALTER TABLE `permisos`
+  ADD PRIMARY KEY (`idpermiso`),
+  ADD KEY `idempleado` (`idempleado`);
+
+--
 -- Indices de la tabla `perm_tpusu`
 --
 ALTER TABLE `perm_tpusu`
   ADD PRIMARY KEY (`idtpusu`,`idperm`),
   ADD KEY `fk_perm_tpusu` (`idtpusu`),
   ADD KEY `fk_perm_perm` (`idperm`);
+
+--
+-- Indices de la tabla `proveedores`
+--
+ALTER TABLE `proveedores`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indices de la tabla `proveedor_producto`
+--
+ALTER TABLE `proveedor_producto`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `proveedor_id` (`proveedor_id`),
+  ADD KEY `producto_id` (`producto_id`);
+
+--
+-- Indices de la tabla `proyecciones_pagos`
+--
+ALTER TABLE `proyecciones_pagos`
+  ADD PRIMARY KEY (`idproy`),
+  ADD KEY `idx_proy_fechas` (`fecha_inicio`,`fecha_fin`),
+  ADD KEY `idx_proy_creado_por` (`creado_por`);
 
 --
 -- Indices de la tabla `pxp`
@@ -865,6 +1162,14 @@ ALTER TABLE `pxp`
 --
 ALTER TABLE `tflor`
   ADD PRIMARY KEY (`idtflor`);
+
+--
+-- Indices de la tabla `tickets_soporte`
+--
+ALTER TABLE `tickets_soporte`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_admin` (`admin_id`),
+  ADD KEY `idx_estado` (`estado`);
 
 --
 -- Indices de la tabla `tokens_recuperacion`
@@ -882,16 +1187,38 @@ ALTER TABLE `tpusu`
   ADD PRIMARY KEY (`idtpusu`);
 
 --
+-- Indices de la tabla `turnos`
+--
+ALTER TABLE `turnos`
+  ADD PRIMARY KEY (`idturno`),
+  ADD KEY `idempleado` (`idempleado`);
+
+--
 -- Indices de la tabla `usu`
 --
 ALTER TABLE `usu`
+  ADD PRIMARY KEY (`idusu`),
   ADD UNIQUE KEY `username` (`username`),
   ADD UNIQUE KEY `email` (`email`),
-  ADD KEY `fk_usu_tpusu` (`tpusu_idtpusu`);
+  ADD KEY `fk_usu_tpusu` (`tpusu_idtpusu`),
+  ADD KEY `idx_usu_ultimo_acceso` (`fecha_ultimo_acceso`);
+
+--
+-- Indices de la tabla `vacaciones`
+--
+ALTER TABLE `vacaciones`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `id_empleado` (`id_empleado`);
 
 --
 -- AUTO_INCREMENT de las tablas volcadas
 --
+
+--
+-- AUTO_INCREMENT de la tabla `auditoria_empleados`
+--
+ALTER TABLE `auditoria_empleados`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `cfg_sis`
@@ -903,13 +1230,19 @@ ALTER TABLE `cfg_sis`
 -- AUTO_INCREMENT de la tabla `cli`
 --
 ALTER TABLE `cli`
-  MODIFY `idcli` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `idcli` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT de la tabla `detped`
 --
 ALTER TABLE `detped`
-  MODIFY `iddetped` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
+  MODIFY `iddetped` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=64;
+
+--
+-- AUTO_INCREMENT de la tabla `empresa`
+--
+ALTER TABLE `empresa`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `ent`
@@ -918,16 +1251,28 @@ ALTER TABLE `ent`
   MODIFY `ident` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
+-- AUTO_INCREMENT de la tabla `histenvfac`
+--
+ALTER TABLE `histenvfac`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT de la tabla `inv`
 --
 ALTER TABLE `inv`
-  MODIFY `idinv` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `idinv` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT de la tabla `inv_historial`
 --
 ALTER TABLE `inv_historial`
-  MODIFY `idhistorial` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `idhistorial` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT de la tabla `lotes`
+--
+ALTER TABLE `lotes`
+  MODIFY `idlote` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `pag`
@@ -939,13 +1284,13 @@ ALTER TABLE `pag`
 -- AUTO_INCREMENT de la tabla `pagos`
 --
 ALTER TABLE `pagos`
-  MODIFY `idpago` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
+  MODIFY `idpago` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT de la tabla `ped`
 --
 ALTER TABLE `ped`
-  MODIFY `idped` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `idped` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT de la tabla `perf`
@@ -960,16 +1305,46 @@ ALTER TABLE `perm`
   MODIFY `idperm` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
+-- AUTO_INCREMENT de la tabla `permisos`
+--
+ALTER TABLE `permisos`
+  MODIFY `idpermiso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT de la tabla `proveedores`
+--
+ALTER TABLE `proveedores`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT de la tabla `proveedor_producto`
+--
+ALTER TABLE `proveedor_producto`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de la tabla `proyecciones_pagos`
+--
+ALTER TABLE `proyecciones_pagos`
+  MODIFY `idproy` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT de la tabla `tflor`
 --
 ALTER TABLE `tflor`
-  MODIFY `idtflor` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `idtflor` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
+
+--
+-- AUTO_INCREMENT de la tabla `tickets_soporte`
+--
+ALTER TABLE `tickets_soporte`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de la tabla `tokens_recuperacion`
 --
 ALTER TABLE `tokens_recuperacion`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de la tabla `tpusu`
@@ -978,33 +1353,39 @@ ALTER TABLE `tpusu`
   MODIFY `idtpusu` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
+-- AUTO_INCREMENT de la tabla `turnos`
+--
+ALTER TABLE `turnos`
+  MODIFY `idturno` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
 -- AUTO_INCREMENT de la tabla `usu`
 --
 ALTER TABLE `usu`
-  MODIFY `idusu` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
-
---
--- AUTO_INCREMENT de la tabla `empresa`
---
-ALTER TABLE `empresa`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `idusu` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
 
 --
 -- AUTO_INCREMENT de la tabla `vacaciones`
 --
 ALTER TABLE `vacaciones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- Restricciones para tablas volcadas
 --
 
 --
+-- Filtros para la tabla `auditoria_empleados`
+--
+ALTER TABLE `auditoria_empleados`
+  ADD CONSTRAINT `auditoria_empleados_ibfk_1` FOREIGN KEY (`usuario_id`) REFERENCES `usu` (`idusu`),
+  ADD CONSTRAINT `auditoria_empleados_ibfk_2` FOREIGN KEY (`empleado_id`) REFERENCES `usu` (`idusu`);
+
+--
 -- Filtros para la tabla `cfg_sis`
 --
 ALTER TABLE `cfg_sis`
-  ADD CONSTRAINT `cfg_sis_ibfk_1` FOREIGN KEY (`id_usu_mod`) REFERENCES `usu` (`idusu`),
-  ADD CONSTRAINT `cfg_sis_ibfk_2` FOREIGN KEY (`idusu`) REFERENCES `usu` (`idusu`);
+  ADD CONSTRAINT `cfg_sis_ibfk_1` FOREIGN KEY (`id_usu_mod`) REFERENCES `usu` (`idusu`);
 
 --
 -- Filtros para la tabla `detped`
@@ -1020,6 +1401,12 @@ ALTER TABLE `ent`
   ADD CONSTRAINT `ent_ibfk_1` FOREIGN KEY (`ped_idped`) REFERENCES `ped` (`idped`);
 
 --
+-- Filtros para la tabla `histenvfac`
+--
+ALTER TABLE `histenvfac`
+  ADD CONSTRAINT `histenvfac_ibfk_1` FOREIGN KEY (`idpedido`) REFERENCES `ped` (`idped`) ON DELETE CASCADE;
+
+--
 -- Filtros para la tabla `inv`
 --
 ALTER TABLE `inv`
@@ -1031,6 +1418,12 @@ ALTER TABLE `inv`
 ALTER TABLE `inv_historial`
   ADD CONSTRAINT `inv_historial_ibfk_1` FOREIGN KEY (`idinv`) REFERENCES `inv` (`idinv`),
   ADD CONSTRAINT `inv_historial_ibfk_2` FOREIGN KEY (`idusu`) REFERENCES `usu` (`idusu`);
+
+--
+-- Filtros para la tabla `lotes`
+--
+ALTER TABLE `lotes`
+  ADD CONSTRAINT `lotes_ibfk_1` FOREIGN KEY (`inv_idinv`) REFERENCES `inv` (`idinv`) ON DELETE CASCADE;
 
 --
 -- Filtros para la tabla `pagos`
@@ -1052,11 +1445,30 @@ ALTER TABLE `perf_perm`
   ADD CONSTRAINT `perf_perm_ibfk_2` FOREIGN KEY (`idperm`) REFERENCES `perm` (`idperm`);
 
 --
+-- Filtros para la tabla `permisos`
+--
+ALTER TABLE `permisos`
+  ADD CONSTRAINT `permisos_ibfk_1` FOREIGN KEY (`idempleado`) REFERENCES `usu` (`idusu`) ON DELETE CASCADE;
+
+--
 -- Filtros para la tabla `perm_tpusu`
 --
 ALTER TABLE `perm_tpusu`
   ADD CONSTRAINT `perm_tpusu_ibfk_1` FOREIGN KEY (`idtpusu`) REFERENCES `tpusu` (`idtpusu`),
   ADD CONSTRAINT `perm_tpusu_ibfk_2` FOREIGN KEY (`idperm`) REFERENCES `perm` (`idperm`);
+
+--
+-- Filtros para la tabla `proveedor_producto`
+--
+ALTER TABLE `proveedor_producto`
+  ADD CONSTRAINT `proveedor_producto_ibfk_1` FOREIGN KEY (`proveedor_id`) REFERENCES `proveedores` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `proveedor_producto_ibfk_2` FOREIGN KEY (`producto_id`) REFERENCES `inv` (`idinv`) ON DELETE CASCADE;
+
+--
+-- Filtros para la tabla `proyecciones_pagos`
+--
+ALTER TABLE `proyecciones_pagos`
+  ADD CONSTRAINT `proyecciones_pagos_ibfk_1` FOREIGN KEY (`creado_por`) REFERENCES `usu` (`idusu`) ON DELETE SET NULL;
 
 --
 -- Filtros para la tabla `pxp`
@@ -1066,26 +1478,36 @@ ALTER TABLE `pxp`
   ADD CONSTRAINT `pxp_ibfk_2` FOREIGN KEY (`idpag`) REFERENCES `pag` (`idpag`);
 
 --
+-- Filtros para la tabla `tickets_soporte`
+--
+ALTER TABLE `tickets_soporte`
+  ADD CONSTRAINT `tickets_soporte_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `usu` (`idusu`) ON DELETE CASCADE;
+
+--
 -- Filtros para la tabla `tokens_recuperacion`
 --
 ALTER TABLE `tokens_recuperacion`
   ADD CONSTRAINT `tokens_recuperacion_ibfk_1` FOREIGN KEY (`idUsuario`) REFERENCES `usu` (`idusu`) ON DELETE CASCADE;
 
 --
+-- Filtros para la tabla `turnos`
+--
+ALTER TABLE `turnos`
+  ADD CONSTRAINT `turnos_ibfk_1` FOREIGN KEY (`idempleado`) REFERENCES `usu` (`idusu`) ON DELETE CASCADE;
+
+--
 -- Filtros para la tabla `usu`
 --
 ALTER TABLE `usu`
   ADD CONSTRAINT `usu_ibfk_1` FOREIGN KEY (`tpusu_idtpusu`) REFERENCES `tpusu` (`idtpusu`);
+
+--
+-- Filtros para la tabla `vacaciones`
+--
+ALTER TABLE `vacaciones`
+  ADD CONSTRAINT `vacaciones_ibfk_1` FOREIGN KEY (`id_empleado`) REFERENCES `usu` (`idusu`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-
--- --------------------------------------------------------
---
--- Agregar columna de vacaciones a la tabla usu
---
-ALTER TABLE usu ADD COLUMN vacaciones INT DEFAULT 0;
-

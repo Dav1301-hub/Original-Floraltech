@@ -27,6 +27,7 @@ class ReportesController {
         $inventarioActivos = array_filter($dtAllInv, fn($f) => ($f['stock'] ?? 0) > 0);
         $datos['inventario']['productos'] = count($inventarioActivos);
         $datos['inventario']['stock_total'] = array_sum(array_map(fn($f) => max(0, $f['stock'] ?? 0), $inventarioActivos));
+        $datos['inventario']['valor_total'] = array_sum(array_map(fn($f) => max(0, $f['valor_total'] ?? 0), $inventarioActivos));
 
         // Pagos
         $dtAllPagos = $this->model->getAllPagos();
@@ -43,6 +44,9 @@ class ReportesController {
             return strtolower($p['estado_pag']) === 'pendiente' ? $p['monto'] : 0;
         }, $dtAllPagos));
 
+        // Utilidades
+        $utilidades = $this->model->getMargenUtilidad();
+
         return compact(
             'datos',
             'totalUsuarios',
@@ -54,7 +58,8 @@ class ReportesController {
             'dtAllInv',
             'modalInventario',
             'dtAllPagos',
-            'modalPagos'
+            'modalPagos',
+            'utilidades'
         );
     }
 

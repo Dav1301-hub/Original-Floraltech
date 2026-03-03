@@ -1117,8 +1117,8 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </div>
 
-<script src="/Original-Floraltech/assets/inventario.js"></script>
-<script src="/Original-Floraltech/assets/inventario_modal_handler.js"></script>
+<script src="/Original-Floraltech/assets/js/inventario.js"></script>
+<script src="/Original-Floraltech/assets/js/inventario_modal_handler.js"></script>
 <!-- Modales -->
 <!-- Modal Nuevo Producto Mejorado -->
 <div class="modal fade" id="modal-nuevo-producto" tabindex="-1">

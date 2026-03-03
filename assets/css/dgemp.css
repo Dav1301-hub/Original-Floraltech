@@ -34,7 +34,7 @@ body {
     align-items: center;
     margin-bottom: 25px;
     padding-bottom: 15px;
-    border-bottom: 1px solid rgba(0,0,0,0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .header h1 {
@@ -67,7 +67,7 @@ body {
 
 .card-header {
     background-color: white;
-    border-bottom: 1px solid rgba(0,0,0,0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     font-weight: 600;
     color: var(--dark);
     padding: 15px 20px;
@@ -172,6 +172,7 @@ body {
     padding: 28px 24px;
     border: 1px solid #e0e0e0;
 }
+
 .section-title {
     font-size: 1.5rem;
     font-weight: 600;
@@ -180,62 +181,78 @@ body {
     border-left: 5px solid var(--primary);
     padding-left: 12px;
 }
+
 .table-responsive {
     margin-bottom: 18px;
+    overflow-x: auto !important;
 }
+
 .table {
     background: #f8fafc;
     border-radius: 10px;
-    overflow: hidden;
 }
-.table th, .table td {
+
+.table th,
+.table td {
     vertical-align: middle !important;
     padding: 12px 10px;
 }
+
 .actions-column {
     display: flex;
     gap: 6px;
     justify-content: center;
 }
+
 .actions-column a {
     margin: 0;
 }
+
 .pagination {
     margin-top: 18px;
 }
+
 /* Espaciado entre secciones */
 .tab-pane {
     margin-top: 24px;
 }
+
 /* Mejorar visualización de badges */
 .badge {
     font-size: 0.95rem;
     padding: 7px 14px;
     border-radius: 8px;
 }
+
 /* Mejorar visualización de iconos de acción */
 .actions-column i {
     font-size: 1.1rem;
 }
+
 /* Responsive para secciones */
 @media (max-width: 768px) {
     .header {
         flex-direction: column;
         align-items: flex-start;
     }
+
     .header-actions {
         margin-top: 15px;
         width: 100%;
         justify-content: flex-end;
     }
+
     .section-block {
         padding: 16px 8px;
     }
+
     .section-title {
         font-size: 1.2rem;
         padding-left: 7px;
     }
-    .table th, .table td {
+
+    .table th,
+    .table td {
         padding: 8px 4px;
     }
 }

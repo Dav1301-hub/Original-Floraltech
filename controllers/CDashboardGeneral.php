@@ -10,20 +10,34 @@ class CDashboardGeneral {
         $this->modelo = new MDashboardGeneral($db);
     }
     public function getDashboardData() {
-        $kpis = $this->modelo->getKPIs();
-        $tendencias = $this->modelo->getTendencias();
+        $mes = isset($_GET['mes']) ? (int)$_GET['mes'] : null;
+        $ano = isset($_GET['ano']) ? (int)$_GET['ano'] : null;
+        
+        if (isset($_GET['periodo']) && !empty($_GET['periodo'])) {
+            $parts = explode('-', $_GET['periodo']);
+            if (count($parts) === 2) {
+                $mes = (int)$parts[0];
+                $ano = (int)$parts[1];
+            }
+        }
+
+        $kpis = $this->modelo->getKPIs($mes, $ano);
+        $tendencias = $this->modelo->getTendencias($mes, $ano);
         $actividadReciente = $this->modelo->getActividadReciente();
-        $resumenPedidosMes = $this->modelo->getResumenPedidosMes();
+        $resumenPedidosMes = $this->modelo->getResumenPedidosMes($mes, $ano);
         $entregasProximas = $this->modelo->getEntregasProximas();
-        $tendenciaVentas = $this->modelo->getTendenciaVentas(14);
-        $topProductos = $this->modelo->getTopProductos(5, 30);
+        $tendenciaVentas = $this->modelo->getTendenciaVentas(14, $mes, $ano);
+        $topProductos = $this->modelo->getTopProductos(5, $mes, $ano);
+        $periodosDisponibles = $this->modelo->getPeriodosDisponibles();
         
         return array_merge($kpis, $tendencias, [
             'actividadReciente' => $actividadReciente,
             'resumenPedidosMes' => $resumenPedidosMes,
             'entregasProximas' => $entregasProximas,
             'tendenciaVentas' => $tendenciaVentas,
-            'topProductos' => $topProductos
+            'topProductos' => $topProductos,
+            'periodos' => $periodosDisponibles,
+            'filtro' => ['mes' => $mes, 'ano' => $ano]
         ]);
     }
 

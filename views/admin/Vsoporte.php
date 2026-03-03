@@ -4,370 +4,341 @@
  * Sistema de tickets para que administradores contacten al soporte técnico
  */
 
-require_once __DIR__ . '/../../models/conexion.php';
-require_once __DIR__ . '/../../models/Mailer.php';
-
-$mensaje_exito = '';
-$mensaje_error = '';
-$conexion = (new conexion())->get_conexion();
-$id_admin = $_SESSION['user']['idusu'] ?? ($_SESSION['user_id'] ?? null);
-
-// Cargar datos del admin
-$admin = [];
-try {
-    $stmt_admin = $conexion->prepare("SELECT idusu, nombre_completo, email FROM usu WHERE idusu = :id LIMIT 1");
-    $stmt_admin->execute([':id' => $id_admin]);
-    $admin = $stmt_admin->fetch(PDO::FETCH_ASSOC) ?: [];
-} catch (Exception $e) {
-    $mensaje_error = 'Error al cargar datos de administrador';
-}
-
-// Cargar tickets
-$tickets = [];
-try {
-    $stmt_tickets = $conexion->prepare("SELECT id, asunto, estado, fecha_creacion, respuesta FROM tickets_soporte WHERE admin_id = :id ORDER BY fecha_creacion DESC");
-    $stmt_tickets->execute([':id' => $id_admin]);
-    $tickets = $stmt_tickets->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    // Tabla no existe aún
-}
-
-// Procesar eliminación de ticket
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eliminar_ticket'])) {
-    try {
-        $id_ticket = (int)$_POST['id_ticket'];
-        
-        // Verificar que el ticket perteneza al usuario actual
-        $stmt_verificar = $conexion->prepare("SELECT id FROM tickets_soporte WHERE id = :id AND admin_id = :admin_id");
-        $stmt_verificar->execute([':id' => $id_ticket, ':admin_id' => $id_admin]);
-        
-        if ($stmt_verificar->fetch(PDO::FETCH_ASSOC)) {
-            // Eliminar el ticket
-            $stmt_eliminar = $conexion->prepare("DELETE FROM tickets_soporte WHERE id = :id AND admin_id = :admin_id");
-            $stmt_eliminar->execute([':id' => $id_ticket, ':admin_id' => $id_admin]);
-            
-            $mensaje_exito = 'Ticket eliminado correctamente';
-            
-            // Recargar tickets
-            try {
-                $stmt_tickets = $conexion->prepare("SELECT id, asunto, estado, fecha_creacion, respuesta FROM tickets_soporte WHERE admin_id = :id ORDER BY fecha_creacion DESC");
-                $stmt_tickets->execute([':id' => $id_admin]);
-                $tickets = $stmt_tickets->fetchAll(PDO::FETCH_ASSOC);
-            } catch (Exception $e) {}
-        } else {
-            $mensaje_error = 'No tienes permiso para eliminar este ticket';
-        }
-    } catch (Exception $e) {
-        $mensaje_error = 'Error al eliminar el ticket: ' . $e->getMessage();
-    }
-}
-
-// Procesar formulario de soporte
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_soporte'])) {
-    try {
-        $asunto = trim($_POST['asunto_soporte'] ?? '');
-        $descripcion = trim($_POST['descripcion_soporte'] ?? '');
-        
-        if (empty($asunto)) {
-            throw new Exception('El asunto es requerido');
-        }
-        if (empty($descripcion)) {
-            throw new Exception('La descripción es requerida');
-        }
-        
-        // Procesar archivo si existe
-        $archivo = null;
-        if (isset($_FILES['archivo_soporte']) && $_FILES['archivo_soporte']['error'] === UPLOAD_ERR_OK) {
-            $file = $_FILES['archivo_soporte'];
-            $maxSize = 5 * 1024 * 1024; // 5MB
-            
-            if ($file['size'] > $maxSize) {
-                throw new Exception('El archivo no debe exceder 5MB');
-            }
-            
-            $allowedTypes = ['image/jpeg', 'image/png', 'application/pdf', 'text/plain'];
-            if (!in_array($file['type'], $allowedTypes)) {
-                throw new Exception('Tipo de archivo no permitido');
-            }
-            
-            $uploadDir = __DIR__ . '/../../uploads/tickets/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
-            }
-            
-            $filename = uniqid('ticket_') . '_' . basename($file['name']);
-            $filepath = $uploadDir . $filename;
-            
-            if (!move_uploaded_file($file['tmp_name'], $filepath)) {
-                throw new Exception('Error al subir el archivo');
-            }
-            
-            $archivo = $filename;
-        }
-        
-        // Guardar ticket en BD
-        $stmt_ticket = $conexion->prepare("INSERT INTO tickets_soporte (admin_id, asunto, descripcion, archivo, estado) VALUES (:admin_id, :asunto, :descripcion, :archivo, 'abierto')");
-        $stmt_ticket->execute([
-            ':admin_id' => $id_admin,
-            ':asunto' => $asunto,
-            ':descripcion' => $descripcion,
-            ':archivo' => $archivo
-        ]);
-        
-        $id_ticket = $conexion->lastInsertId();
-        
-        // Enviar email al super admin
-        try {
-            $mailer = new Mailer();
-            $mailer->sendSupportTicketEmail(
-                'epymes270@gmail.com',
-                $id_ticket,
-                $admin,
-                $asunto,
-                $descripcion,
-                $archivo
-            );
-            error_log("Email de ticket enviado exitosamente a epymes270@gmail.com para ticket #$id_ticket");
-        } catch (Exception $e) {
-            $error_msg = "Error enviando email: " . $e->getMessage();
-            error_log($error_msg);
-            // No mostrar error al usuario, pero registrar en logs
-        }
-        
-        $mensaje_exito = 'Ticket enviado exitosamente. Te responderemos pronto.';
-        
-        // Recargar tickets
-        try {
-            $stmt_tickets = $conexion->prepare("SELECT id, asunto, estado, fecha_creacion, respuesta FROM tickets_soporte WHERE admin_id = :id ORDER BY fecha_creacion DESC");
-            $stmt_tickets->execute([':id' => $id_admin]);
-            $tickets = $stmt_tickets->fetchAll(PDO::FETCH_ASSOC);
-        } catch (Exception $e) {}
-        
-    } catch (Exception $e) {
-        $mensaje_error = $e->getMessage();
-    }
-}
+// Las variables $admin, $tickets, $mensaje_exito y $mensaje_error vienen del SupportController via $ctx
+$tickets = $tickets ?? [];
+$admin = $admin ?? [];
 ?>
 
-<div class="container-fluid py-4" style="background:#fff; min-height: 100vh;">
+<div class="support-container animate-fade-in">
     
-    <div class="p-4 mb-4 rounded-4 shadow-sm" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%); color: #fff;">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-            <div>
-                <p class="mb-1 text-white-50 small" style="letter-spacing:1px;text-transform:uppercase;">
-                    <i class="fas fa-life-ring me-2" style="color: #ffff"></i>Soporte técnico
-                </p>
-                <h2 class="fw-bold mb-0"style="color: #ffff">Centro de Soporte</h2>
+    <!-- Hero Section -->
+    <div class="premium-hero mb-4">
+        <div class="hero-content">
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <div class="hero-icon">
+                    <i class="fas fa-life-ring"></i>
+                </div>
+                <div>
+                    <h2 class="hero-title">Centro de Soporte</h2>
+                    <p class="hero-subtitle">Estamos aquí para ayudarte a resolver cualquier inconveniente</p>
+                </div>
             </div>
-            <span class="badge bg-white bg-opacity-10 border border-white border-opacity-25 fs-6">
-                <i class="fas fa-ticket me-2"></i><?= count($tickets) ?> Tickets
-            </span>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <span class="stat-value"><?= count($tickets) ?></span>
+                    <span class="stat-label">Tickets generados</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Alertas -->
     <?php if (!empty($mensaje_exito)): ?>
-        <div class="alert alert-success alert-dismissible fade show shadow-sm mx-3" role="alert">
-            <i class="fas fa-check-circle me-2"></i><?= htmlspecialchars($mensaje_exito) ?>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 border-start border-4 border-success mb-4" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-check-circle me-3 fs-4"></i>
+                <div>
+                    <h6 class="alert-heading mb-1 fw-600">¡Éxito!</h6>
+                    <p class="mb-0 small"><?= htmlspecialchars($mensaje_exito) ?></p>
+                </div>
+            </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
     
     <?php if (!empty($mensaje_error)): ?>
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm mx-3" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i><?= htmlspecialchars($mensaje_error) ?>
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 border-start border-4 border-danger mb-4" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-circle me-3 fs-4"></i>
+                <div>
+                    <h6 class="alert-heading mb-1 fw-600">Error</h6>
+                    <p class="mb-0 small"><?= htmlspecialchars($mensaje_error) ?></p>
+                </div>
+            </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
-    <!-- Contenido -->
-    <div class="px-3">
-        <div class="row g-4">
-            <!-- Formulario de soporte -->
-            <div class="col-12 col-lg-5 d-flex">
-                <div class="card h-100 flex-fill border-0 shadow-sm rounded-4">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-4">
-                            <div class="avatar bg-info bg-opacity-10 text-info rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;">
-                                <i class="fas fa-pen-fancy"></i>
-                            </div>
-                            <h5 class="mb-0">Reportar Problema</h5>
+    <div class="row g-4">
+        <!-- Formulario de soporte -->
+        <div class="col-12 col-xl-5">
+            <div class="card premium-card h-100 border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-0 py-4 px-4">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-box bg-info-soft text-info me-3">
+                            <i class="fas fa-paper-plane"></i>
                         </div>
-
-                        <form method="POST" enctype="multipart/form-data">
-                            <div class="mb-3">
-                                <label class="form-label fw-600">Asunto</label>
-                                <input type="text" class="form-control form-control-lg" name="asunto_soporte" placeholder="Ej: Error al generar reportes" required>
-                                <small class="text-muted">Describe brevemente tu problema</small>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-600">Tu Mensaje</label>
-                                <textarea class="form-control" name="descripcion_soporte" rows="5" placeholder="Cuéntanos qué está pasando, qué pasos tomaste, etc." required style="resize: vertical;"></textarea>
-                                <small class="text-muted">Sé lo más específico posible para una respuesta más rápida</small>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-600">Archivo adjunto (opcional)</label>
-                                <input type="file" class="form-control" name="archivo_soporte" accept=".pdf,.jpg,.jpeg,.png,.txt,.zip">
-                                <small class="text-muted d-block mt-2">
-                                    <i class="fas fa-info-circle me-1"></i>Máx. 5MB | Formatos: PDF, JPG, PNG, TXT, ZIP
-                                </small>
-                            </div>
-
-                            <button type="submit" name="enviar_soporte" class="btn btn-info btn-lg w-100 text-white fw-600 shadow-sm">
-                                <i class="fas fa-paper-plane me-2"></i>Enviar Ticket de Soporte
-                            </button>
-                        </form>
-
-                        <div class="alert alert-light border-start border-info border-3 mt-4 mb-0">
-                            <p class="mb-2"><strong><i class="fas fa-clock me-2"></i>Tiempo de respuesta:</strong></p>
-                            <p class="mb-0 small text-muted">Respondemos dentro de 24-48 horas en días hábiles</p>
-                        </div>
+                        <h5 class="card-title mb-0 fw-bold">Nuevo Ticket</h5>
                     </div>
                 </div>
-            </div>
-
-            <!-- Historial de tickets -->
-            <div class="col-12 col-lg-7 d-flex">
-                <div class="card h-100 flex-fill border-0 shadow-sm rounded-4">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-4">
-                            <div class="avatar bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;">
-                                <i class="fas fa-history"></i>
-                            </div>
-                            <h5 class="mb-0">Mis Tickets</h5>
+                <div class="card-body px-4 pb-4">
+                    <form method="POST" action="index.php?ctrl=SupportController&action=enviarTicket" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Asunto del problema</label>
+                            <input type="text" class="form-control form-control-lg premium-input" name="asunto_soporte" placeholder="Ej: Error al generar reportes" required>
                         </div>
 
-                        <?php if (!empty($tickets)): ?>
-                            <div class="list-group list-group-flush">
-                                <?php foreach ($tickets as $index => $ticket): ?>
-                                    <div class="list-group-item px-0 py-3 border-bottom" style="<?= $index === count($tickets) - 1 ? 'border-bottom: none !important;' : '' ?>">
-                                        <div class="d-flex justify-content-between align-items-start gap-2">
-                                            <div class="flex-grow-1">
-                                                <div class="d-flex align-items-center gap-2 mb-2">
-                                                    <small class="text-muted bg-light px-2 py-1 rounded">#<?= htmlspecialchars($ticket['id']) ?></small>
-                                                    <span class="badge bg-<?php
-                                                        switch($ticket['estado']) {
-                                                            case 'abierto': echo 'danger'; break;
-                                                            case 'en_proceso': echo 'warning'; break;
-                                                            case 'respondido': echo 'success'; break;
-                                                            case 'cerrado': echo 'secondary'; break;
-                                                            default: echo 'secondary';
-                                                        }
-                                                    ?>">
-                                                        <i class="fas fa-<?php
-                                                            switch($ticket['estado']) {
-                                                                case 'abierto': echo 'clock'; break;
-                                                                case 'en_proceso': echo 'spinner'; break;
-                                                                case 'respondido': echo 'check'; break;
-                                                                case 'cerrado': echo 'check-double'; break;
-                                                            }
-                                                        ?> me-1"></i><?= htmlspecialchars(ucfirst(str_replace('_', ' ', $ticket['estado']))) ?>
-                                                    </span>
-                                                </div>
-                                                <h6 class="mb-1 fw-600"><?= htmlspecialchars(substr($ticket['asunto'], 0, 50)) ?><?= strlen($ticket['asunto']) > 50 ? '...' : '' ?></h6>
-                                                <small class="text-muted">
-                                                    <i class="fas fa-calendar-alt me-1"></i><?= date('d/m/Y H:i', strtotime($ticket['fecha_creacion'])) ?>
-                                                </small>
-                                                <?php if (!empty($ticket['respuesta'])): ?>
-                                                    <div class="mt-2 p-2 bg-success bg-opacity-10 border-start border-success border-3 rounded">
-                                                        <small class="text-success fw-600"><i class="fas fa-reply me-1"></i>Respondido</small>
-                                                    </div>
-                                                <?php endif; ?>
-                                            </div>
-                                            <div class="d-flex gap-2">
-                                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detalleTicket<?= $ticket['id'] ?>" title="Ver detalles">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                                <form method="POST" style="display: inline;" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este ticket? Esta acción no se puede deshacer.');">
-                                                    <input type="hidden" name="id_ticket" value="<?= $ticket['id'] ?>">
-                                                    <button type="submit" name="eliminar_ticket" class="btn btn-sm btn-outline-danger" title="Eliminar ticket">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Descripción detallada</label>
+                            <textarea class="form-control premium-input" name="descripcion_soporte" rows="6" placeholder="Cuéntanos con detalle qué sucede..." required></textarea>
+                        </div>
 
-                                    <!-- Modal de detalles -->
-                                    <div class="modal fade" id="detalleTicket<?= $ticket['id'] ?>" tabindex="-1">
-                                        <div class="modal-dialog modal-lg">
-                                            <div class="modal-content border-0 shadow-lg">
-                                                <div class="modal-header bg-light border-0">
-                                                    <div>
-                                                        <h5 class="modal-title">Ticket #<?= $ticket['id'] ?> - <?= htmlspecialchars(substr($ticket['asunto'], 0, 40)) ?></h5>
-                                                        <small class="text-muted"><?= date('d/m/Y H:i', strtotime($ticket['fecha_creacion'])) ?></small>
-                                                    </div>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <div class="mb-3">
-                                                        <h6 class="fw-600 text-muted small text-uppercase">Asunto</h6>
-                                                        <p class="mb-0"><?= htmlspecialchars($ticket['asunto']) ?></p>
-                                                    </div>
-
-                                                    <hr>
-
-                                                    <div class="mb-3">
-                                                        <h6 class="fw-600 text-muted small text-uppercase">Tu mensaje</h6>
-                                                        <p class="mb-0" style="white-space: pre-wrap;"><?= htmlspecialchars($ticket['descripcion'] ?? '') ?></p>
-                                                    </div>
-
-                                                    <?php if (!empty($ticket['respuesta'])): ?>
-                                                        <hr>
-                                                        <div class="alert alert-success mb-0">
-                                                            <h6 class="fw-600 text-success small text-uppercase mb-2">
-                                                                <i class="fas fa-check-circle me-1"></i>Respuesta del equipo de soporte
-                                                            </h6>
-                                                            <p class="mb-0" style="white-space: pre-wrap;"><?= htmlspecialchars($ticket['respuesta']) ?></p>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Archivo adjunto <span class="text-lowercase fw-normal">(opcional)</span></label>
+                            <div class="upload-zone p-3 rounded-3 text-center border-dashed">
+                                <input type="file" class="form-control d-none" id="archivo_soporte" name="archivo_soporte" accept=".pdf,.jpg,.jpeg,.png,.txt,.zip">
+                                <label for="archivo_soporte" class="m-0 cursor-pointer w-100">
+                                    <i class="fas fa-cloud-upload-alt fs-3 text-muted mb-2"></i>
+                                    <p class="mb-0 small text-muted">Haz clic para subir o arrastra un archivo</p>
+                                    <small class="text-muted-xs">PDF, JPG, PNG (Máx 5MB)</small>
+                                </label>
                             </div>
-                        <?php else: ?>
-                            <div class="text-center py-5">
-                                <i class="fas fa-inbox" style="font-size: 3rem; color: #d0d0d0;"></i>
-                                <p class="text-muted mt-3 mb-0">No tienes tickets aún</p>
-                                <p class="text-muted small">Cuando reportes un problema, aparecerá aquí</p>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100 premium-btn shadow-sm py-3">
+                            <i class="fas fa-paper-plane me-2"></i>Enviar a Soporte Técnico
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <!-- Info adicional -->
-        <div class="row g-4 mt-2">
-            <div class="col-12 col-md-6">
-                <div class="card border-0 shadow-sm rounded-4 bg-light">
-                    <div class="card-body">
-                        <h6 class="fw-600 mb-3"><i class="fas fa-lightbulb text-warning me-2"></i>¿Necesitas ayuda?</h6>
-                        <ul class="mb-0 small text-muted">
-                            <li>Describe el problema con el máximo detalle posible</li>
-                            <li>Incluye los pasos que realizaste antes del error</li>
-                            <li>Adjunta capturas de pantalla si es relevante</li>
-                            <li>Especifica la hora aproximada cuando ocurrió</li>
-                        </ul>
+        <!-- Historial de tickets -->
+        <div class="col-12 col-xl-7">
+            <div class="card premium-card h-100 border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-box bg-success-soft text-success me-3">
+                            <i class="fas fa-ticket-alt"></i>
+                        </div>
+                        <h5 class="card-title mb-0 fw-bold">Historial de Tickets</h5>
                     </div>
                 </div>
-            </div>
-            <div class="col-12 col-md-6">
-                <div class="card border-0 shadow-sm rounded-4 bg-light">
-                    <div class="card-body">
-                        <h6 class="fw-600 mb-3"><i class="fas fa-headset text-info me-2"></i>Contacto directo</h6>
-                        <p class="mb-2 small"><strong>Email:</strong> epymes270@gmail.com</p>
-                        <p class="mb-0 small"><strong>Horario:</strong> Lunes a Viernes, 9:00 - 18:00</p>
-                    </div>
+                <div class="card-body p-0">
+                    <?php if (!empty($tickets)): ?>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-faint">
+                                    <tr>
+                                        <th class="ps-4 py-3 small text-muted text-uppercase">Ticket</th>
+                                        <th class="py-3 small text-muted text-uppercase">Estado</th>
+                                        <th class="py-3 small text-muted text-uppercase">Fecha</th>
+                                        <th class="pe-4 py-3 text-end small text-muted text-uppercase">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($tickets as $ticket): ?>
+                                        <tr>
+                                            <td class="ps-4">
+                                                <div class="d-flex flex-column">
+                                                    <span class="fw-600 text-dark"><?= htmlspecialchars(substr($ticket['asunto'], 0, 40)) ?><?= strlen($ticket['asunto']) > 40 ? '...' : '' ?></span>
+                                                    <small class="text-muted">ID: #<?= $ticket['id'] ?></small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge rounded-pill badge-<?= $ticket['estado'] ?> px-3">
+                                                    <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $ticket['estado']))) ?>
+                                                </span>
+                                            </td>
+                                            <td class="small text-muted">
+                                                <?= date('d/m/Y', strtotime($ticket['fecha_creacion'])) ?>
+                                            </td>
+                                            <td class="pe-4 text-end">
+                                                <div class="btn-group shadow-sm rounded-pill overflow-hidden border">
+                                                    <button class="btn btn-white btn-sm px-3" data-bs-toggle="modal" data-bs-target="#detalleTicket<?= $ticket['id'] ?>" title="Ver">
+                                                        <i class="fas fa-eye text-primary"></i>
+                                                    </button>
+                                                    <form method="POST" action="index.php?ctrl=SupportController&action=eliminarTicket" onsubmit="return confirm('¿Eliminar este ticket?');" class="m-0">
+                                                        <input type="hidden" name="id_ticket" value="<?= $ticket['id'] ?>">
+                                                        <button type="submit" class="btn btn-white btn-sm px-3 border-start" title="Eliminar">
+                                                            <i class="fas fa-trash-alt text-danger"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Modal de detalles modernizado -->
+                                        <div class="modal fade" id="detalleTicket<?= $ticket['id'] ?>" tabindex="-1">
+                                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                                                <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                                                    <div class="modal-header bg-faint border-0 py-3 px-4">
+                                                        <h5 class="modal-title fw-bold">Ticket #<?= $ticket['id'] ?></h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body p-4">
+                                                        <div class="row g-4">
+                                                            <div class="col-12">
+                                                                <label class="small text-muted text-uppercase fw-bold d-block mb-1">Asunto</label>
+                                                                <h5 class="fw-bold"><?= htmlspecialchars($ticket['asunto']) ?></h5>
+                                                            </div>
+                                                            <div class="col-12">
+                                                                <div class="p-3 bg-light rounded-3">
+                                                                    <label class="small text-muted text-uppercase fw-bold d-block mb-2">Mensaje original</label>
+                                                                    <p class="mb-0" style="white-space: pre-wrap;"><?= htmlspecialchars($ticket['descripcion'] ?? '') ?></p>
+                                                                </div>
+                                                            </div>
+                                                            <?php if (!empty($ticket['respuesta'])): ?>
+                                                                <div class="col-12">
+                                                                    <div class="p-3 bg-success-soft rounded-3 border-start border-4 border-success">
+                                                                        <label class="small text-success text-uppercase fw-bold d-block mb-2"><i class="fas fa-reply me-1"></i>Respuesta soporte</label>
+                                                                        <p class="mb-0 text-dark" style="white-space: pre-wrap;"><?= htmlspecialchars($ticket['respuesta']) ?></p>
+                                                                    </div>
+                                                                </div>
+                                                            <?php else: ?>
+                                                                <div class="col-12 text-center py-3">
+                                                                    <span class="text-muted small"><i class="fas fa-hourglass-half me-2"></i>Esperando respuesta del equipo de soporte...</span>
+                                                                </div>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-5">
+                            <i class="fas fa-inbox mb-3 text-muted" style="font-size: 3rem;"></i>
+                            <h6 class="text-muted fw-bold">Sin tickets</h6>
+                            <p class="text-muted small px-4">Cuando reportes un problema con el sistema, aparecerá en este listado.</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
+<style>
+/* Estilos premium específicos para el módulo de soporte */
+.support-container {
+    animation: fadeIn 0.5s ease;
+}
+
+.premium-hero {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    border-radius: 1.25rem;
+    padding: 2.5rem;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.2);
+}
+
+.premium-hero::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+}
+
+.hero-icon {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    backdrop-filter: blur(5px);
+}
+
+.hero-title { font-weight: 800; letter-spacing: -0.5px; }
+.hero-subtitle { opacity: 0.8; font-size: 1rem; margin-bottom: 0; }
+
+.hero-stats {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 2rem;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+.stat-label { font-size: 0.75rem; text-transform: uppercase; opacity: 0.7; font-weight: 600; margin-top: 4px; }
+
+.icon-box {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.bg-info-soft { background-color: rgba(13, 202, 240, 0.1); }
+.bg-success-soft { background-color: rgba(25, 135, 84, 0.1); }
+.bg-faint { background-color: #f8fafc; }
+
+.premium-input {
+    border: 1.5px solid #e2e8f0;
+    font-size: 0.95rem;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s;
+}
+
+.premium-input:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+}
+
+.upload-zone {
+    border: 2px dashed #e2e8f0;
+    transition: all 0.2s;
+}
+
+.upload-zone:hover {
+    border-color: #4f46e5;
+    background: #f8fafc;
+}
+
+.cursor-pointer { cursor: pointer; }
+.text-muted-xs { font-size: 0.7rem; color: #94a3b8; }
+
+.premium-btn {
+    border-radius: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    transition: all 0.3s;
+}
+
+.premium-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px -3px rgba(79, 70, 229, 0.3);
+}
+
+.badge-abierto { background-color: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+.badge-en_proceso { background-color: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
+.badge-respondido { background-color: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+.badge-cerrado { background-color: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+
+.btn-white {
+    background: white;
+    border: none;
+    transition: background 0.2s;
+}
+
+.btn-white:hover {
+    background: #f1f5f9;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
 

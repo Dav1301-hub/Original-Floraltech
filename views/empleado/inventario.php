@@ -30,8 +30,8 @@ function construirUrlPaginacion($pagina) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventario - FloralTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/inventario.css">
-    <link rel="stylesheet" href="assets/dashboard-general.css">
+    <link rel="stylesheet" href="assets/css/inventario.css">
+    <link rel="stylesheet" href="assets/css/dashboard-general.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -90,8 +90,8 @@ function construirUrlPaginacion($pagina) {
         }
 
         .content-wrapper {
-            max-width: 1400px;
-            margin: 0 auto;
+            max-width: 100%;
+            margin: 0;
         }
 
         .stats-grid {
@@ -335,7 +335,7 @@ function construirUrlPaginacion($pagina) {
         /* Responsive Design */
         @media (max-width: 768px) {
             .main-content {
-                padding: 0.5rem;
+                padding: 0.75rem;
             }
             
             .stats-grid {
@@ -345,30 +345,40 @@ function construirUrlPaginacion($pagina) {
             
             .stat-card {
                 padding: 0.75rem;
+                flex-direction: column;
+                text-align: center;
             }
             
             .stat-icon {
-                width: 40px;
-                height: 40px;
-                font-size: 1rem;
-                margin-right: 0.5rem;
+                width: 44px;
+                height: 44px;
+                font-size: 1.1rem;
+                margin-right: 0;
+                margin-bottom: 0.5rem;
             }
             
             .stat-info h3 {
-                font-size: 1.1rem;
+                font-size: 1.2rem;
             }
             
             .search-filters {
-                padding: 0.75rem;
+                padding: 1rem;
+            }
+
+            .search-filters .row > div {
+                margin-bottom: 0.5rem;
             }
             
             .table-responsive {
-                font-size: 0.8rem;
+                border: 0;
             }
             
-            .navbar-user {
-                flex-direction: column;
-                gap: 0.25rem;
+            .table th, .table td {
+                white-space: nowrap;
+            }
+
+            .navbar-user .btn span {
+                display: none;
             }
         }
 
@@ -399,11 +409,11 @@ function construirUrlPaginacion($pagina) {
                     <i class="fas fa-seedling me-2"></i>FloralTech - Inventario
                 </div>
                 <div class="navbar-user">
-                    <a href="index.php?ctrl=empleado&action=dashboard" class="btn btn-outline-light btn-sm me-2">
-                        <i class="fas fa-arrow-left me-1"></i>Volver
+                    <a href="index.php?ctrl=empleado&action=dashboard" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-arrow-left me-md-1"></i><span class="d-none d-md-inline">Volver</span>
                     </a>
-                    <a href="index.php?ctrl=login&action=logout" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-sign-out-alt me-1"></i>Salir
+                    <a href="index.php?ctrl=login&action=logout" class="btn btn-outline-light btn-sm ms-2">
+                        <i class="fas fa-sign-out-alt me-md-1"></i><span class="d-none d-md-inline">Salir</span>
                     </a>
                 </div>
             </div>
@@ -533,27 +543,32 @@ function construirUrlPaginacion($pagina) {
                                         <tr>
                                             <th>ID</th>
                                             <th>Producto</th>
-                                            <th>Naturaleza</th>
+                                            <th class="d-none d-sm-table-cell">Naturaleza</th>
                                             <th>Stock</th>
                                             <th>Precio</th>
-                                            <th>Estado</th>
+                                            <th class="d-none d-md-table-cell">Estado</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php foreach ($productos_paginados as $producto): ?>
                                         <tr>
                                             <td><strong class="text-primary"><?= htmlspecialchars($producto['idtflor']) ?></strong></td>
-                                            <td><?= htmlspecialchars($producto['nombre']) ?></td>
                                             <td>
+                                                <?= htmlspecialchars($producto['nombre']) ?>
+                                                <div class="d-sm-none small text-muted"><?= htmlspecialchars($producto['naturaleza']) ?></div>
+                                            </td>
+                                            <td class="d-none d-sm-table-cell">
                                                 <span class="badge bg-secondary">
                                                     <?= htmlspecialchars($producto['naturaleza']) ?>
                                                 </span>
                                             </td>
                                             <td>
-                                                <strong><?= number_format($producto['cantidad_disponible']) ?></strong>
+                                                <strong class="text-<?= ($producto['cantidad_disponible'] <= 4) ? 'danger' : 'dark' ?>">
+                                                    <?= number_format($producto['cantidad_disponible']) ?>
+                                                </strong>
                                             </td>
                                             <td><strong class="text-success">$<?= number_format($producto['precio'], 2) ?></strong></td>
-                                            <td>
+                                            <td class="d-none d-md-table-cell">
                                                 <?php
                                                 $stock = $producto['cantidad_disponible'];
                                                 if ($stock == 0): ?>

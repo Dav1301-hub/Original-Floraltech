@@ -326,13 +326,40 @@ $pagos_completados_recientes = array_slice($pagos_verificados, 0, 5);
             }
             
             .header-content {
-                flex-direction: column;
-                gap: 1rem;
-                text-align: center;
+                gap: 0.5rem;
+                padding: 0.75rem 1rem;
+            }
+
+            .header-title {
+                font-size: 1.1rem;
+            }
+            
+            .header-user {
+                width: 100%;
+                justify-content: space-between;
+                border-top: 1px solid rgba(255,255,255,0.1);
+                padding-top: 0.5rem;
+                margin-top: 0.5rem;
+            }
+
+            .user-info {
+                text-align: left;
+            }
+
+            .btn-back span {
+                display: none;
             }
             
             .content {
+                padding: 1rem 0.5rem;
+            }
+
+            .payment-item {
                 padding: 1rem;
+            }
+
+            .payment-amount {
+                font-size: 1rem;
             }
         }
     </style>
@@ -413,6 +440,19 @@ $pagos_completados_recientes = array_slice($pagos_verificados, 0, 5);
                                             <i class="fas fa-credit-card"></i>
                                             <?= htmlspecialchars($pago['metodo_pago']) ?>
                                         </div>
+                                        <?php if (!empty($pago['referencia'])): ?>
+                                            <div class="payment-method mt-1" style="color: var(--primary-color); font-weight: 600;">
+                                                <i class="fas fa-fingerprint"></i>
+                                                Ref: <?= htmlspecialchars($pago['referencia']) ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($pago['comprobante'])): ?>
+                                            <div class="mt-2 text-center">
+                                                <a href="assets/comprobantes/<?= htmlspecialchars($pago['comprobante']) ?>" target="_blank" class="btn btn-sm btn-outline-primary py-1 px-2" style="font-size: 0.7rem;">
+                                                    <i class="fas fa-image"></i> Ver Comprobante
+                                                </a>
+                                            </div>
+                                        <?php endif; ?>
                                         <div class="payment-date">
                                             <i class="fas fa-calendar"></i>
                                             <?= date('d/m/Y H:i', strtotime($pago['fecha_pago'])) ?>
@@ -489,6 +529,11 @@ $pagos_completados_recientes = array_slice($pagos_verificados, 0, 5);
                                             <i class="fas fa-credit-card"></i>
                                             <?= htmlspecialchars($pago['metodo_pago']) ?>
                                         </div>
+                                        <?php if (!empty($pago['referencia'])): ?>
+                                            <div class="payment-method mt-1" style="color: var(--primary-color);">
+                                                <small>Ref: <?= htmlspecialchars($pago['referencia']) ?></small>
+                                            </div>
+                                        <?php endif; ?>
                                         <div class="payment-date">
                                             <i class="fas fa-calendar-check"></i>
                                             <?php if (isset($pago['fecha_verificacion']) && $pago['fecha_verificacion']): ?>

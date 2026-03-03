@@ -1,0 +1,10 @@
+[phases.setup]
+# Asegura que el runtime tenga PDO MySQL disponible
+# (Nixpacks intentará instalar estas extensiones)
+aptPkgs = ["default-mysql-client"]
+
+[phases.build]
+cmds = ["composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader"]
+
+[start]
+cmd = "php -S 0.0.0.0:${PORT} -t ."

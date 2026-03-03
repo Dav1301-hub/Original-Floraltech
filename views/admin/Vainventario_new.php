@@ -2,163 +2,13 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SymVoUVlj7fh8iVC4yNLsn5WiJFtUEkeuapwojV3iFxnW2VjJ5eV+ES8E8Eul0otT5IiAlfo15COLORPRNT586fQw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
 <style>
-    /* Responsive para Inventario Admin */
-    body {
-        overflow-x: hidden !important;
-        width: 100vw;
-        max-width: 100vw;
-        margin: 0;
-        padding: 0;
-    }
-    
-    .container-fluid {
-        padding: 0 !important;
-        margin: 0 !important;
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-    
-    main.container-fluid {
-        padding: 2rem 2.5rem !important;
-    }
-    
-    .card {
-        margin-bottom: 1.5rem;
-    }
-    
-    .table-responsive {
-        margin-bottom: 1rem;
-    }
-    
-    .row.mb-4 .card {
-        transition: transform 0.2s;
-    }
-    
-    .row.mb-4 .card:hover {
-        transform: translateY(-2px);
-    }
-    
-    @media (max-width: 1200px) {
-        .row.mb-4 .col-lg-2 {
-            flex: 0 0 33.333333%;
-            max-width: 33.333333%;
-        }
-    }
-    
-    @media (max-width: 992px) {
-        .row.mb-4 .col-lg-2 {
-            flex: 0 0 50%;
-            max-width: 50%;
-        }
-    }
-    
-    @media (max-width: 768px) {
-        main.container-fluid {
-            padding: 1.5rem 1rem !important;
-        }
-        
-        .card-body .row .col-md-3 {
-            flex: 0 0 100%;
-            max-width: 100%;
-            margin-bottom: 0.5rem;
-        }
-        
-        .d-flex.justify-content-center {
-            flex-direction: column;
-            align-items: stretch;
-        }
-        
-        .d-flex.justify-content-center .btn {
-            margin-bottom: 0.5rem;
-        }
-        
-        .table {
-            font-size: 0.85rem;
-        }
-        
-        .table th,
-        .table td {
-            padding: 0.5rem 0.25rem;
-        }
-        
-        .btn-group-sm .btn {
-            padding: 0.25rem 0.4rem;
-            font-size: 0.75rem;
-        }
-    }
-    
-    @media (max-width: 576px) {
-        main.container-fluid {
-            padding: 1rem 0.75rem !important;
-        }
-        
-        .row.mb-4 .col-lg-2 {
-            flex: 0 0 100%;
-            max-width: 100%;
-        }
-        
-        .row.mb-4 .fs-4 {
-            font-size: 1.5rem !important;
-        }
-        
-        .row.mb-4 .small {
-            font-size: 0.8rem !important;
-        }
-        
-        h2.mb-4 {
-            font-size: 1.5rem;
-        }
-        
-        .card-body {
-            padding: 0.75rem;
-        }
-        
-        .pagination {
-            font-size: 0.85rem;
-        }
-        
-        .pagination .page-link {
-            padding: 0.25rem 0.5rem;
-        }
-        
-        .modal-dialog {
-            margin: 0;
-            max-width: 100%;
-            height: 100vh;
-        }
-        
-        .modal-content {
-            height: 100vh;
-            border-radius: 0;
-        }
-        
-        .modal-body .row .col-md-6,
-        .modal-body .row .col-md-4 {
-            flex: 0 0 100%;
-            max-width: 100%;
-        }
-    }
-    
-    @media (max-width: 380px) {
-        main.container-fluid {
-            padding: 0.75rem 0.5rem !important;
-        }
-        
-        h2.mb-4 {
-            font-size: 1.25rem;
-        }
-        
-        .btn {
-            font-size: 0.85rem;
-            padding: 0.375rem 0.5rem;
-        }
-        
-        .fs-3 {
-            font-size: 1.5rem !important;
-        }
+    /* Estilos de tabla unificados para Inventario */
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.02);
     }
     
     .sortable {
+        cursor: pointer;
         user-select: none;
         transition: background-color 0.2s ease;
     }
@@ -171,10 +21,6 @@
         font-size: 0.8em;
         margin-left: 4px;
         transition: all 0.2s ease;
-    }
-    
-    .sortable:hover i {
-        opacity: 1;
     }
 </style>
 
@@ -198,67 +44,55 @@
         </div>
     <?php endif; ?>
 
-    <h2 class="mb-4 fw-bold">Gestión de Inventario</h2>
+    <div class="content-banner mb-4">
+        <div class="banner-info">
+            <p class="banner-subtitle"><i class="fas fa-boxes me-2"></i>Inventario</p>
+            <h2 class="banner-title">Gestión de Inventario</h2>
+        </div>
+    </div>
     
-    <!-- Summary Cards -->
-    <div class="row mb-4 g-3">
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="card text-center border-0 shadow-sm h-100">
-                <div class="card-body py-3 px-2">
-                    <i class="fas fa-boxes fa-lg text-info mb-2"></i>
-                    <div class="fw-bold text-muted small">Total Productos</div>
-                    <div class="fs-4 fw-bold text-dark"><?= $total_productos ?? 0 ?></div>
-                </div>
+    <!-- Tarjetas de resumen unificadas -->
+    <div class="metrics-card mb-4">
+        <div class="metric-card metric-blue">
+            <div class="metric-icon"><i class="fas fa-boxes"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Total Productos</span>
+                <h3 class="metric-value"><?= $total_productos ?? 0 ?></h3>
             </div>
         </div>
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="card text-center border-0 shadow-sm h-100">
-                <div class="card-body py-3 px-2">
-                    <i class="fas fa-exclamation-triangle fa-lg text-warning mb-2"></i>
-                    <div class="fw-bold text-muted small">Stock Bajo</div>
-                    <div class="fs-4 fw-bold text-dark"><?= $stock_bajo ?? 0 ?></div>
-                    <small class="text-muted" style="font-size: 0.75rem;">10-19 unidades</small>
-                </div>
+        <div class="metric-card metric-orange">
+            <div class="metric-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Stock Bajo</span>
+                <h3 class="metric-value"><?= $stock_bajo ?? 0 ?></h3>
             </div>
         </div>
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="card text-center border-0 shadow-sm h-100">
-                <div class="card-body py-3 px-2">
-                    <i class="fas fa-exclamation-circle fa-lg mb-2" style="color: #ff6b35;"></i>
-                    <div class="fw-bold text-muted small">Stock Crítico</div>
-                    <div class="fs-4 fw-bold text-dark"><?= $stock_critico ?? 0 ?></div>
-                    <small class="text-muted" style="font-size: 0.75rem;">1-9 unidades</small>
-                </div>
+        <div class="metric-card metric-pink">
+            <div class="metric-icon"><i class="fas fa-exclamation-circle"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Stock Crítico</span>
+                <h3 class="metric-value"><?= $stock_critico ?? 0 ?></h3>
             </div>
         </div>
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="card text-center border-0 shadow-sm h-100">
-                <div class="card-body py-3 px-2">
-                    <i class="fas fa-times-circle fa-lg text-danger mb-2"></i>
-                    <div class="fw-bold text-muted small">Sin Stock</div>
-                    <div class="fs-4 fw-bold text-dark"><?= $sin_stock ?? 0 ?></div>
-                    <small class="text-muted" style="font-size: 0.75rem;">0 unidades</small>
-                </div>
+        <div class="metric-card metric-red">
+            <div class="metric-icon"><i class="fas fa-times-circle"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Sin Stock</span>
+                <h3 class="metric-value"><?= $sin_stock ?? 0 ?></h3>
             </div>
         </div>
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="card text-center border-0 shadow-sm h-100">
-                <div class="card-body py-3 px-2">
-                    <i class="fas fa-gift fa-lg text-primary mb-2"></i>
-                    <div class="fw-bold text-muted small">Próximos a Caducar</div>
-                    <div class="fs-4 fw-bold text-dark"><?= $proximos_caducar ?? 1 ?></div>
-                    <small class="text-muted" style="font-size: 0.75rem;">En 7 días</small>
-                </div>
+        <div class="metric-card metric-purple">
+            <div class="metric-icon"><i class="fas fa-hourglass-half"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Próximos a Caducar</span>
+                <h3 class="metric-value"><?= $proximos_caducar ?? 0 ?></h3>
             </div>
         </div>
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <div class="card text-center border-0 shadow-sm h-100" style="cursor: pointer;">
-                <div class="card-body py-3 px-2">
-                    <i class="fas fa-dollar-sign fa-lg text-success mb-2"></i>
-                    <div class="fw-bold text-muted small">Valor Total</div>
-                    <div class="fs-4 fw-bold text-dark">$<?= number_format($valor_total ?? 7730.33, 2) ?></div>
-                    <small class="text-muted" style="font-size: 0.75rem;">inventario</small>
-                </div>
+        <div class="metric-card metric-green">
+            <div class="metric-icon"><i class="fas fa-dollar-sign"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Valor Total</span>
+                <h3 class="metric-value">$<?= number_format($valor_total ?? 0, 0) ?></h3>
             </div>
         </div>
     </div>

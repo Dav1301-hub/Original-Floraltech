@@ -245,8 +245,45 @@ class Mdgemp {
             password_hash($datos['password'], PASSWORD_DEFAULT)
         ]);
         $empleado_id = $this->conn->lastInsertId();
+        
+        // Sincronización con tabla 'cli' si el tipo es Cliente (ID 3)
+        if ($datos['tpusu_idtpusu'] == 3) {
+            $this->sincronizarConTablaCliente($empleado_id, $datos);
+        }
+
         $this->registrarAuditoriaEmpleado($usuario_id, $empleado_id, 'crear', null, $datos);
         return $empleado_id;
+    }
+
+    /**
+     * Sincroniza datos de un usuario con la tabla 'cli'
+     */
+    private function sincronizarConTablaCliente($usuario_id, $datos) {
+        // Verificar si ya existe en cli por email o por nombre
+        $stmt = $this->conn->prepare("SELECT idcli FROM cli WHERE email = ? OR nombre = ? LIMIT 1");
+        $stmt->execute([$datos['email'], $datos['nombre_completo']]);
+        $cliente = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($cliente) {
+            // Actualizar existente
+            $stmt = $this->conn->prepare("UPDATE cli SET nombre = ?, email = ?, telefono = ?, direccion = ? WHERE idcli = ?");
+            $stmt->execute([
+                $datos['nombre_completo'],
+                $datos['email'],
+                $datos['telefono'],
+                $datos['direccion'] ?? ($datos['naturaleza'] ?? ''),
+                $cliente['idcli']
+            ]);
+        } else {
+            // Insertar nuevo
+            $stmt = $this->conn->prepare("INSERT INTO cli (nombre, email, telefono, direccion, tpusu_idtpusu) VALUES (?, ?, ?, ?, 3)");
+            $stmt->execute([
+                $datos['nombre_completo'],
+                $datos['email'],
+                $datos['telefono'],
+                $datos['direccion'] ?? ($datos['naturaleza'] ?? '')
+            ]);
+        }
     }
 
     /**
@@ -318,7 +355,7 @@ class Mdgemp {
             WHERE idusu = ?
         ");
         
-        return $stmt->execute([
+        $ok = $stmt->execute([
             $datos['nombre_completo'],
             $datos['username'],
             $datos['email'],
@@ -328,6 +365,12 @@ class Mdgemp {
             $datos['activo'] ?? 1,
             $id
         ]);
+
+        if ($ok && $datos['tpusu_idtpusu'] == 3) {
+            $this->sincronizarConTablaCliente($id, $datos);
+        }
+
+        return $ok;
     }
 
     /**

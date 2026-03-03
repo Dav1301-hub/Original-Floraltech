@@ -1,6 +1,8 @@
 {
     "require": {
         "phpmailer/phpmailer": "^6.10",
-        "mpdf/mpdf": "^6.0"
+        "mpdf/mpdf": "^6.0",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*"
     }
 }

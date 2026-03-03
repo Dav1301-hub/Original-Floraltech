@@ -7,10 +7,32 @@ $usu = $usu ?? ($_SESSION['user'] ?? []);
 $page = $page ?? ($_GET['page'] ?? 'general');
 $pg = $_GET['pg'] ?? null;
 
+// Cargar logo y avatar
+require_once __DIR__ . '/../../models/conexion.php';
+$conexion = (new conexion())->get_conexion();
+try {
+    $stmt_empresa = $conexion->prepare("SELECT logo FROM empresa LIMIT 1");
+    $stmt_empresa->execute();
+    $empresa_data = $stmt_empresa->fetch(PDO::FETCH_ASSOC);
+    $logo_empresa = $empresa_data['logo'] ?? null;
+    
+    $id_usuario = $_SESSION['user']['idusu'] ?? null;
+    if ($id_usuario) {
+        $stmt_usuario = $conexion->prepare("SELECT avatar FROM usu WHERE idusu = :id LIMIT 1");
+        $stmt_usuario->execute([':id' => $id_usuario]);
+        $usuario_data = $stmt_usuario->fetch(PDO::FETCH_ASSOC);
+        $avatar_usuario = $usuario_data['avatar'] ?? null;
+    } else {
+        $avatar_usuario = null;
+    }
+} catch (Exception $e) {
+    $logo_empresa = null;
+    $avatar_usuario = null;
+}
+
 $pages = [
     'general'       => 'VadashboardGeneral.php',
     'empleados'     => 'VagestionarEmpleados.php',
-    'inventarios'   => null, // redirige a controlador
     'inventario'    => 'Vainventario.php',
     'pedidos'       => 'VagestionPedidos.php',
     'pagos'         => 'VadashboardPagos.php',
@@ -80,31 +102,49 @@ function render_admin_view(string $filePath, array $context = []): void
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/dashboard-admin.css?v=2">
-    <link rel="stylesheet" href="assets/admin-unificado.css?v=2">
+    <link rel="stylesheet" href="assets/css/dashboard-admin.css?v=2">
+    <link rel="stylesheet" href="assets/css/admin-unificado.css?v=2">
+    <!-- Charts and Calendar Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
 </head>
 <body class="app-shell">
     <header class="topbar">
-        <div class="brand">
-            <i class="fa-solid fa-seedling"></i>
-            <div>
-                <div style="font-size:13px; color:#94a3b8;">Panel administrativo</div>
-                <div style="font-size:16px;">FloralTech</div>
-            </div>
-        </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-3">
             <button class="sidebar-toggle" id="toggleSidebar" aria-label="Mostrar/Ocultar menu">
                 <i class="fa-solid fa-bars"></i>
             </button>
+            <div class="brand">
+                <?php if (!empty($logo_empresa) && file_exists(__DIR__ . '/../../' . $logo_empresa)): ?>
+                    <img src="<?= htmlspecialchars($logo_empresa) ?>?v=<?= time() ?>" alt="Logo" style="height: 38px; width: auto; object-fit: contain;">
+                <?php else: ?>
+                    <i class="fa-solid fa-seedling"></i>
+                <?php endif; ?>
+                <div class="brand-text">
+                    <span class="eyebrow">Panel Administrativo</span>
+                    <span class="app-name">FloralTech</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="topbar-actions">
             <div class="user-chip">
-                <i class="fa-regular fa-circle-user"></i>
-                <div class="d-flex flex-column">
-                    <small style="color:#94a3b8;">Sesion</small>
+                <?php if (!empty($avatar_usuario) && file_exists(__DIR__ . '/../../' . $avatar_usuario)): ?>
+                    <img src="<?= htmlspecialchars($avatar_usuario) ?>?v=<?= time() ?>" alt="Avatar" class="user-avatar">
+                <?php else: ?>
+                    <div class="user-avatar-placeholder">
+                        <i class="fa-regular fa-circle-user"></i>
+                    </div>
+                <?php endif; ?>
+                <div class="user-info">
+                    <small>Sesión</small>
                     <strong><?= htmlspecialchars($usu['nombre_completo'] ?? 'Administrador') ?></strong>
                 </div>
             </div>
-            <a href="index.php?ctrl=login&action=logout" class="btn btn-logout">
-                <i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Salir
+            <a href="index.php?ctrl=login&action=logout" class="btn btn-logout" title="Cerrar Sesión">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                <span class="btn-text">Salir</span>
             </a>
         </div>
     </header>
@@ -115,24 +155,20 @@ function render_admin_view(string $filePath, array $context = []): void
             <a class="nav-link <?= $page === 'general' ? 'active' : '' ?>" href="?page=general"><i class="fas fa-gauge"></i>Dashboard</a>
             <div class="section-label">Operaciones</div>
             <a class="nav-link <?= $page === 'empleados' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=empleados"><i class="fas fa-users"></i>Gestion de Usuarios</a>
-            <a class="nav-link <?= $page === 'inventarios' || $page === 'inventario' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=inventarios"><i class="fa-solid fa-server"></i>Inventario</a>
+            <a class="nav-link <?= $page === 'inventarios' || $page === 'inventario' ? 'active' : '' ?>" href="index.php?ctrl=cinventario"><i class="fa-solid fa-server"></i>Inventario</a>
             <a class="nav-link <?= $page === 'pedidos' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=pedidos"><i class="fas fa-cart-shopping"></i>Gestion de Pedidos</a>
             <div class="section-label">Soporte</div>
             <a class="nav-link <?= $page === 'soporte' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=soporte"><i class="fas fa-life-ring"></i>Centro de Soporte</a>
             <div class="section-label">Control</div>
-            <a class="nav-link <?= $page === 'configuracion' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=configuracion"><i class="fas fa-sliders"></i>Configuracion</a>
-            <a class="nav-link <?= $page === 'auditoria' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=auditoria"><i class="fas fa-clipboard-list"></i>Auditoria</a>
+            <a class="nav-link <?= $page === 'configuracion' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=configuracion"><i class="fas fa-sliders"></i>Configuración</a>
+            <a class="nav-link <?= $page === 'auditoria' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=auditoria"><i class="fas fa-clipboard-list"></i>Auditoría</a>
             <a class="nav-link <?= $page === 'reportes' ? 'active' : '' ?>" href="index.php?ctrl=dashboard&action=admin&page=reportes"><i class="fas fa-chart-bar"></i>Reportes</a>
         </aside>
 
-                <main class="main-panel" style="overflow-x:hidden;">
-            <div class="content-area" style="overflow-x:hidden;">
+                <main class="main-panel">
+            <div class="content-area">
                 <div class="content-slot">
                 <?php
-                if ($page === 'inventarios') {
-                    header('Location: index.php?ctrl=cinventario');
-                    exit;
-                }
 
                 if ($pg && isset($pgs[$pg])) {
                     $file = $pgs[$pg];
@@ -167,6 +203,11 @@ function render_admin_view(string $filePath, array $context = []): void
                                 $empCtrl = new AdminEmpleadosController();
                                 $ctx = $empCtrl->obtenerContexto();
                                 break;
+                            case 'Vsoporte.php':
+                                require_once __DIR__ . '/../../controllers/SupportController.php';
+                                $supportCtrl = new SupportController();
+                                $ctx = $supportCtrl->obtenerContexto();
+                                break;
                         }
                         render_admin_view($filePath, $ctx);
                     } else {
@@ -178,16 +219,48 @@ function render_admin_view(string $filePath, array $context = []): void
             </div>
         </main>
     </div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const btn = document.getElementById('toggleSidebar');
             const sidebar = document.getElementById('sidebar');
-            if (btn && sidebar) {
-                btn.addEventListener('click', function() {
+            const overlay = document.getElementById('sidebarOverlay');
+            const layout = document.querySelector('.layout');
+
+            function toggleSidebar() {
+                const isMobile = window.innerWidth <= 1024;
+                
+                if (isMobile) {
+                    sidebar.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                    // On mobile we don't collapse desktop style
+                    sidebar.classList.remove('collapsed');
+                    if (layout) layout.classList.remove('sidebar-collapsed');
+                } else {
                     sidebar.classList.toggle('collapsed');
-                });
+                    if (layout) layout.classList.toggle('sidebar-collapsed');
+                    // Ensure active is off for desktop
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                }
             }
+
+            if (btn && sidebar) {
+                btn.addEventListener('click', toggleSidebar);
+            }
+
+            if (overlay) {
+                overlay.addEventListener('click', toggleSidebar);
+            }
+
+            // Close sidebar on window resize if switching to desktop
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 1024) {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                }
+            });
         });
     </script>
 </body>
