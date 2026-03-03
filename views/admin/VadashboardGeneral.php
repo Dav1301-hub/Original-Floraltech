@@ -569,7 +569,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (!data.pedidos || !Array.isArray(data.pedidos) || data.pedidos.length === 0) {
                             html += '<p>No hay pedidos para este dia.</p>';
                         } else {
-                            html += '<table class="table table-bordered table-sm"><thead><tr><th>Numero</th><th>Cliente</th><th>Estado</th><th>Monto</th><th>Creacion</th><th>Entrega</th></tr></thead><tbody>';
+                            html += '<div class="table-responsive">';
+                            html += '<table class="table table-bordered table-sm table-hover align-middle mb-0"><thead><tr class="table-light"><th>NUMERO</th><th>CLIENTE</th><th>ESTADO</th><th>MONTO</th><th>CREACION</th><th>ENTREGA</th></tr></thead><tbody>';
                             data.pedidos.forEach(function(p) {
                                 html += '<tr>';
                                 html += '<td><strong>' + (p.numped || '-') + '</strong></td>';
@@ -580,7 +581,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 html += '<td><small>' + formatearFechaSinZona(p.fecha_entrega_solicitada) + '</small></td>';
                                 html += '</tr>';
                             });
-                            html += '</tbody></table>';
+                            html += '</tbody></table></div>';
                         }
                     }
                     if (modalBody) {
