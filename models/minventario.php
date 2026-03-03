@@ -176,8 +176,8 @@ class Minventario {
             $stmt_bajo->execute();
             $stock_bajo = $stmt_bajo->fetch(PDO::FETCH_ASSOC)['bajo'];
             
-            // Productos con stock crítico (0-9 unidades, incluyendo sin stock)
-            $sql_critico = "SELECT COUNT(*) as critico FROM inv WHERE stock <= 9";
+            // Productos con stock crítico (1-9 unidades)
+            $sql_critico = "SELECT COUNT(*) as critico FROM inv WHERE stock >= 1 AND stock <= 9";
             $stmt_critico = $this->db->prepare($sql_critico);
             $stmt_critico->execute();
             $result_critico = $stmt_critico->fetch(PDO::FETCH_ASSOC);
@@ -228,8 +228,11 @@ class Minventario {
             
             if (!empty($filtros['estado_stock'])) {
                 switch($filtros['estado_stock']) {
+                    case 'critico':
+                        $where_conditions[] = "i.stock >= 1 AND i.stock < 10";
+                        break;
                     case 'bajo':
-                        $where_conditions[] = "i.stock < 20 AND i.stock > 0";
+                        $where_conditions[] = "i.stock >= 10 AND i.stock < 20";
                         break;
                     case 'sin_stock':
                         $where_conditions[] = "i.stock = 0";
@@ -309,6 +312,7 @@ class Minventario {
                     i.fecha_actualizacion,
                     CASE 
                         WHEN i.stock = 0 THEN 'Sin Stock'
+                        WHEN i.stock < 10 THEN 'Critico'
                         WHEN i.stock < 20 THEN 'Bajo'
                         ELSE 'Normal'
                     END as estado_stock
@@ -367,8 +371,11 @@ class Minventario {
             
             if (!empty($filtros['estado_stock'])) {
                 switch($filtros['estado_stock']) {
+                    case 'critico':
+                        $where_conditions[] = "i.stock >= 1 AND i.stock < 10";
+                        break;
                     case 'bajo':
-                        $where_conditions[] = "i.stock < 20 AND i.stock > 0";
+                        $where_conditions[] = "i.stock >= 10 AND i.stock < 20";
                         break;
                     case 'sin_stock':
                         $where_conditions[] = "i.stock = 0";
@@ -423,6 +430,7 @@ class Minventario {
                     CASE 
                         WHEN i.idinv IS NULL THEN 'No en inventario'
                         WHEN i.stock = 0 THEN 'Sin Stock'
+                        WHEN i.stock < 10 THEN 'Stock Critico'
                         WHEN i.stock < 20 THEN 'Stock Bajo'
                         ELSE 'Disponible'
                     END as estado_inventario
@@ -542,6 +550,23 @@ class Minventario {
             
             if ($stmt_inventario->execute()) {
                 $producto_id = $this->db->lastInsertId();
+                
+                // NUEVO: Guardar relación con el proveedor si se proporcionó uno
+                if (!empty($data['nuevo_producto_proveedor_id'])) {
+                    try {
+                        $sql_proveedor = "INSERT INTO proveedor_producto (proveedor_id, producto_id) VALUES (:proveedor_id, :producto_id)";
+                        $stmt_proveedor = $this->db->prepare($sql_proveedor);
+                        $stmt_proveedor->execute([
+                            ':proveedor_id' => $data['nuevo_producto_proveedor_id'],
+                            ':producto_id' => $producto_id
+                        ]);
+                        error_log("📦 Relación proveedor-producto creada: Proveedor " . $data['nuevo_producto_proveedor_id'] . " -> Producto " . $producto_id);
+                    } catch (Exception $eRel) {
+                        error_log("⚠️ Error al crear relación proveedor-producto: " . $eRel->getMessage());
+                        // No hacemos rollback de todo por esto, solo loggramos el error
+                    }
+                }
+                
                 $this->registrarAuditoria($producto_id, 'CREAR_PRODUCTO', 'Producto nuevo: ' . $data['nombre_producto'], null, $data);
                 $this->db->commit();
                 return true;
@@ -1038,6 +1063,7 @@ class Minventario {
                     i.tflor_idtflor,
                     CASE 
                         WHEN i.stock = 0 THEN 'Sin Stock'
+                        WHEN i.stock < 10 THEN 'Critico'
                         WHEN i.stock < 20 THEN 'Bajo'
                         ELSE 'Normal'
                     END as estado_stock
@@ -1139,11 +1165,15 @@ class Minventario {
                 $stmt_tflor->execute();
             }
             
+            // Determinar nueva alimentación por si cambió el tipo de producto
+            $alimentacion = $this->determinarAlimentacion($data['tipo_producto'] ?? 'otro');
+            
             // Actualizar la tabla inv (stock y precio)
             $sql_update_inv = "UPDATE inv SET 
                               stock = :stock,
                               precio = :precio,
                               precio_compra = :precio_compra,
+                              alimentacion = :alimentacion,
                               fecha_actualizacion = NOW()
                               WHERE idinv = :producto_id";
             
@@ -1151,6 +1181,7 @@ class Minventario {
             $stmt_inv->bindParam(':stock', $data['stock'], PDO::PARAM_INT);
             $stmt_inv->bindParam(':precio', $data['precio']);
             $stmt_inv->bindParam(':precio_compra', $data['precio_compra']);
+            $stmt_inv->bindParam(':alimentacion', $alimentacion);
             $stmt_inv->bindParam(':producto_id', $data['producto_id'], PDO::PARAM_INT);
             
             if ($stmt_inv->execute()) {
