@@ -51,8 +51,8 @@ try {
             'nombre' => 'FloralTech',
             'direccion' => '',
             'telefono' => '',
-            'email' => '',
-            'horario' => '',
+            'email_contacto' => '',
+            'horarios_apertura' => '',
             'logo' => null,
             'facebook' => '',
             'instagram' => '',
@@ -68,8 +68,8 @@ try {
         'nombre' => 'FloralTech',
         'direccion' => '',
         'telefono' => '',
-        'email' => '',
-        'horario' => '',
+        'email_contacto' => '',
+        'horarios_apertura' => '',
         'logo' => null,
         'facebook' => '',
         'instagram' => '',
@@ -219,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $existe = $stmt_check->fetchColumn() > 0;
             
             if ($existe) {
-                $stmt_update = $conexion->prepare("UPDATE empresa SET nombre=:n, direccion=:d, telefono=:t, email=:e, horario=:h, logo=:l, facebook=:f, instagram=:i, whatsapp=:w, moneda=:m, iva_porcentaje=:iva, zona_horaria=:zh, formato_fecha=:ff WHERE id=(SELECT MIN(id) FROM empresa)");
+                $stmt_update = $conexion->prepare("UPDATE empresa SET nombre=:n, direccion=:d, telefono=:t, email_contacto=:e, horarios_apertura=:h, logo=:l, facebook=:f, instagram=:i, whatsapp=:w, moneda=:m, iva_porcentaje=:iva, zona_horaria=:zh, formato_fecha=:ff WHERE id=(SELECT MIN(id) FROM empresa)");
                 $stmt_update->execute([
                     ':n' => $nombre_emp,
                     ':d' => $direccion,
@@ -236,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':ff' => $formato_fecha
                 ]);
             } else {
-                $stmt_insert = $conexion->prepare("INSERT INTO empresa (nombre, direccion, telefono, email, horario, logo, facebook, instagram, whatsapp, moneda, iva_porcentaje, zona_horaria, formato_fecha) VALUES (:n, :d, :t, :e, :h, :l, :f, :i, :w, :m, :iva, :zh, :ff)");
+                $stmt_insert = $conexion->prepare("INSERT INTO empresa (nombre, direccion, telefono, email_contacto, horarios_apertura, logo, facebook, instagram, whatsapp, moneda, iva_porcentaje, zona_horaria, formato_fecha) VALUES (:n, :d, :t, :e, :h, :l, :f, :i, :w, :m, :iva, :zh, :ff)");
                 $stmt_insert->execute([
                     ':n' => $nombre_emp,
                     ':d' => $direccion,
@@ -460,13 +460,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                             <div class="mb-3">
                                 <label class="form-label fw-600">Email de contacto</label>
-                                <input type="email" class="form-control form-control-lg" name="email_contacto" value="<?= htmlspecialchars($empresa['email'] ?? '') ?>">
+                                <input type="email" class="form-control form-control-lg" name="email_contacto" value="<?= htmlspecialchars($empresa['email_contacto'] ?? '') ?>">
                                 <small class="text-muted">Correo electrónico principal</small>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label fw-600">Horario de atención</label>
-                                <textarea class="form-control" name="horario" rows="3" placeholder="Ej: Lunes a Viernes 8:00 AM - 6:00 PM"><?= htmlspecialchars($empresa['horario'] ?? '') ?></textarea>
+                                <textarea class="form-control" name="horario" rows="3" placeholder="Ej: Lunes a Viernes 8:00 AM - 6:00 PM"><?= htmlspecialchars($empresa['horarios_apertura'] ?? '') ?></textarea>
                             </div>
 
                             <div class="mb-3">

@@ -146,8 +146,8 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                     <div class="col-12 col-xl-6">
                         <div class="card shadow-sm rounded-4 border-0 h-100">
                             <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-                                <span>Usuarios activos recientes</span>
-                                <span class="badge bg-primary-subtle text-primary"><?= count($usuariosRecientes) ?></span>
+                                <span>Usuarios activos (Hoy)</span>
+                                <span class="badge bg-primary-subtle text-primary"><?= $usuariosActivosHoy ?></span>
                             </div>
                             <div class="card-body table-responsive">
                                 <table class="table align-middle mb-0">
@@ -180,8 +180,8 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                     <div class="col-12 col-xl-6">
                         <div class="card shadow-sm rounded-4 border-0 h-100">
                             <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
-                                <span>Productos activos</span>
-                                <span class="badge bg-success-subtle text-success"><?= count($productosActivosDetalle) ?></span>
+                                <span>Tipos de productos en stock</span>
+                                <span class="badge bg-success-subtle text-success"><?= $productosActivos ?></span>
                             </div>
                             <div class="card-body table-responsive">
                                 <table class="table align-middle mb-0">

@@ -30,9 +30,14 @@ $turnos = $userModel->getTurnosEmpleados();
 $vacaciones = $userModel->getVacacionesEmpleados();
 
 // Estadísticas
+$hoy = date('Y-m-d');
 $vacaciones_activas = 0;
 foreach ($vacaciones as $vacacion) {
-    if ($vacacion['estado'] == 'En curso') $vacaciones_activas++;
+    // Se consideran activas si están aprobadas o en curso y la fecha actual está en el rango
+    if (($vacacion['estado'] == 'Aprobada' || $vacacion['estado'] == 'En curso') && 
+        $hoy >= $vacacion['fecha_inicio'] && $hoy <= $vacacion['fecha_fin']) {
+        $vacaciones_activas++;
+    }
 }
 
 $permisos_pendientes = 0;

@@ -47,7 +47,8 @@ class AdminAuditoriaController {
             : 0;
         $fechaLimiteDate = strtotime($proyeccionActiva['fecha_fin']);
         $vencido = $fechaLimiteDate && time() > $fechaLimiteDate;
-        $cumplido = $avanceActual >= floatval($proyeccionActiva['monto_objetivo']);
+        $montoObj = floatval($proyeccionActiva['monto_objetivo'] ?? 0);
+        $cumplido = ($montoObj > 0) && ($avanceActual >= $montoObj);
 
         $pagosPorFecha = $this->model->pagosPorFecha($fechaFiltroPagos);
         $listadoAuditoria = $this->model->listadoAuditoria();
