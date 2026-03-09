@@ -136,5 +136,4 @@ class Mailer {
         return $this->sendEmail($to, $subject, $html, true);
     }
 }
-?>
-?>
+
