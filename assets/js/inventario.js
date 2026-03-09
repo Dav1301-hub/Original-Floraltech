@@ -70,11 +70,19 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
-
-window.abrirproducto = function () {
+// Global event listener to clean up orphaned modal backdrops
+document.addEventListener('hidden.bs.modal', function () {
+    // Si no hay ningún modal abierto, asegurarnos de limpiar los backdrops y la clase del body
+    if (document.querySelectorAll('.modal.show').length === 0) {
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    }
+}); window.abrirproducto = function () {
     const modalElement = document.getElementById('modal-nuevo-producto');
     if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        const modal = new bootstrap.Modal(modalElement);
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
         modal.show();
     } else if (modalElement) {
         modalElement.style.display = 'block';
@@ -90,7 +98,7 @@ function cerrarproducto() {
 window.abrirproveedor = function () {
     const modalElement = document.getElementById('modal-proveedores');
     if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        const modal = new bootstrap.Modal(modalElement);
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
         modal.show();
     } else if (modalElement) {
         modalElement.style.display = 'block';
@@ -132,7 +140,7 @@ window.abrirModalEditar = function (productoData) {
     // Abrir el modal
     const modalElement = document.getElementById('modal-editar-producto');
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        const modal = new bootstrap.Modal(modalElement);
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
         modal.show();
     } else if (typeof $ !== 'undefined') {
         $(modalElement).modal('show');
@@ -158,7 +166,7 @@ window.abrirModalAgregarStock = function (productoData) {
     // Abrir el modal
     const modalElement = document.getElementById('modal-agregar-stock');
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        const modal = new bootstrap.Modal(modalElement);
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
         modal.show();
     } else if (typeof $ !== 'undefined') {
         $(modalElement).modal('show');
@@ -186,7 +194,7 @@ window.abrirModalEliminar = function (productoData) {
 
     const modalElement = document.getElementById('modal-eliminar-producto');
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        const modal = new bootstrap.Modal(modalElement);
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
         modal.show();
     } else if (typeof $ !== 'undefined') {
         $(modalElement).modal('show');
@@ -248,7 +256,7 @@ function eliminarFlor(id) {
     let modal;
 
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        modal = new bootstrap.Modal(modalElement);
+        modal = bootstrap.Modal.getOrCreateInstance(modalElement);
         modal.show();
     } else if (typeof $ !== 'undefined') {
         $(modalElement).modal('show');
@@ -286,7 +294,7 @@ function procesarEliminarProducto(id) {
     const formData = new FormData();
     formData.append('id', id);
 
-    fetch(`?ctrl=Cinventario&accion=eliminar_producto`, {
+    fetch(`?ctrl=cinventario&accion=eliminar_producto`, {
         method: 'POST',
         body: formData,
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -325,7 +333,7 @@ function agregarAInventario(id) {
     console.log('Agregando stock al producto con ID:', id);
 
     // Primero obtener los datos del producto para mostrar en el modal
-    fetch(`?ctrl=Cinventario&accion=obtener_producto&id=${id}`)
+    fetch(`?ctrl=cinventario&accion=obtener_producto&id=${id}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -346,7 +354,7 @@ function agregarAInventario(id) {
                 // Mostrar el modal
                 const modalElement = document.getElementById('modal-agregar-stock');
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = new bootstrap.Modal(modalElement);
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
                     modal.show();
                 } else if (typeof $ !== 'undefined') {
                     $(modalElement).modal('show');
@@ -432,7 +440,7 @@ function crearModalAgregarStockGenerico(id) {
     let modal;
 
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        modal = new bootstrap.Modal(modalElement);
+        modal = bootstrap.Modal.getOrCreateInstance(modalElement);
         modal.show();
     } else if (typeof $ !== 'undefined') {
         $(modalElement).modal('show');
@@ -592,7 +600,7 @@ function mostrarModalTemporal(modalHTML, modalId, autoCloseTime = 0) {
     let modal;
 
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        modal = new bootstrap.Modal(modalElement);
+        modal = bootstrap.Modal.getOrCreateInstance(modalElement);
         modal.show();
     } else if (typeof $ !== 'undefined') {
         $(modalElement).modal('show');
@@ -613,22 +621,15 @@ function mostrarModalTemporal(modalHTML, modalId, autoCloseTime = 0) {
                 modalElement.classList.remove('show');
             }
 
-            // Limpiar modal después de animación
-            setTimeout(() => {
-                if (modalElement) {
-                    modalElement.remove();
-                }
-            }, 500);
+            // No forzamos remove() aquí, dejamos que el evento hidden.bs.modal se encargue
         }, autoCloseTime);
     }
 
     // Event listener para limpiar modal al cerrar
     modalElement.addEventListener('hidden.bs.modal', function () {
-        setTimeout(() => {
-            if (modalElement) {
-                modalElement.remove();
-            }
-        }, 100);
+        if (modalElement) {
+            modalElement.remove();
+        }
     });
 }
 
@@ -642,7 +643,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const formData = new FormData(this);
 
-            fetch('?ctrl=Cinventario', {
+            fetch('?ctrl=cinventario', {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -660,6 +661,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .then(data => {
                     if (data.success) {
+                        // Ocultar modal de edición
+                        const modalElement = document.getElementById('modal-editar-producto');
+                        if (modalElement && typeof bootstrap !== 'undefined') {
+                            const existingModal = bootstrap.Modal.getInstance(modalElement);
+                            if (existingModal) existingModal.hide();
+                        }
+
                         mostrarMensajeExito('✅ Producto actualizado correctamente');
                         setTimeout(() => {
                             location.reload();
