@@ -150,25 +150,27 @@ class AuditoriaModel {
     }
 
     public function productosActivosResumen() {
-        // Coincidir con inventario: activo si COALESCE(cantidad_disponible, stock) > 0
+        // Contar tipos de productos únicos con stock > 0
         $count = 0;
         try {
-            $count = (int)$this->db->query("SELECT COUNT(*) FROM inv WHERE stock > 0")->fetchColumn();
+            $count = (int)$this->db->query("SELECT COUNT(DISTINCT tflor_idtflor) FROM inv WHERE stock > 0")->fetchColumn();
         } catch (Exception $e) {
             error_log('Auditoria productosActivosResumen count: ' . $e->getMessage());
         }
         try {
+            // Agrupar por tipo de flor para mostrar productos únicos
             $stmt = $this->db->prepare("
                 SELECT 
-                    COALESCE(t.nombre, CONCAT('Producto #', i.idinv)) AS nombre,
-                    i.stock,
+                    t.nombre,
+                    SUM(i.stock) as stock,
                     t.naturaleza,
-                    i.precio,
+                    MAX(i.precio) as precio,
                     t.nombre AS tipo
                 FROM inv i
                 LEFT JOIN tflor t ON t.idtflor = i.tflor_idtflor
                 WHERE i.stock > 0
-                ORDER BY i.stock DESC, t.nombre ASC
+                GROUP BY i.tflor_idtflor
+                ORDER BY stock DESC
                 LIMIT 8
             ");
             $stmt->execute();
@@ -199,27 +201,30 @@ class AuditoriaModel {
 
     public function proyeccionActiva() {
         if (!$this->tableExists('proyecciones_pagos')) {
-            return [
-                'titulo' => 'Sin proyeccion',
-                'monto_objetivo' => 0,
-                'fecha_inicio' => date('Y-m-01'),
-                'fecha_fin' => date('Y-m-t'),
-                'fecha_creacion' => date('Y-m-d H:i:s'),
-                'notas' => ''
-            ];
+            return $this->getEmptyProjection();
         }
         try {
+            // 1. Intentar buscar la proyección vigente hoy que esté activa
             $stmt = $this->db->prepare("
                 SELECT *
                 FROM proyecciones_pagos
                 WHERE fecha_inicio <= CURDATE() AND fecha_fin >= CURDATE()
+                AND estado = 'Activa'
                 ORDER BY fecha_creacion DESC
                 LIMIT 1
             ");
             $stmt->execute();
             $proy = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // 2. Si no hay vigente, buscar la ULTIMA proyección creada (aunque esté vencida)
+            // para que el usuario siempre vea su última meta configurada.
             if (!$proy) {
-                $stmt = $this->db->prepare("SELECT * FROM proyecciones_pagos ORDER BY fecha_creacion DESC LIMIT 1");
+                $stmt = $this->db->prepare("
+                    SELECT * 
+                    FROM proyecciones_pagos 
+                    ORDER BY fecha_creacion DESC 
+                    LIMIT 1
+                ");
                 $stmt->execute();
                 $proy = $stmt->fetch(PDO::FETCH_ASSOC);
             }
@@ -227,17 +232,20 @@ class AuditoriaModel {
             error_log('Auditoria proyeccionActiva: ' . $e->getMessage());
             $proy = null;
         }
-        if (!$proy) {
-            $proy = [
-                'titulo' => 'Sin proyeccion',
-                'monto_objetivo' => 0,
-                'fecha_inicio' => date('Y-m-01'),
-                'fecha_fin' => date('Y-m-t'),
-                'fecha_creacion' => date('Y-m-d H:i:s'),
-                'notas' => ''
-            ];
-        }
-        return $proy;
+        
+        return $proy ?: $this->getEmptyProjection();
+    }
+
+    private function getEmptyProjection() {
+        return [
+            'idproy' => 0,
+            'titulo' => 'Meta de pagos',
+            'monto_objetivo' => 0,
+            'fecha_inicio' => date('Y-m-01'),
+            'fecha_fin' => date('Y-m-t'),
+            'fecha_creacion' => date('Y-m-d H:i:s'),
+            'notas' => ''
+        ];
     }
 
     public function guardarProyeccion($data) {

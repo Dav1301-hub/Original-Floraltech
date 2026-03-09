@@ -233,7 +233,7 @@ function badgeClaseEstado($estado)
                                 <?php if (!empty($pedidosFiltrados)): ?>
                                     <?php foreach ($pedidosFiltrados as $pedido): ?>
                                         <?php $fechaPedidoISO = date('Y-m-d', strtotime($pedido['fecha_pedido'])); ?>
-                                        <tr data-fecha="<?= $fechaPedidoISO ?>" data-estado="<?= strtolower($pedido['estado'] ?? '') ?>">
+                                        <tr data-fecha="<?= $fechaPedidoISO ?>" data-estado="<?= strtolower($pedido['estado'] ?? '') ?>" data-monto="<?= $pedido['monto_total'] ?>">
                                             <td><input type="checkbox" class="select-row" value="<?= htmlspecialchars($pedido['idped']) ?>"></td>
                                             <td><?= htmlspecialchars($pedido['idped']) ?></td>
                                             <td><?= htmlspecialchars($pedido['numped']) ?></td>
@@ -311,14 +311,14 @@ function badgeClaseEstado($estado)
                         </div>
                         <div class="col-md-7">
                             <div class="alert alert-warning bg-warning-subtle text-dark border-0 py-2 mb-2">
-                                Usuarios activos: <strong><?= $datos['usuarios']['activos'] ?? 0 ?></strong> / <?= $totalUsuarios ?>
+                                Usuarios activos: <strong id="usuariosActivosCount"><?= $datos['usuarios']['activos'] ?? 0 ?></strong> / <span id="usuariosTotalCount"><?= $totalUsuarios ?></span>
                             </div>
                             <div class="row g-2">
                                 <div class="col-6">
                                     <div class="card border-0 bg-light">
                                         <div class="card-body py-2">
                                             <div class="small text-muted">Total Usuarios</div>
-                                            <div class="h4 mb-0 text-warning"><?= $totalUsuarios ?></div>
+                                            <div class="h4 mb-0 text-warning" id="usuariosFooterTotal"><?= $totalUsuarios ?></div>
                                         </div>
                                     </div>
                                 </div>
@@ -326,7 +326,7 @@ function badgeClaseEstado($estado)
                                     <div class="card border-0 bg-light">
                                         <div class="card-body py-2">
                                             <div class="small text-muted">Inactivos</div>
-                                            <div class="h4 mb-0 text-muted"><?= $totalUsuarios - ($datos['usuarios']['activos'] ?? 0) ?></div>
+                                            <div class="h4 mb-0 text-muted" id="usuariosFooterInactivos"><?= $totalUsuarios - ($datos['usuarios']['activos'] ?? 0) ?></div>
                                         </div>
                                     </div>
                                 </div>
@@ -431,12 +431,12 @@ function badgeClaseEstado($estado)
                         </div>
                         <div class="col-md-5">
                             <div class="alert alert-success bg-success-subtle text-dark border-0 py-2 mb-2">
-                                Total productos: <strong><?= $datos['inventario']['productos'] ?? 0 ?></strong> | Stock total: <strong><?= number_format($datos['inventario']['stock_total'] ?? 0) ?></strong>
+                                Total productos: <strong id="invTotalProductos"><?= $datos['inventario']['productos'] ?? 0 ?></strong> | Stock total: <strong id="invStockTotal"><?= number_format($datos['inventario']['stock_total'] ?? 0) ?></strong>
                             </div>
                             <div class="card border-0 bg-light">
                                 <div class="card-body py-2">
                                     <div class="small text-muted">Valor Total Inventario</div>
-                                    <div class="h4 mb-0 text-success">$<?= number_format($datos['inventario']['valor_total'] ?? 0, 2) ?></div>
+                                    <div class="h4 mb-0 text-success" id="invValorTotalH4">$<?= number_format($datos['inventario']['valor_total'] ?? 0, 2) ?></div>
                                 </div>
                             </div>
                         </div>
@@ -460,7 +460,7 @@ function badgeClaseEstado($estado)
                             <tbody>
                                 <?php if (!empty($inventarioFiltrado)): ?>
                                     <?php foreach ($inventarioFiltrado as $f): ?>
-                                        <tr data-estado="<?= strtolower($f['estado'] ?? '') ?>" data-categoria="<?= strtolower($f['categoria'] ?? '') ?>">
+                                        <tr data-estado="<?= strtolower($f['estado'] ?? '') ?>" data-categoria="<?= strtolower($f['categoria'] ?? '') ?>" data-stock="<?= $f['stock'] ?>" data-producto="<?= htmlspecialchars($f['producto']) ?>">
                                             <td><input type="checkbox" class="select-row" value="<?= htmlspecialchars($f['idinv']) ?>"></td>
                                             <td><?= htmlspecialchars($f['idinv']) ?></td>
                                             <td><?= htmlspecialchars($f['categoria'] ?? 'Sin categoría') ?></td>
@@ -551,7 +551,7 @@ function badgeClaseEstado($estado)
                                     <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #d1fae5, #a7f3d0);">
                                         <div class="card-body py-3">
                                             <div class="small text-muted">Completados</div>
-                                            <div class="h4 mb-0 text-success">$<?= number_format($datos['pagos']['realizados'] ?? 0, 2) ?></div>
+                                            <div class="h4 mb-0 text-success" id="pagosCompletadosH4">$<?= number_format($datos['pagos']['realizados'] ?? 0, 2) ?></div>
                                         </div>
                                     </div>
                                 </div>
@@ -559,7 +559,7 @@ function badgeClaseEstado($estado)
                                     <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #fef3c7, #fde68a);">
                                         <div class="card-body py-3">
                                             <div class="small text-muted">Pendientes</div>
-                                            <div class="h4 mb-0 text-warning">$<?= number_format($datos['pagos']['pendientes'] ?? 0, 2) ?></div>
+                                            <div class="h4 mb-0 text-warning" id="pagosPendientesH4">$<?= number_format($datos['pagos']['pendientes'] ?? 0, 2) ?></div>
                                         </div>
                                     </div>
                                 </div>
@@ -567,7 +567,7 @@ function badgeClaseEstado($estado)
                                     <div class="card border-0 bg-light">
                                         <div class="card-body py-2">
                                             <div class="small text-muted">Total General</div>
-                                            <div class="h4 mb-0 text-primary">$<?= number_format(($datos['pagos']['realizados'] ?? 0) + ($datos['pagos']['pendientes'] ?? 0), 2) ?></div>
+                                            <div class="h4 mb-0 text-primary" id="pagosTotalH4">$<?= number_format(($datos['pagos']['realizados'] ?? 0) + ($datos['pagos']['pendientes'] ?? 0), 2) ?></div>
                                         </div>
                                     </div>
                                 </div>
@@ -597,7 +597,7 @@ function badgeClaseEstado($estado)
                                             $estadoTexto = htmlspecialchars($pago['estado_pag'] ?? 'N/D');
                                             $fechaPagoISO = date('Y-m-d', strtotime($pago['fecha_pago']));
                                         ?>
-                                        <tr data-fecha="<?= $fechaPagoISO ?>" data-estado="<?= strtolower($pago['estado_pag'] ?? '') ?>">
+                                        <tr data-fecha="<?= $fechaPagoISO ?>" data-estado="<?= strtolower($pago['estado_pag'] ?? '') ?>" data-monto="<?= $pago['monto'] ?? 0 ?>">
                                             <td><input type="checkbox" class="select-row" value="<?= htmlspecialchars($pago['idpago'] ?? $pago['numped'] ?? '') ?>"></td>
                                             <td><?= htmlspecialchars($pago['idpago'] ?? '-') ?></td>
                                             <td><?= date('d/m/Y H:i', strtotime($pago['fecha_pago'])) ?></td>
@@ -733,7 +733,7 @@ function badgeClaseEstado($estado)
         ?>
         const ctxVentas = document.getElementById('chartVentasTendencia');
         if (ctxVentas) {
-            new Chart(ctxVentas, {
+            window.chartVentas = new Chart(ctxVentas, {
                 type: 'line',
                 data: {
                     labels: <?= json_encode(array_map(function($d) { return date('d/m', strtotime($d)); }, array_keys($ultimos7Dias))) ?>,
@@ -765,7 +765,7 @@ function badgeClaseEstado($estado)
         ?>
         const ctxInventario = document.getElementById('chartInventarioTop');
         if (ctxInventario) {
-            new Chart(ctxInventario, {
+            window.chartInventario = new Chart(ctxInventario, {
                 type: 'bar',
                 data: {
                     labels: <?= json_encode(array_map(function($i) { return substr($i['producto'] ?? 'N/D', 0, 15); }, $top10)) ?>,
@@ -797,7 +797,7 @@ function badgeClaseEstado($estado)
         ?>
         const ctxUsuarios = document.getElementById('chartUsuariosRol');
         if (ctxUsuarios) {
-            new Chart(ctxUsuarios, {
+            window.chartUsuarios = new Chart(ctxUsuarios, {
                 type: 'doughnut',
                 data: {
                     labels: <?= json_encode(array_keys($usuariosPorRol)) ?>,
@@ -827,7 +827,7 @@ function badgeClaseEstado($estado)
         ?>
         const ctxPagos = document.getElementById('chartPagosEstados');
         if (ctxPagos) {
-            new Chart(ctxPagos, {
+            window.chartPagos = new Chart(ctxPagos, {
                 type: 'doughnut',
                 data: {
                     labels: <?= json_encode(array_keys($pagosPorEstado)) ?>,
@@ -853,31 +853,7 @@ function badgeClaseEstado($estado)
             });
         }
 
-        // Actualizar totales dinámicos en modal de ventas
-        function actualizarTotalesVentas() {
-            const filas = document.querySelectorAll('#tablaPedidosModal tbody tr:not([style*="display: none"])');
-            let total = 0;
-            let count = 0;
-            filas.forEach(fila => {
-                const checkbox = fila.querySelector('.select-row');
-                if (checkbox) {
-                    const montoText = fila.cells[3]?.textContent.replace('$', '').replace(',', '');
-                    total += parseFloat(montoText) || 0;
-                    count++;
-                }
-            });
-            document.getElementById('totalVentasVisible').textContent = '$' + total.toLocaleString('en-US', {minimumFractionDigits: 2});
-            document.getElementById('cantPedidosVisible').textContent = count;
-        }
-
-        // Llamar al cargar y al filtrar
-        const modalVentas = document.getElementById('tablaModal');
-        if (modalVentas) {
-            modalVentas.addEventListener('shown.bs.modal', actualizarTotalesVentas);
-            document.getElementById('btnFiltrarModal')?.addEventListener('click', () => {
-                setTimeout(actualizarTotalesVentas, 100);
-            });
-        }
+        // Los eventos de filtrado y actualización ahora se gestionan en repo.js
         
         // ========== CAPTURAR GRÁFICOS PARA PDF ==========
         let capturandoGrafico = false;

@@ -213,6 +213,8 @@ class Cinventario {
                             $precio_compra = floatval($_POST['precio_compra'] ?? 0);
                             $precio_venta = floatval($_POST['precio'] ?? 0);
                             
+                            header('Content-Type: application/json');
+                            
                             if ($precio_compra <= 0) {
                                 echo json_encode(['success' => false, 'message' => 'El precio de compra debe ser mayor a cero']);
                                 exit;
@@ -235,6 +237,7 @@ class Cinventario {
                                 echo json_encode(['success' => false, 'message' => $resultado['message']]);
                             }
                         } catch (Exception $e) {
+                            header('Content-Type: application/json');
                             echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
                         }
                         exit;
@@ -244,12 +247,14 @@ class Cinventario {
                         $id = $_GET['id'] ?? $_POST['id'] ?? null;
                         if ($id) {
                             $producto = $this->inventarioModel->obtenerProductoPorId($id);
+                            header('Content-Type: application/json');
                             if ($producto) {
                                 echo json_encode(['success' => true, 'producto' => $producto]);
                             } else {
                                 echo json_encode(['success' => false, 'message' => 'Producto no encontrado']);
                             }
                         } else {
+                            header('Content-Type: application/json');
                             echo json_encode(['success' => false, 'message' => 'ID de producto requerido']);
                         }
                         exit;
@@ -262,12 +267,14 @@ class Cinventario {
                         
                         if ($id && $cantidad && $cantidad > 0) {
                             $resultado = $this->inventarioModel->agregarStock($id, $cantidad, $motivo);
+                            header('Content-Type: application/json');
                             if ($resultado['success']) {
                                 echo json_encode(['success' => true, 'message' => 'Stock agregado correctamente']);
                             } else {
                                 echo json_encode(['success' => false, 'message' => $resultado['message']]);
                             }
                         } else {
+                            header('Content-Type: application/json');
                             echo json_encode(['success' => false, 'message' => 'Datos incompletos']);
                         }
                         exit;
@@ -323,6 +330,11 @@ class Cinventario {
                 }
             }
         } catch (Exception $e) {
+            error_log("Error en Cinventario AJAX: " . $e->getMessage());
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                echo json_encode(['success' => false, 'message' => 'Error en el servidor: ' . $e->getMessage()]);
+                exit;
+            }
             $this->mensaje_error = $e->getMessage();
         }
     }

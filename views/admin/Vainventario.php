@@ -550,9 +550,10 @@
                     <div class="col-md-4">
                         <select class="form-select" id="filtro-stock-perecederos">
                             <option value="">📊 Todos los estados</option>
-                            <option value="bajo">Stock Bajo</option>
-                            <option value="sin_stock">Sin Stock</option>
-                            <option value="normal">Stock Normal</option>
+                            <option value="critico">Stock Crítico (1-9)</option>
+                            <option value="bajo">Stock Bajo (10-19)</option>
+                            <option value="sin_stock">Sin Stock (0)</option>
+                            <option value="normal">Stock Normal (20+)</option>
                         </select>
                     </div>
                 </div>
@@ -694,24 +695,32 @@
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-success" title="Ver historial de lotes" 
-                                                onclick="abrirModalVerLotes('<?= $item['idinv'] ?>', '<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>')">
+                                        <button class="btn btn-sm btn-success btn-modal-ver-lotes" title="Ver historial de lotes" 
+                                                data-producto-id="<?= $item['idinv'] ?>" 
+                                                data-producto-nombre="<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-primary" title="Agregar nuevo lote"
-                                                onclick="abrirModalAgregarLote('<?= $item['idinv'] ?>', '<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>')">
+                                        <button class="btn btn-sm btn-primary btn-modal-agregar-lote" title="Agregar nuevo lote"
+                                                data-producto-id="<?= $item['idinv'] ?>" 
+                                                data-producto-nombre="<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>">
                                             <i class="fas fa-plus"></i>
                                         </button>
                                     </td>
                                     <td>
-                                        <button type="button" class="btn btn-warning btn-sm" title="Editar"
-                                                onclick="abrirModalEditar('<?= $item['idinv'] ?>', '<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>')">
+                                        <button type="button" class="btn btn-warning btn-sm btn-modal-editar" title="Editar"
+                                                data-producto-id="<?= $item['idinv'] ?>" 
+                                                data-producto-nombre="<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>"
+                                                data-producto-tipo="flor"
+                                                data-producto-naturaleza="<?= htmlspecialchars($item['naturaleza'] ?? '', ENT_QUOTES) ?>"
+                                                data-producto-color="<?= htmlspecialchars($item['color'] ?? '', ENT_QUOTES) ?>"
+                                                data-producto-stock="<?= $item['stock'] ?>"
+                                                data-producto-precio="<?= $item['precio'] ?>"
+                                                data-producto-precio-compra="<?= $item['precio_compra'] ?? 0 ?>">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <!-- Para productos perecederos se usa "Agregar Lote" en lugar de "Agregar Stock" -->
-                                        <!-- El stock se actualiza automáticamente al crear lotes -->
-                                        <button type="button" class="btn btn-danger btn-sm" title="Eliminar"
-                                                onclick="abrirModalEliminar('<?= $item['idinv'] ?>', '<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>')">
+                                        <button type="button" class="btn btn-danger btn-sm btn-modal-eliminar" title="Eliminar"
+                                                data-producto-id="<?= $item['idinv'] ?>" 
+                                                data-producto-nombre="<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
@@ -805,9 +814,10 @@
                     <div class="col-md-3">
                         <select class="form-select" id="filtro-stock-no-perecederos">
                             <option value="">📊 Todos los estados</option>
-                            <option value="bajo">Stock Bajo</option>
-                            <option value="sin_stock">Sin Stock</option>
-                            <option value="normal">Stock Normal</option>
+                            <option value="critico">Stock Crítico (1-9)</option>
+                            <option value="bajo">Stock Bajo (10-19)</option>
+                            <option value="sin_stock">Sin Stock (0)</option>
+                            <option value="normal">Stock Normal (20+)</option>
                         </select>
                     </div>
                 </div>
@@ -895,16 +905,26 @@
                                     </td>
                                     <td><?= $item['stock'] > 0 ? '<span class="badge bg-success">Disponible</span>' : '<span class="badge bg-danger">Agotado</span>' ?></td>
                                     <td>
-                                        <button type="button" class="btn btn-warning btn-sm" title="Editar"
-                                                onclick="abrirModalEditar('<?= $item['idinv'] ?>', '<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>')">
+                                        <button type="button" class="btn btn-warning btn-sm btn-modal-editar" title="Editar"
+                                                data-producto-id="<?= $item['idinv'] ?>" 
+                                                data-producto-nombre="<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>"
+                                                data-producto-tipo="otro"
+                                                data-producto-naturaleza="<?= htmlspecialchars($item['naturaleza'] ?? '', ENT_QUOTES) ?>"
+                                                data-producto-color="<?= htmlspecialchars($item['color'] ?? '', ENT_QUOTES) ?>"
+                                                data-producto-stock="<?= $item['stock'] ?>"
+                                                data-producto-precio="<?= $item['precio'] ?>"
+                                                data-producto-precio-compra="<?= $item['precio_compra'] ?? 0 ?>">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button type="button" class="btn btn-info btn-sm" title="Stock"
-                                                onclick="abrirModalAgregarStock('<?= $item['idinv'] ?>', '<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>')">
+                                        <button type="button" class="btn btn-info btn-sm btn-modal-stock" title="Stock"
+                                                data-producto-id="<?= $item['idinv'] ?>" 
+                                                data-producto-nombre="<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>"
+                                                data-producto-stock="<?= $item['stock'] ?>">
                                             <i class="fas fa-plus"></i>
                                         </button>
-                                        <button type="button" class="btn btn-danger btn-sm" title="Eliminar"
-                                                onclick="abrirModalEliminar('<?= $item['idinv'] ?>', '<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>')">
+                                        <button type="button" class="btn btn-danger btn-sm btn-modal-eliminar" title="Eliminar"
+                                                data-producto-id="<?= $item['idinv'] ?>" 
+                                                data-producto-nombre="<?= htmlspecialchars($item['producto'], ENT_QUOTES) ?>">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
@@ -984,7 +1004,15 @@
                                     <td>
                                         <div class="btn-group" role="group">
                                             <button type="button" 
-                                                    class="btn btn-warning btn-sm" 
+                                                    class="btn btn-warning btn-sm btn-modal-editar-proveedor" 
+                                                    data-proveedor-id="<?= $prov['id'] ?>"
+                                                    data-proveedor-nombre="<?= htmlspecialchars($prov['nombre'], ENT_QUOTES) ?>"
+                                                    data-proveedor-categoria="<?= htmlspecialchars($prov['categoria'], ENT_QUOTES) ?>"
+                                                    data-proveedor-telefono="<?= htmlspecialchars($prov['telefono'], ENT_QUOTES) ?>"
+                                                    data-proveedor-email="<?= htmlspecialchars($prov['email'], ENT_QUOTES) ?>"
+                                                    data-proveedor-direccion="<?= htmlspecialchars($prov['direccion'] ?? '', ENT_QUOTES) ?>"
+                                                    data-proveedor-notas="<?= htmlspecialchars($prov['notas'] ?? '', ENT_QUOTES) ?>"
+                                                    data-proveedor-estado="<?= htmlspecialchars($prov['estado'], ENT_QUOTES) ?>"
                                                     onclick="editarProveedorModal(<?= $prov['id'] ?>, '<?= htmlspecialchars($prov['nombre'], ENT_QUOTES) ?>', '<?= htmlspecialchars($prov['categoria'], ENT_QUOTES) ?>', '<?= htmlspecialchars($prov['telefono'], ENT_QUOTES) ?>', '<?= htmlspecialchars($prov['email'], ENT_QUOTES) ?>', '<?= htmlspecialchars($prov['direccion'] ?? '', ENT_QUOTES) ?>', '<?= htmlspecialchars($prov['notas'] ?? '', ENT_QUOTES) ?>', '<?= htmlspecialchars($prov['estado'], ENT_QUOTES) ?>')"
                                                     title="Editar proveedor">
                                                 <i class="fas fa-edit"></i>
@@ -1453,7 +1481,7 @@
                         </div>
                         
                         <!-- Precio Compra -->
-                        <div class="col-md-4">
+                        <div class="col-md-4" id="contenedor_editar_precio_compra" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
                             <label class="form-label"><i class="fas fa-shopping-cart me-1"></i>Precio Compra</label>
                             <input type="number" class="form-control" name="precio_compra" id="editar_precio_compra" min="0" step="0.01" required>
                             <small class="text-muted">Costo de adquisición</small>
@@ -1575,24 +1603,24 @@
                             <label class="form-label"><i class="fas fa-tags me-1"></i>Categoría *</label>
                             <select class="form-select" name="categoria_proveedor" id="editar_categoria_proveedor" required>
                                 <option value="">Seleccionar categoría...</option>
-                                <option value="flores_frescas">Flores Frescas</option>
-                                <option value="flores_artificiales">Flores Artificiales</option>
-                                <option value="plantas">Plantas y Arbustos</option>
-                                <option value="chocolates">Chocolates y Dulces</option>
-                                <option value="caramelos">Caramelos Gourmet</option>
-                                <option value="fotografias">Servicios de Fotografía</option>
-                                <option value="globos">Globos y Decoraciones</option>
-                                <option value="tarjetas">Tarjetas y Papelería</option>
-                                <option value="perfumes">Perfumes y Fragancias</option>
-                                <option value="velas">Velas Aromáticas</option>
-                                <option value="accesorios">Accesorios Florales</option>
-                                <option value="macetas">Macetas y Contenedores</option>
-                                <option value="fertilizantes">Fertilizantes y Nutrientes</option>
-                                <option value="herramientas">Herramientas de Jardinería</option>
-                                <option value="cestas">Cestas y Canastas</option>
-                                <option value="lazos">Lazos y Cintas</option>
-                                <option value="empaques">Materiales de Empaque</option>
-                                <option value="preservantes">Preservantes Florales</option>
+                                <option value="Flores Naturales">Flores Naturales</option>
+                                <option value="Flores Artificiales">Flores Artificiales</option>
+                                <option value="Plantas">Plantas y Arbustos</option>
+                                <option value="Chocolates">Chocolates y Dulces</option>
+                                <option value="Caramelos">Caramelos Gourmet</option>
+                                <option value="Fotografías">Servicios de Fotografía</option>
+                                <option value="Globos">Globos y Decoraciones</option>
+                                <option value="Tarjetas">Tarjetas y Papelería</option>
+                                <option value="Perfumes">Perfumes y Fragancias</option>
+                                <option value="Velas">Velas Aromáticas</option>
+                                <option value="Accesorios">Accesorios Florales</option>
+                                <option value="Macetas">Macetas y Contenedores</option>
+                                <option value="Fertilizantes">Fertilizantes y Nutrientes</option>
+                                <option value="Herramientas">Herramientas de Jardinería</option>
+                                <option value="Cestas">Cestas y Canastas</option>
+                                <option value="Lazos">Lazos y Cintas</option>
+                                <option value="Empaques">Materiales de Empaque</option>
+                                <option value="Preservantes">Preservantes Florales</option>
                             </select>
                         </div>
                         
@@ -3988,9 +4016,9 @@ function editarLote(idlote) {
                 document.getElementById('editar_cantidad').value = lote.cantidad;
                 document.getElementById('editar_fecha_caducidad').value = lote.fecha_caducidad;
                 document.getElementById('editar_estado').value = lote.estado || 'activo';
-                document.getElementById('editar_proveedor').value = lote.proveedor || '';
-                document.getElementById('editar_precio_compra').value = lote.precio_compra || '';
-                document.getElementById('editar_observaciones').value = lote.observaciones || '';
+                document.getElementById('lote_editar_proveedor').value = lote.proveedor || '';
+                document.getElementById('lote_editar_precio_compra').value = lote.precio_compra || '';
+                document.getElementById('lote_editar_observaciones').value = lote.observaciones || '';
                 
                 // Abrir modal
                 const modal = new bootstrap.Modal(document.getElementById('modal-editar-lote'));
@@ -4648,33 +4676,33 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Lote - <span id="editar_lote_numero"></span></h5>
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Lote - <span id="lote_editar_numero_display"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="form-editar-lote">
-                    <input type="hidden" name="idlote" id="editar_idlote">
-                    <input type="hidden" name="inv_idinv" id="editar_inv_idinv">
+                    <input type="hidden" name="idlote" id="lote_editar_idlote">
+                    <input type="hidden" name="inv_idinv" id="lote_editar_inv_idinv">
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Número de Lote *</label>
-                            <input type="text" class="form-control" name="numero_lote" id="editar_numero_lote" required>
+                            <input type="text" class="form-control" name="numero_lote" id="lote_editar_numero_lote" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Cantidad *</label>
-                            <input type="number" class="form-control" name="cantidad" id="editar_cantidad" min="0" required>
+                            <input type="number" class="form-control" name="cantidad" id="lote_editar_cantidad" min="0" required>
                         </div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Fecha de Caducidad *</label>
-                            <input type="date" class="form-control" name="fecha_caducidad" id="editar_fecha_caducidad" required>
+                            <input type="date" class="form-control" name="fecha_caducidad" id="lote_editar_fecha_caducidad" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Estado</label>
-                            <select class="form-select" name="estado" id="editar_estado">
+                            <select class="form-select" name="estado" id="lote_editar_estado">
                                 <option value="activo">Activo</option>
                                 <option value="vencido">Vencido</option>
                                 <option value="agotado">Agotado</option>
@@ -4685,7 +4713,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Proveedor</label>
-                            <select class="form-select" name="proveedor" id="editar_proveedor">
+                            <select class="form-select" name="proveedor" id="lote_editar_proveedor">
                                 <option value="">Seleccionar proveedor...</option>
                                 <?php if (!empty($todos_proveedores)): ?>
                                     <?php foreach ($todos_proveedores as $prov): ?>
@@ -4696,13 +4724,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Precio de Compra</label>
-                            <input type="number" step="0.01" class="form-control" name="precio_compra" id="editar_precio_compra" min="0">
+                            <input type="number" step="0.01" class="form-control" name="precio_compra" id="lote_editar_precio_compra" min="0">
                         </div>
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">Observaciones</label>
-                        <textarea class="form-control" name="observaciones" id="editar_observaciones" rows="3"></textarea>
+                        <textarea class="form-control" name="observaciones" id="lote_editar_observaciones" rows="3"></textarea>
                     </div>
                 </form>
             </div>

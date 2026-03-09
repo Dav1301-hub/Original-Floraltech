@@ -6,10 +6,10 @@ document.addEventListener("DOMContentLoaded", function () {
     // Verificar si existe sistema AJAX personalizado en la página
     const tieneAjaxPersonalizado = document.querySelector('[onclick*="cargarPagina"]') !== null;
     const tablaInventario = document.getElementById('tabla-inventario');
-    
+
     console.log('Tabla inventario encontrada:', !!tablaInventario);
     console.log('Sistema AJAX personalizado detectado:', tieneAjaxPersonalizado);
-    
+
     if (tablaInventario && !tieneAjaxPersonalizado) {
         // Inicializar DataTable solo si no hay sistema AJAX personalizado
         console.log('Inicializando DataTable tradicional...');
@@ -32,10 +32,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 }
             });
-            
+
             const buscador = document.querySelector('.buscador input');
             if (buscador) {
-                buscador.addEventListener('input', function (){
+                buscador.addEventListener('input', function () {
                     tabla.search(buscador.value).draw();
                 });
             }
@@ -44,11 +44,11 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     } else {
         console.log('Sistema AJAX personalizado detectado o tabla no encontrada');
-        
+
         // Funciones de fallback para paginación si no están definidas
         if (typeof window.cargarPagina === 'undefined') {
             console.log('Definiendo función cargarPagina de fallback...');
-            window.cargarPagina = function(page) {
+            window.cargarPagina = function (page) {
                 console.log('Función fallback cargarPagina llamada con página:', page);
                 // Recarga tradicional como fallback
                 const url = new URL(window.location);
@@ -56,10 +56,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 window.location.href = url.toString();
             };
         }
-        
+
         if (typeof window.cambiarElementosPorPagina === 'undefined') {
             console.log('Definiendo función cambiarElementosPorPagina de fallback...');
-            window.cambiarElementosPorPagina = function(limit) {
+            window.cambiarElementosPorPagina = function (limit) {
                 console.log('Función cambiarElementosPorPagina llamada con límite:', limit);
                 const url = new URL(window.location);
                 url.searchParams.set('elementos_por_pagina', limit);
@@ -71,7 +71,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
-window.abrirproducto = function(){
+window.abrirproducto = function () {
     const modalElement = document.getElementById('modal-nuevo-producto');
     if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         const modal = new bootstrap.Modal(modalElement);
@@ -82,12 +82,12 @@ window.abrirproducto = function(){
         document.getElementById('modal-backdrop').classList.add('show');
     }
 }
-function cerrarproducto(){
+function cerrarproducto() {
     document.getElementById('modal-nuevo-producto').style.display = 'none';
     document.getElementById('modal-backdrop').classList.remove('show');
 }
 
-window.abrirproveedor = function(){
+window.abrirproveedor = function () {
     const modalElement = document.getElementById('modal-proveedores');
     if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         const modal = new bootstrap.Modal(modalElement);
@@ -99,16 +99,16 @@ window.abrirproveedor = function(){
     }
 }
 
-function cerrarproveedor(){
-    document.getElementById('modal-proveedores').style.display ='none';
+function cerrarproveedor() {
+    document.getElementById('modal-proveedores').style.display = 'none';
     document.getElementById('modal-backdrop').classList.remove('show');
 }
 
 // Funciones para gestión de inventario
 // Funciones para abrir y llenar los modales
-window.abrirModalEditar = function(productoData) {
+window.abrirModalEditar = function (productoData) {
     console.log('📝 Abriendo modal de edición con datos:', productoData);
-    
+
     // Llenar los campos del modal con los datos del producto
     document.getElementById('editar_producto_id').value = productoData.id || '';
     document.getElementById('editar_nombre_producto').value = productoData.nombre || '';
@@ -117,7 +117,7 @@ window.abrirModalEditar = function(productoData) {
     document.getElementById('editar_precio').value = productoData.precio || 0;
     document.getElementById('editar_color').value = productoData.color || '';
     document.getElementById('editar_naturaleza').value = productoData.naturaleza || '';
-    
+
     // Determinar el estado basado en el estado_stock o usar 'Disponible' por defecto
     let estado = 'Disponible';
     if (productoData.estado) {
@@ -126,9 +126,9 @@ window.abrirModalEditar = function(productoData) {
         estado = 'Agotado';
     }
     document.getElementById('editar_estado').value = estado;
-    
+
     console.log('✅ Campos del modal llenados correctamente');
-    
+
     // Abrir el modal
     const modalElement = document.getElementById('modal-editar-producto');
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
@@ -142,19 +142,19 @@ window.abrirModalEditar = function(productoData) {
     }
 };
 
-window.abrirModalAgregarStock = function(productoData) {
+window.abrirModalAgregarStock = function (productoData) {
     console.log('📦 Abriendo modal de stock con datos:', productoData);
-    
+
     // Llenar los campos del modal con los datos del producto
     document.getElementById('stock_producto_id').value = productoData.id || '';
     document.getElementById('stock_nombre_producto').textContent = productoData.nombre || 'Producto';
     document.getElementById('stock_actual').textContent = productoData.stock || 0;
-    
+
     // Limpiar el campo de cantidad
     document.getElementById('cantidad_agregar').value = '';
-    
+
     console.log('✅ Campos del modal de stock llenados correctamente');
-    
+
     // Abrir el modal
     const modalElement = document.getElementById('modal-agregar-stock');
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
@@ -166,7 +166,7 @@ window.abrirModalAgregarStock = function(productoData) {
         modalElement.style.display = 'block';
         modalElement.classList.add('show');
     }
-    
+
     // Enfocar el campo de cantidad
     setTimeout(() => {
         const cantidadInput = document.getElementById('cantidad_agregar');
@@ -176,14 +176,14 @@ window.abrirModalAgregarStock = function(productoData) {
     }, 300);
 };
 
-window.abrirModalEliminar = function(productoData) {
+window.abrirModalEliminar = function (productoData) {
     console.log('🗑️ Abriendo modal de eliminación con datos:', productoData);
-    
+
     document.getElementById('eliminar_producto_id').value = productoData.id || '';
     document.getElementById('eliminar_nombre_producto').textContent = productoData.nombre || 'este producto';
-    
+
     console.log('✅ Modal de eliminación configurado');
-    
+
     const modalElement = document.getElementById('modal-eliminar-producto');
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         const modal = new bootstrap.Modal(modalElement);
@@ -198,7 +198,7 @@ window.abrirModalEliminar = function(productoData) {
 
 function eliminarFlor(id) {
     console.log('Eliminando flor con ID:', id);
-    
+
     // Crear modal de confirmación de eliminación dinámicamente
     const modalHTML = `
         <div class="modal fade" id="modal-confirmar-eliminacion" tabindex="-1">
@@ -233,20 +233,20 @@ function eliminarFlor(id) {
             </div>
         </div>
     `;
-    
+
     // Eliminar modal existente si existe
     const existingModal = document.getElementById('modal-confirmar-eliminacion');
     if (existingModal) {
         existingModal.remove();
     }
-    
+
     // Agregar el modal al body
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
+
     // Mostrar el modal
     const modalElement = document.getElementById('modal-confirmar-eliminacion');
     let modal;
-    
+
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         modal = new bootstrap.Modal(modalElement);
         modal.show();
@@ -256,9 +256,9 @@ function eliminarFlor(id) {
         modalElement.style.display = 'block';
         modalElement.classList.add('show');
     }
-    
+
     // Event listener para el botón de confirmar
-    document.getElementById('confirmar-eliminacion').addEventListener('click', function() {
+    document.getElementById('confirmar-eliminacion').addEventListener('click', function () {
         // Cerrar modal
         if (modal && typeof bootstrap !== 'undefined') {
             modal.hide();
@@ -268,10 +268,10 @@ function eliminarFlor(id) {
             modalElement.style.display = 'none';
             modalElement.classList.remove('show');
         }
-        
+
         // Ejecutar eliminación
         procesarEliminarProducto(id);
-        
+
         // Limpiar modal después de un breve delay
         setTimeout(() => {
             if (modalElement) {
@@ -285,53 +285,64 @@ function eliminarFlor(id) {
 function procesarEliminarProducto(id) {
     const formData = new FormData();
     formData.append('id', id);
-    
+
     fetch(`?ctrl=Cinventario&accion=eliminar_producto`, {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Mostrar mensaje de éxito con modal
-            mostrarMensajeExito('✅ Producto eliminado correctamente');
-            // Recargar la página después de un breve delay
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        } else {
-            console.error('Error al eliminar producto:', data.message);
-            mostrarMensajeError('❌ Error al eliminar el producto: ' + (data.message || 'Error desconocido'));
-        }
-    })
-    .catch(error => {
-        console.error('Error en la petición:', error);
-        mostrarMensajeError('❌ Error de conexión al servidor');
-    });
+        .then(response => {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return response.json();
+            } else {
+                return response.text().then(text => {
+                    console.error("Respuesta no JSON al eliminar:", text);
+                    throw new Error("El servidor devolvió una respuesta inesperada (no JSON).");
+                });
+            }
+        })
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje de éxito con modal
+                mostrarMensajeExito('✅ Producto eliminado correctamente');
+                // Recargar la página después de un breve delay
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                console.error('Error al eliminar producto:', data.message);
+                mostrarMensajeError('❌ Error al eliminar el producto: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error en la petición:', error);
+            mostrarMensajeError('❌ Error de conexión al servidor');
+        });
 }
 
 function agregarAInventario(id) {
     console.log('Agregando stock al producto con ID:', id);
-    
+
     // Primero obtener los datos del producto para mostrar en el modal
     fetch(`?ctrl=Cinventario&accion=obtener_producto&id=${id}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 const producto = data.producto;
-                
+
                 // Llenar los campos del modal
                 document.getElementById('stock_producto_id').value = id;
                 document.getElementById('stock_nombre_producto').textContent = producto.producto || 'Producto';
                 document.getElementById('stock_actual').textContent = producto.stock || 0;
                 document.getElementById('cantidad_agregar').value = '';
-                
+
                 // Limpiar textarea de motivo
                 const motivoTextarea = document.querySelector('#form-agregar-stock textarea[name="motivo"]');
                 if (motivoTextarea) {
                     motivoTextarea.value = '';
                 }
-                
+
                 // Mostrar el modal
                 const modalElement = document.getElementById('modal-agregar-stock');
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
@@ -343,7 +354,7 @@ function agregarAInventario(id) {
                     modalElement.style.display = 'block';
                     modalElement.classList.add('show');
                 }
-                
+
                 // Enfocar el campo de cantidad
                 setTimeout(() => {
                     const cantidadInput = document.getElementById('cantidad_agregar');
@@ -351,7 +362,7 @@ function agregarAInventario(id) {
                         cantidadInput.focus();
                     }
                 }, 500);
-                
+
             } else {
                 console.error('Error al obtener datos del producto:', data.message);
                 // Fallback: crear modal genérico si no se pueden obtener los datos
@@ -406,20 +417,20 @@ function crearModalAgregarStockGenerico(id) {
             </div>
         </div>
     `;
-    
+
     // Eliminar modal existente si existe
     const existingModal = document.getElementById('modal-agregar-stock-generico');
     if (existingModal) {
         existingModal.remove();
     }
-    
+
     // Agregar el modal al body
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
+
     // Mostrar el modal
     const modalElement = document.getElementById('modal-agregar-stock-generico');
     let modal;
-    
+
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         modal = new bootstrap.Modal(modalElement);
         modal.show();
@@ -429,7 +440,7 @@ function crearModalAgregarStockGenerico(id) {
         modalElement.style.display = 'block';
         modalElement.classList.add('show');
     }
-    
+
     // Enfocar el campo de cantidad
     setTimeout(() => {
         const cantidadInput = document.getElementById('cantidad_agregar_generico');
@@ -437,12 +448,12 @@ function crearModalAgregarStockGenerico(id) {
             cantidadInput.focus();
         }
     }, 500);
-    
+
     // Event listener para el botón de confirmar
-    document.getElementById('confirmar-agregar-stock').addEventListener('click', function() {
+    document.getElementById('confirmar-agregar-stock').addEventListener('click', function () {
         const cantidad = document.getElementById('cantidad_agregar_generico').value;
         const motivo = document.getElementById('motivo_generico').value || '';
-        
+
         if (cantidad && parseInt(cantidad) > 0) {
             // Cerrar modal
             if (modal && typeof bootstrap !== 'undefined') {
@@ -453,10 +464,10 @@ function crearModalAgregarStockGenerico(id) {
                 modalElement.style.display = 'none';
                 modalElement.classList.remove('show');
             }
-            
+
             // Procesar agregar stock
             procesarAgregarStock(id, cantidad, motivo);
-            
+
             // Limpiar modal después de un breve delay
             setTimeout(() => {
                 if (modalElement) {
@@ -476,31 +487,37 @@ function procesarAgregarStock(id, cantidad, motivo = '') {
     formData.append('id', id);
     formData.append('cantidad', cantidad);
     formData.append('motivo', motivo);
-    
+
     fetch('?ctrl=cinventario', {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            mostrarMensajeExito(`✅ Se agregaron ${cantidad} unidades al stock correctamente`);
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        } else {
-            mostrarMensajeError('❌ Error al agregar stock: ' + (data.message || 'Error desconocido'));
-        }
-    })
-    .catch(error => {
-        console.error('Error en la petición:', error);
-        mostrarMensajeError('❌ Error de conexión al servidor');
-    });
+        .then(response => {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return response.json();
+            } else {
+                return response.text().then(text => {
+                    console.error("Respuesta no JSON al agregar stock:", text);
+                    throw new Error("Respuesta inválida del servidor.");
+                });
+            }
+        })
+        .then(data => {
+            if (data.success) {
+                mostrarMensajeExito(`✅ Se agregaron ${cantidad} unidades al stock correctamente`);
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                mostrarMensajeError('❌ Error al agregar stock: ' + (data.message || 'Error desconocido'));
+            }
+        })
+        .catch(error => {
+            console.error('Error en la petición:', error);
+            mostrarMensajeError('❌ Error de conexión al servidor');
+        });
 }
 
 // Función para mostrar mensajes de éxito con modal
@@ -527,7 +544,7 @@ function mostrarMensajeExito(mensaje) {
             </div>
         </div>
     `;
-    
+
     mostrarModalTemporal(modalHTML, 'modal-mensaje-exito', 2000);
 }
 
@@ -555,7 +572,7 @@ function mostrarMensajeError(mensaje) {
             </div>
         </div>
     `;
-    
+
     mostrarModalTemporal(modalHTML, 'modal-mensaje-error');
 }
 
@@ -566,14 +583,14 @@ function mostrarModalTemporal(modalHTML, modalId, autoCloseTime = 0) {
     if (existingModal) {
         existingModal.remove();
     }
-    
+
     // Agregar el modal al body
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
+
     // Mostrar el modal
     const modalElement = document.getElementById(modalId);
     let modal;
-    
+
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
         modal = new bootstrap.Modal(modalElement);
         modal.show();
@@ -583,7 +600,7 @@ function mostrarModalTemporal(modalHTML, modalId, autoCloseTime = 0) {
         modalElement.style.display = 'block';
         modalElement.classList.add('show');
     }
-    
+
     // Auto cerrar si se especifica tiempo
     if (autoCloseTime > 0) {
         setTimeout(() => {
@@ -595,7 +612,7 @@ function mostrarModalTemporal(modalHTML, modalId, autoCloseTime = 0) {
                 modalElement.style.display = 'none';
                 modalElement.classList.remove('show');
             }
-            
+
             // Limpiar modal después de animación
             setTimeout(() => {
                 if (modalElement) {
@@ -604,9 +621,9 @@ function mostrarModalTemporal(modalHTML, modalId, autoCloseTime = 0) {
             }, 500);
         }, autoCloseTime);
     }
-    
+
     // Event listener para limpiar modal al cerrar
-    modalElement.addEventListener('hidden.bs.modal', function() {
+    modalElement.addEventListener('hidden.bs.modal', function () {
         setTimeout(() => {
             if (modalElement) {
                 modalElement.remove();
@@ -616,51 +633,62 @@ function mostrarModalTemporal(modalHTML, modalId, autoCloseTime = 0) {
 }
 
 // Event listeners para los formularios de los modales
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Event listener para el formulario de editar producto
     const formEditarProducto = document.getElementById('form-editar-producto');
     if (formEditarProducto) {
-        formEditarProducto.addEventListener('submit', function(e) {
+        formEditarProducto.addEventListener('submit', function (e) {
             e.preventDefault();
-            
+
             const formData = new FormData(this);
-            
+
             fetch('?ctrl=Cinventario', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    mostrarMensajeExito('✅ Producto actualizado correctamente');
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1500);
-                } else {
-                    mostrarMensajeError('❌ Error al actualizar el producto: ' + (data.message || 'Error desconocido'));
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                mostrarMensajeError('❌ Error de conexión al servidor');
-            });
+                .then(response => {
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        return response.json();
+                    } else {
+                        return response.text().then(text => {
+                            console.error("Respuesta no JSON al editar:", text);
+                            throw new Error("Error en el servidor (Respuesta no JSON).");
+                        });
+                    }
+                })
+                .then(data => {
+                    if (data.success) {
+                        mostrarMensajeExito('✅ Producto actualizado correctamente');
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        mostrarMensajeError('❌ Error al actualizar el producto: ' + (data.message || 'Error desconocido'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    mostrarMensajeError('❌ Error de conexión al servidor');
+                });
         });
     }
-    
+
     // Event listener para el formulario de agregar stock
     const formAgregarStock = document.getElementById('form-agregar-stock');
     if (formAgregarStock) {
-        formAgregarStock.addEventListener('submit', function(e) {
+        formAgregarStock.addEventListener('submit', function (e) {
             e.preventDefault();
-            
+
             const formData = new FormData(this);
             const id = formData.get('id');
             const cantidad = formData.get('cantidad');
             const motivo = formData.get('motivo') || '';
-            
+
             if (cantidad && parseInt(cantidad) > 0) {
                 procesarAgregarStock(id, cantidad, motivo);
-                
+
                 // Cerrar el modal
                 const modalElement = document.getElementById('modal-agregar-stock');
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
