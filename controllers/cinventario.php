@@ -208,35 +208,45 @@ class Cinventario {
                         break;
                         
                     case 'editar_producto':
+                        // Evitar que Warnings o Notices de PHP en el hosting arruinen el JSON
+                        ini_set('display_errors', 0);
+                        ob_start();
                         try {
                             // Validación de precios
                             $precio_compra = floatval($_POST['precio_compra'] ?? 0);
                             $precio_venta = floatval($_POST['precio'] ?? 0);
                             
-                            header('Content-Type: application/json');
-                            
                             if ($precio_compra <= 0) {
+                                ob_clean();
+                                header('Content-Type: application/json');
                                 echo json_encode(['success' => false, 'message' => 'El precio de compra debe ser mayor a cero']);
                                 exit;
                             }
                             
                             if ($precio_venta <= 0) {
+                                ob_clean();
+                                header('Content-Type: application/json');
                                 echo json_encode(['success' => false, 'message' => 'El precio de venta debe ser mayor a cero']);
                                 exit;
                             }
                             
                             if ($precio_compra >= $precio_venta) {
+                                ob_clean();
+                                header('Content-Type: application/json');
                                 echo json_encode(['success' => false, 'message' => 'El precio de venta debe ser mayor al precio de compra']);
                                 exit;
                             }
                             
                             $resultado = $this->inventarioModel->editarProducto($_POST);
+                            ob_clean();
+                            header('Content-Type: application/json');
                             if ($resultado['success']) {
                                 echo json_encode(['success' => true, 'message' => 'Producto actualizado correctamente']);
                             } else {
                                 echo json_encode(['success' => false, 'message' => $resultado['message']]);
                             }
                         } catch (Exception $e) {
+                            ob_clean();
                             header('Content-Type: application/json');
                             echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
                         }
