@@ -87,7 +87,7 @@ class Mailer {
             <style>
                 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; }
                 .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                .header { background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+                .header { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);color: white; padding: 20px; border-radius: 8px 8px 0 0; }
                 .body { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; border-radius: 0 0 8px 8px; }
                 .field { margin: 15px 0; }
                 .label { font-weight: bold; color: #0d6efd; font-size: 12px; text-transform: uppercase; }

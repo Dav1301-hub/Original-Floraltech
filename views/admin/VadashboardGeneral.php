@@ -179,7 +179,8 @@ $cantidadAlertasLotes = count($lotesProximosCaducar);
     <div class="dash-card p-3 mb-4 shadow-sm border-0" style="border-left: 6px solid #dc3545;">
         <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
             <div class="d-flex align-items-center gap-3">
-                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 56px; height: 56px; background: rgba(220,53,69,.12);">
+                <div class="rounded-circle d-flex align-items-cen
+                ter justify-content-center" style="width: 56px; height: 56px; background: rgba(220,53,69,.12);">
                     <i class="fas fa-exclamation-triangle text-danger fs-4"></i>
                 </div>
                 <div>
@@ -319,35 +320,7 @@ $cantidadAlertasLotes = count($lotesProximosCaducar);
                 <?php endif; ?>
             </div>
 
-            <div class="dash-card p-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div class="section-title mb-0">Lotes por vencer (7 dias)</div>
-                    <span class="badge bg-danger-subtle text-danger"><?= $cantidadAlertasLotes ?> alerta<?= $cantidadAlertasLotes == 1 ? '' : 's' ?></span>
-                </div>
-                <?php if (empty($lotesProximosCaducar)): ?>
-                    <p class="text-muted mb-0">Sin lotes proximos a caducar.</p>
-                <?php else: ?>
-                    <?php foreach (array_slice($lotesProximosCaducar, 0, 3) as $lote): 
-                        $fechaCad = new DateTime($lote['fecha_caducidad']);
-                        $hoy = new DateTime();
-                        $diff = $hoy->diff($fechaCad);
-                        $diasRest = $diff->invert ? 0 : $diff->days;
-                    ?>
-                    <div class="lote-alert">
-                        <div class="d-flex justify-content-between">
-                            <strong><?= htmlspecialchars($lote['producto'] ?? 'Producto') ?></strong>
-                            <span class="badge <?= $diasRest <= 3 ? 'bg-danger' : ($diasRest <= 5 ? 'bg-warning text-dark' : 'bg-info') ?>"><?= $diasRest ?> dia<?= $diasRest == 1 ? '' : 's' ?></span>
-                        </div>
-                        <div class="small text-muted">Lote <?= htmlspecialchars($lote['numero_lote']) ?> - <?= $fechaCad->format('d/m/Y') ?></div>
-                    </div>
-                    <?php endforeach; ?>
-                    <div class="text-end mt-2">
-                        <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modal-alertas-caducidad">
-                            <i class="fas fa-eye me-1"></i>Ver todos
-                        </button>
-                    </div>
-                <?php endif; ?>
-            </div>
+            
         </div>
     </div>
 

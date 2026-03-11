@@ -368,7 +368,7 @@
         </div>
     <?php endif; ?>
 
-    <div class="d-flex align-items-center mb-4 py-3 px-3 rounded-4 shadow-sm text-white" style="background: linear-gradient(120deg, #0d6efd 0%, #5b21b6 60%, #1e1b4b 100%);">
+    <div class="d-flex align-items-center mb-4 py-3 px-3 rounded-4 shadow-sm text-white" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);">
         <div>
             <p class="mb-1 opacity-75" style="letter-spacing:1px;text-transform:uppercase; color: #ffff"><i class="fas fa-cube me-2"></i>FloralTech Admin</p>
             <h2 class="mb-0 fw-bold" style="color: #ffff">Gestión de Inventario</h2>

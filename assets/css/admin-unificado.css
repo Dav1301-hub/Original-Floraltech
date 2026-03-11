@@ -50,14 +50,13 @@ h3,
 h4,
 h5,
 h6 {
-    color: var(--text);
     font-weight: 700;
     margin: 0 0 8px 0;
 }
 
 p {
     margin: 0 0 10px 0;
-    color: #475569;
+    color: #e4e4e4;
 }
 
 .app-shell {
@@ -80,6 +79,24 @@ p {
     top: 0;
     left: 0;
     right: 0;
+
+    z-index: 1030;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .topbar {
+        padding: 0 1rem;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .topbar {
+        min-height: 60px;
+        padding: 0 0.75rem;
+    }
+
     z-index: 1060;
 }
 
@@ -170,6 +187,18 @@ p {
 }
 
 .topbar .btn-logout {
+
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+
     background: rgba(255, 255, 255, 0.1) !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     color: #fff !important;
@@ -185,6 +214,7 @@ p {
     flex-shrink: 0 !important;
     box-shadow: none !important;
     text-decoration: none !important;
+
 }
 
 .topbar .btn-logout:hover {
@@ -232,12 +262,15 @@ p {
 @media (max-width: 768px) {
     .metrics-card {
         grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
     }
 }
 
 @media (min-width: 769px) and (max-width: 1200px) {
     .metrics-card {
         grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
     }
 }
 
@@ -251,6 +284,26 @@ p {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+}
+
+@media (max-width: 1024px) {
+    .metric-card {
+        padding: 1.25rem;
+        border-radius: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .metric-card {
+        padding: 1.1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .metric-card {
+        padding: 1rem;
+        border-radius: 0.875rem;
+    }
 }
 
 .metric-card:hover {
@@ -322,19 +375,36 @@ p {
 
 .layout {
     display: grid;
-    grid-template-columns: 260px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.5rem;
     padding: calc(var(--topbar-height) + 1.5rem) 1.5rem 2rem;
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
+    margin-left: 260px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow-x: hidden;
+}
+
+@media (max-width: 1024px) {
+    .layout {
+        margin-left: 0;
+        padding: calc(var(--topbar-height) + 1rem) 1rem 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .layout {
+        padding: calc(var(--topbar-height) + 0.75rem) 0.75rem 1rem;
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .layout {
+        padding: calc(var(--topbar-height) + 0.5rem) 0.5rem 0.75rem;
+        gap: 0.75rem;
+    }
 }
 
 .layout.sidebar-collapsed {
-    grid-template-columns: 0px minmax(0, 1fr);
-    gap: 0;
+    margin-left: 0;
 }
 
 .sidebar {
@@ -343,14 +413,48 @@ p {
     border-radius: var(--radius);
     padding: 18px 16px;
     box-shadow: var(--card-shadow);
-    position: sticky;
+    position: fixed;
     top: 90px;
+    left: 0;
     height: calc(100vh - 110px);
+    width: 260px;
     display: flex;
     flex-direction: column;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease, padding 0.3s ease;
+    overflow-y: auto;
     border: 1px solid var(--border);
+
+    z-index: 1040;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 1024px) {
+    .sidebar {
+        position: fixed;
+        top: var(--topbar-height);
+        left: 0;
+        height: calc(100vh - var(--topbar-height));
+        width: 280px;
+        transform: translateX(-100%);
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        border-radius: 0;
+        border: none;
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100vw;
+        border-radius: 0;
+        padding: 16px;
+    }
+
     z-index: 1050;
+
 }
 
 .sidebar.collapsed {
@@ -388,6 +492,7 @@ p {
     color: #94a3b8;
     margin: 10px 0 6px;
     padding: 0 6px;
+    transition: opacity 0.2s ease;
 }
 
 .nav-link {
@@ -399,11 +504,13 @@ p {
     color: inherit;
     transition: all 0.2s ease;
     border: 1px solid transparent;
+    white-space: nowrap;
 }
 
 .nav-link i {
     width: 18px;
     text-align: center;
+    flex-shrink: 0;
 }
 
 .nav-link:hover {
@@ -421,14 +528,12 @@ p {
 
 .main-panel {
     background: #f8fafc;
-    min-height: calc(100vh - var(--topbar-height) - 4rem);
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-    /* Estricto para forzar scroll en hijos */
-    display: block !important;
+    min-height: calc(100vh - var(--topbar-height));
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: block;
     min-width: 0;
-    /* Permite que el flex/grid item se encoja */
 }
 
 .dash-card {
@@ -442,6 +547,26 @@ p {
     flex-direction: column;
 }
 
+@media (max-width: 1024px) {
+    .dash-card {
+        padding: 1.25rem;
+        border-radius: 0.875rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .dash-card {
+        padding: 1.1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .dash-card {
+        padding: 0.9rem;
+        border-radius: 0.75rem;
+    }
+}
+
 .content-banner {
     display: flex;
     justify-content: space-between;
@@ -452,6 +577,28 @@ p {
     border-radius: 1.25rem;
     color: #ffffff;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 1024px) {
+    .content-banner {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1.5rem;
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .content-banner {
+        padding: 1.25rem;
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .content-banner {
+        padding: 1rem;
+    }
 }
 
 .content-banner .eyebrow {
@@ -502,12 +649,10 @@ p {
     overflow-x: hidden;
 }
 
-.dash-card {
-    background: #ffffff;
-    border-radius: 1.25rem;
-    border: 1px solid #e2e8f0;
-    padding: 1.5rem;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+@media (max-width: 768px) {
+    .content-area {
+        gap: 1rem;
+    }
 }
 
 .content-slot {
@@ -577,15 +722,12 @@ p {
 
 .btn-primary,
 .btn-outline-primary:hover {
-    background: linear-gradient(120deg, #0d6efd 0%, #6a5af9 60%, #4f46e5 100%);
+    background: var(--primary);
+    color: #fff;
     border: none;
     box-shadow: 0 10px 26px rgba(79, 70, 229, 0.25);
 }
 
-.btn-outline-primary {
-    border-color: #6a5af9;
-    color: #4f46e5;
-}
 
 .table thead {
     background: #eef2ff;
@@ -597,9 +739,6 @@ p {
     vertical-align: middle;
 }
 
-.content-area a {
-    color: #4f46e5;
-}
 
 .orders-summary .metric-card {
     align-items: center;
@@ -828,51 +967,6 @@ canvas {
     .sidebar-toggle {
         display: flex;
     }
-
-    .layout {
-        grid-template-columns: 1fr !important;
-        padding: 1rem;
-        gap: 1rem;
-    }
-
-    .sidebar {
-        position: fixed;
-        top: var(--topbar-height);
-        left: 0;
-        height: calc(100vh - var(--topbar-height));
-        width: 280px;
-        border-radius: 0 1.25rem 1.25rem 0;
-        transform: translateX(-100%);
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
-        margin: 0;
-    }
-
-    .sidebar.active {
-        transform: translateX(0);
-    }
-
-    .sidebar.collapsed {
-        /* On mobile, 'collapsed' means hidden, but we use 'active' class for toggle */
-        width: 280px;
-        transform: translateX(-100%);
-    }
-
-    .content-banner {
-        flex-direction: column;
-        align-items: stretch;
-        padding: 1.5rem;
-    }
-
-    .banner-actions {
-        align-items: flex-start;
-    }
-
-    .main-panel {
-        width: 100% !important;
-        min-width: 100% !important;
-        overflow-x: hidden;
-    }
 }
 
 @media (max-width: 768px) {
@@ -903,53 +997,11 @@ canvas {
         gap: 0.5rem;
     }
 
-    .sidebar {
-        flex-direction: column;
-        width: 100%;
-    }
-
     .nav-link {
         width: 100%;
     }
 
-    .layout {
-        padding: 0.75rem !important;
-        gap: 0.75rem !important;
-    }
-
-    .main-panel {
-        padding: 0 !important;
-    }
-
-    .metrics-card {
-        grid-template-columns: 1fr;
-    }
-
-    .dash-card {
-        padding: 1.25rem;
-    }
-
     .content-banner .title {
         font-size: 1.5rem;
-    }
-}
-
-@media (max-width: 576px) {
-    .layout {
-        padding: 8px !important;
-        gap: 10px !important;
-    }
-
-    .main-panel {
-        padding: 12px !important;
-    }
-
-    .content-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .content-area {
-        gap: 12px;
     }
 }
