@@ -1,4 +1,4 @@
-﻿
+
 <?php
 require_once __DIR__ . '/../../controllers/ReportesController.php';
 
@@ -92,7 +92,7 @@ function badgeClaseEstado($estado)
                 <div class="card shadow-sm border-0 rounded-4 h-100" data-bs-toggle="modal" data-bs-target="#tablaModal" role="button" style="background: linear-gradient(135deg,#e0e7ff,#eef2ff);">
                     <div class="card-body text-center p-3">
                         <i class="bi bi-bar-chart-line h4 text-primary"></i>
-                        <h6 class="fw-bold mt-2 mb-1">Ventas</h6>
+                        <h6 class="fw-bold mt-2 mb-1">Pedidos</h6>
                         <div class="small text-muted">Total</div>
                         <div class="h6 fw-bold text-primary mb-1">$<?= number_format($datos['ventas']['total'] ?? 0, 2) ?></div>
                         <div class="small text-muted" style="font-size: 0.75rem;">Pedidos: <?= $datos['ventas']['pedidos'] ?? 0 ?></div>
@@ -151,7 +151,7 @@ function badgeClaseEstado($estado)
             <div class="modal-content rounded-4 border-0 shadow-lg">
                 <div class="modal-header text-white rounded-top-4" style="background: linear-gradient(120deg,#6a5af9 0%,#7c3aed 100%);">
                     <div>
-                        <h5 class="modal-title" id="tablaModalLabel">Ventas y pedidos</h5>
+                        <h5 class="modal-title" id="tablaModalLabel">Pedidos</h5>
                         <small class="text-white-50">Filtra por rango de fechas o estado para inspeccionar operaciones.</small>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>

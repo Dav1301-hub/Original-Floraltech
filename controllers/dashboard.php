@@ -77,4 +77,3 @@ class dashboard {
         require_once 'views/profile.php';
     }
 }
-?>

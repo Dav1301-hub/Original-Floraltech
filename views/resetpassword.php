@@ -13,21 +13,22 @@ $token = $_GET['token'] ?? '';
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Restablecer Contraseña</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body style="background:#f8f9fa;">
-<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center">
-    <div class="row w-75 shadow-lg rounded overflow-hidden">
+<div class="container min-vh-100 d-flex align-items-center justify-content-center py-4 py-md-5">
+    <div class="row w-100 shadow-lg rounded overflow-hidden mx-auto" style="max-width: 950px;">
         <!-- Sección del Logo -->
-        <div class="col-md-6 d-flex flex-column align-items-center justify-content-center" style="background:#e8f4f8;">
-            <img src="/Original-Floraltech/assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:220px;">
-            <p class="text-center px-3" style="font-size:1.2rem;">"Crea una nueva contraseña segura para tu cuenta."</p>
+        <div class="col-md-6 d-flex flex-column align-items-center justify-content-center p-4 p-md-5" style="background:#e8f4f8;">
+            <img src="/Original-Floraltech/assets/images/logoepymes.png" alt="Logo" class="mb-4 img-fluid" style="max-width:220px;">
+            <p class="text-center px-2" style="font-size:1.1rem;">"Crea una nueva contraseña segura para tu cuenta."</p>
         </div>
 
         <!-- Formulario -->
-        <div class="col-md-6 bg-white d-flex flex-column justify-content-center align-items-center" style="padding: 40px 0;">
-            <div class="shadow rounded p-4" style="width:100%; max-width:400px; background:#fff;">
+        <div class="col-md-6 bg-white d-flex flex-column justify-content-center align-items-center p-4 p-md-5">
+            <div class="w-100" style="max-width: 400px;">
                 <h2 class="mb-3 text-center fw-bold">Restablecer Contraseña</h2>
                 
                 <?php if (!empty($error)): ?>

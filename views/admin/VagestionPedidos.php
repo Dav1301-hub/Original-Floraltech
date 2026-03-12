@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -797,16 +797,16 @@ function verDetallePedido(idPedido) {
                 <div class="row">
                     <div class="col-md-6">
                         <h6 class="text-primary mb-3"><i class="fas fa-user me-2"></i>Cliente</h6>
-                        <p class="mb-1"><strong>Nombre:</strong> ${cliente}</p>
-                        <p class="mb-1"><strong>Email:</strong> ${email || 'N/D'}</p>
+                        <p class="mb-1 text-dark"><strong class="text-dark">Nombre:</strong> ${cliente}</p>
+                        <p class="mb-1 text-dark"><strong class="text-dark">Email:</strong> ${email || 'N/D'}</p>
                     </div>
                     <div class="col-md-6">
                         <h6 class="text-primary mb-3"><i class="fas fa-info-circle me-2"></i>Pedido</h6>
-                        <p class="mb-1"><strong>Numero:</strong> ${numero}</p>
-                        <p class="mb-1"><strong>Fecha creacion:</strong> ${fechaCreacion ? fechaCreacion : 'N/D'}</p>
-                        <p class="mb-1"><strong>Fecha entrega:</strong> ${fechaEntrega}</p>
-                        <p class="mb-1"><strong>Estado:</strong> ${estado}</p>
-                        <p class="mb-1"><strong>Estado pago:</strong> ${estadoPago}</p>
+                        <p class="mb-1 text-dark"><strong class="text-dark">Numero:</strong> ${numero}</p>
+                        <p class="mb-1 text-dark"><strong class="text-dark">Fecha creacion:</strong> ${fechaCreacion ? fechaCreacion : 'N/D'}</p>
+                        <p class="mb-1 text-dark"><strong class="text-dark">Fecha entrega:</strong> ${fechaEntrega}</p>
+                        <p class="mb-1 text-dark"><strong class="text-dark">Estado:</strong> ${estado}</p>
+                        <p class="mb-1 text-dark"><strong class="text-dark">Estado pago:</strong> ${estadoPago}</p>
                     </div>
                 </div>
                 <hr>

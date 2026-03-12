@@ -62,7 +62,7 @@ $total_empleados = count($empleados);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Empleados - FloralTech</title>
+    <title>Gestión de Usuarios - FloralTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -74,11 +74,11 @@ $total_empleados = count($empleados);
         <div class="content-banner mb-4">
             <div class="banner-info">
                 <p class="banner-subtitle"><i class="fas fa-users me-2"></i>FloralTech Admin</p>
-                <h2 class="banner-title">Gestión de Empleados</h2>
+                <h2 class="banner-title">Gestión de Usuarios</h2>
             </div>
             <div class="banner-actions">
                 <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#nuevoEmpleadoModal">
-                    <i class="fas fa-plus me-2"></i>Nuevo Empleado
+                    <i class="fas fa-plus me-2"></i>Nuevo Usuario
                 </button>
             </div>
         </div>
@@ -95,7 +95,7 @@ $total_empleados = count($empleados);
             <div class="metric-card metric-blue">
                 <div class="metric-icon"><i class="fas fa-user-check"></i></div>
                 <div class="metric-info">
-                    <span class="metric-label">Empleados Activos</span>
+                    <span class="metric-label">Usuarios Activos</span>
                     <h3 class="metric-value"><?= $empleados_activos ?></h3>
                 </div>
             </div>
@@ -126,7 +126,7 @@ $total_empleados = count($empleados);
         <ul class="nav nav-tabs mb-4" id="tabsGestion" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="tabEmpleados" data-bs-toggle="tab" data-bs-target="#contenidoEmpleados" type="button" role="tab">
-                    <i class="fas fa-users me-2"></i>Empleados
+                    <i class="fas fa-users me-2"></i>Usuarios
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -152,7 +152,7 @@ $total_empleados = count($empleados);
             <div class="tab-pane fade show active" id="contenidoEmpleados" role="tabpanel">
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-white border-0">
-                        <h5 class="mb-0">Lista de Empleados</h5>
+                        <h5 class="mb-0">Lista de Usuarios</h5>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -194,7 +194,7 @@ $total_empleados = count($empleados);
                                         <?php endforeach; ?>
                                     <?php else: ?>
                                         <tr>
-                                            <td colspan="8" class="text-center text-muted py-4">No hay empleados registrados.</td>
+                                            <td colspan="8" class="text-center text-muted py-4">No hay usuarios registrados.</td>
                                         </tr>
                                     <?php endif; ?>
                                 </tbody>
@@ -377,7 +377,7 @@ $total_empleados = count($empleados);
             <div class="modal-content">
                 <form method="POST">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="nuevoEmpleadoModalLabel">Nuevo Empleado</h5>
+                        <h5 class="modal-title" id="nuevoEmpleadoModalLabel">Nuevo Usuario</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -412,7 +412,7 @@ $total_empleados = count($empleados);
                                 <input type="password" class="form-control" name="password">
                             </div>
                             <div class="col-md-12">
-                                <label class="form-label">Naturaleza / Cargo</label>
+                                <label class="form-label">Dirección</label>
                                 <input type="text" class="form-control" name="naturaleza">
                             </div>
                         </div>
@@ -433,7 +433,7 @@ $total_empleados = count($empleados);
                 <form id="formEditarEmpleado">
                     <input type="hidden" id="edit_empleado_id" name="id">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="editarEmpleadoModalLabel">Editar Empleado</h5>
+                        <h5 class="modal-title" id="editarEmpleadoModalLabel">Editar Usuario</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -464,7 +464,7 @@ $total_empleados = count($empleados);
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Naturaleza / Cargo</label>
+                                <label class="form-label">Dirección</label>
                                 <input type="text" class="form-control" id="edit_naturaleza" name="naturaleza">
                             </div>
                             <div class="col-md-12">

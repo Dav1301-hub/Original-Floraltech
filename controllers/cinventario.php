@@ -12,6 +12,7 @@ class Cinventario {
     private $stock_bajo = 0;
     private $stock_critico = 0;
     private $sin_stock = 0;
+    private $proximos_caducar = 0;
     private $valor_total = 0;
     private $inventario = [];
     private $inventario_perecederos = [];
@@ -87,6 +88,8 @@ class Cinventario {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$this->inventarioModel) {
             return;
         }
+
+        $esAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
         
         try {
             if (isset($_POST['accion'])) {
@@ -111,6 +114,13 @@ class Cinventario {
                             
                             $this->inventarioModel->agregarProducto($_POST);
                             $this->mensaje_exito = 'Producto agregado al inventario exitosamente';
+                            
+                            if ($esAjax) {
+                                header('Content-Type: application/json');
+                                echo json_encode(['success' => true, 'message' => $this->mensaje_exito]);
+                                exit;
+                            }
+                            
                             header('Location: ?ctrl=Cinventario&success=1');
                             exit;
                         } catch (Exception $e) {
@@ -119,6 +129,16 @@ class Cinventario {
                             // Verificar si es un error de producto duplicado (JSON)
                             if (strpos($mensaje, '{"tipo":"producto_duplicado"') === 0) {
                                 $datos_duplicado = json_decode($mensaje, true);
+                                
+                                if ($esAjax) {
+                                    header('Content-Type: application/json');
+                                    echo json_encode([
+                                        'success' => false,
+                                        'tipo' => 'producto_duplicado',
+                                        'data' => $datos_duplicado
+                                    ]);
+                                    exit;
+                                }
                                 // Redirigir con parámetros especiales para mostrar modal de confirmación
                                 header('Location: ?ctrl=Cinventario&duplicado=1&producto_id=' . 
                                        $datos_duplicado['producto_id'] . 
@@ -129,6 +149,13 @@ class Cinventario {
                             }
                             
                             error_log('Error al agregar producto: ' . $mensaje);
+                            
+                            if ($esAjax) {
+                                header('Content-Type: application/json');
+                                echo json_encode(['success' => false, 'message' => $mensaje]);
+                                exit;
+                            }
+                            
                             header('Location: ?ctrl=Cinventario&error=' . urlencode($mensaje));
                             exit;
                         }
@@ -427,6 +454,19 @@ class Cinventario {
                     $this->valor_total = $estadisticas['valor_total'] ?? 0;
                 }
             }
+
+            // Próximos a caducar (basado en lotes activos con fecha_caducidad cercana)
+            $this->proximos_caducar = 0;
+            try {
+                require_once 'models/Mlotes.php';
+                $lotesModel = new Mlotes();
+                $lotes = $lotesModel->getLotesProximosCaducar(7);
+                $this->proximos_caducar = is_array($lotes) ? count($lotes) : 0;
+            } catch (Exception $eLotes) {
+                // Si no existe la tabla/estructura de lotes, no romper el dashboard
+                error_log("Error al obtener próximos a caducar: " . $eLotes->getMessage());
+                $this->proximos_caducar = 0;
+            }
         } catch (Exception $e) {
             error_log("Error al obtener estadísticas: " . $e->getMessage());
             // Las variables ya están inicializadas con 0 en el constructor
@@ -496,6 +536,7 @@ class Cinventario {
             'stock_bajo' => $this->stock_bajo,
             'stock_critico' => $this->stock_critico,
             'sin_stock' => $this->sin_stock,
+            'proximos_caducar' => $this->proximos_caducar,
             'valor_total' => $this->valor_total,
             'inventario' => $this->inventario,
             'inventario_perecederos' => $this->inventario_perecederos,
@@ -536,6 +577,7 @@ class Cinventario {
         $stock_bajo = $this->stock_bajo;
         $stock_critico = $this->stock_critico;
         $sin_stock = $this->sin_stock;
+        $proximos_caducar = $this->proximos_caducar;
         $valor_total = $this->valor_total;
         $inventario = $this->inventario;
         $inventario_perecederos = $this->inventario_perecederos;

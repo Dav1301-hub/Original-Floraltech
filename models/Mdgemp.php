@@ -326,10 +326,9 @@ class Mdgemp {
     public function getTiposUsuario() {
         return [
             1 => 'Administrador',
-            2 => 'Vendedor',
-            3 => 'Cliente',
-            4 => 'Inventario',
-            5 => 'Empleado'
+            2 => 'Empleado',
+            4 => 'Repartidor',
+            5 => 'Cliente'
         ];
     }
 

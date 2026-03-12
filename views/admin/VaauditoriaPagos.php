@@ -156,7 +156,7 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                                             <th>Nombre</th>
                                             <th>Usuario</th>
                                             <th>Rol</th>
-                                            <th>├Ültimo acceso</th>
+                                            <th>Último acceso</th>
                                         </tr>
                                     </thead>
                                     <tbody>

@@ -1,10 +1,5 @@
 <?php
-/**
- * Vista Centro de Soporte
- * Sistema de tickets para que administradores contacten al soporte técnico
- */
 
-// Las variables $admin, $tickets, $mensaje_exito y $mensaje_error vienen del SupportController via $ctx
 $tickets = $tickets ?? [];
 $admin = $admin ?? [];
 ?>
@@ -12,23 +7,15 @@ $admin = $admin ?? [];
 <div class="support-container animate-fade-in">
     
     <!-- Hero Section -->
-    <div class="premium-hero mb-4">
-        <div class="hero-content">
-            <div class="d-flex align-items-center gap-3 mb-2">
-                <div class="hero-icon">
-                    <i class="fas fa-life-ring"></i>
-                </div>
-                <div>
-                    <h2 class="hero-title">Centro de Soporte</h2>
-                    <p class="hero-subtitle">Estamos aquí para ayudarte a resolver cualquier inconveniente</p>
-                </div>
-            </div>
-            <div class="hero-stats">
-                <div class="stat-item">
-                    <span class="stat-value"><?= count($tickets) ?></span>
-                    <span class="stat-label">Tickets generados</span>
-                </div>
-            </div>
+    <div class="content-banner mb-4">
+        <div class="banner-info">
+            <p class="banner-subtitle"><i class="fas fa-life-ring me-2"></i>FloralTech Admin</p>
+            <h2 class="banner-title">Centro de Soporte</h2>
+            <p class="hero-subtitle text-white-50 mt-1" style="font-size: 0.9rem;">Estamos aquí para ayudarte a resolver cualquier inconveniente</p>
+        </div>
+        <div class="banner-actions text-end text-white">
+            <span class="fs-4 fw-bold lh-1 d-block"><?= count($tickets) ?></span>
+            <small class="text-white-50 text-uppercase d-block" style="font-size: 0.70rem;">Tickets generados</small>
         </div>
     </div>
 
@@ -218,56 +205,31 @@ $admin = $admin ?? [];
     animation: fadeIn 0.5s ease;
 }
 
-.premium-hero {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    border-radius: 1.25rem;
-    padding: 2.5rem;
+.content-banner {
+    background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+    border-radius: 12px;
+    padding: 1rem 1.75rem;
     color: white;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.2);
-}
-
-.premium-hero::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -10%;
-    width: 300px;
-    height: 300px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 50%;
-}
-
-.hero-icon {
-    width: 60px;
-    height: 60px;
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 1rem;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
+}
+
+.banner-subtitle {
+    font-size: 0.85rem;
+    opacity: 0.8;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+.banner-title {
     font-size: 1.75rem;
-    backdrop-filter: blur(5px);
+    font-weight: 700;
+    margin: 0;
 }
-
-.hero-title { font-weight: 800; letter-spacing: -0.5px; }
-.hero-subtitle { opacity: 0.8; font-size: 1rem; margin-bottom: 0; }
-
-.hero-stats {
-    margin-top: 1.5rem;
-    display: flex;
-    gap: 2rem;
-}
-
-.stat-item {
-    display: flex;
-    flex-direction: column;
-}
-
-.stat-value { font-size: 1.5rem; font-weight: 700; line-height: 1; }
-.stat-label { font-size: 0.75rem; text-transform: uppercase; opacity: 0.7; font-weight: 600; margin-top: 4px; }
 
 .icon-box {
     width: 42px;

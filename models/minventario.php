@@ -468,7 +468,12 @@ class Minventario {
     public function agregarProducto($data) {
         try {
             // Validar datos básicos requeridos
-            if (empty($data['nombre_producto']) || empty($data['stock']) || empty($data['precio'])) {
+            $nombre = isset($data['nombre_producto']) ? trim((string)$data['nombre_producto']) : '';
+            $tieneStock = array_key_exists('stock', $data) && $data['stock'] !== '' && $data['stock'] !== null;
+            $tienePrecio = array_key_exists('precio', $data) && $data['precio'] !== '' && $data['precio'] !== null;
+
+            // Nota: Para productos perecederos (flores), el stock inicial puede ser 0 y luego se gestiona por lotes.
+            if ($nombre === '' || !$tieneStock || !$tienePrecio) {
                 throw new Exception('Nombre del producto, stock y precio son obligatorios');
             }
             

@@ -70,6 +70,82 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
+// Envío AJAX para "Nuevo producto" (evita fallos en navegación AJAX)
+document.addEventListener('DOMContentLoaded', function () {
+    const formNuevoProducto = document.getElementById('form-nuevo-producto');
+    if (!formNuevoProducto) return;
+
+    formNuevoProducto.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(formNuevoProducto);
+
+        fetch(formNuevoProducto.getAttribute('action') || '?ctrl=Cinventario', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(async (response) => {
+                const contentType = response.headers.get("content-type") || '';
+                if (contentType.includes("application/json")) return response.json();
+                const text = await response.text();
+                throw new Error(text || 'Respuesta no JSON del servidor');
+            })
+            .then((data) => {
+                if (data && data.success) {
+                    if (typeof mostrarMensajeExito === 'function') {
+                        mostrarMensajeExito(data.message || '✅ Producto agregado correctamente');
+                    }
+
+                    // Cerrar modal
+                    const modalElement = document.getElementById('modal-nuevo-producto');
+                    if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                        modal.hide();
+                    }
+
+                    setTimeout(() => location.reload(), 1200);
+                    return;
+                }
+
+                // Producto duplicado: mostrar modal de confirmación si existe
+                if (data && data.tipo === 'producto_duplicado' && data.data) {
+                    const dup = data.data;
+                    const idEl = document.getElementById('duplicado-producto-id');
+                    const nomEl = document.getElementById('duplicado-producto-nombre');
+                    const msgEl = document.getElementById('duplicado-mensaje');
+                    const stockEl = document.getElementById('duplicado-stock');
+
+                    if (idEl) idEl.value = dup.producto_id || '';
+                    if (nomEl) nomEl.value = dup.producto_nombre || '';
+                    if (msgEl) msgEl.textContent = dup.mensaje || 'Ya existe un producto con este nombre.';
+                    if (stockEl) stockEl.textContent = dup.stock_actual ?? '0';
+
+                    const modalDuplicadoEl = document.getElementById('modal-producto-duplicado');
+                    if (modalDuplicadoEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const modalDup = new bootstrap.Modal(modalDuplicadoEl);
+                        modalDup.show();
+                        return;
+                    }
+                }
+
+                if (typeof mostrarMensajeError === 'function') {
+                    mostrarMensajeError('❌ ' + (data && data.message ? data.message : 'No se pudo agregar el producto'));
+                } else {
+                    alert((data && data.message) ? data.message : 'No se pudo agregar el producto');
+                }
+            })
+            .catch((error) => {
+                console.error('Error agregando producto:', error);
+                if (typeof mostrarMensajeError === 'function') {
+                    mostrarMensajeError('❌ Error de conexión al servidor');
+                } else {
+                    alert('Error de conexión al servidor');
+                }
+            });
+    });
+});
+
 
 window.abrirproducto = function () {
     const modalElement = document.getElementById('modal-nuevo-producto');
@@ -86,6 +162,18 @@ function cerrarproducto() {
     document.getElementById('modal-nuevo-producto').style.display = 'none';
     document.getElementById('modal-backdrop').classList.remove('show');
 }
+
+// Limpieza forzada de backdrop y clase modal-open al cerrar cualquier modal de inventario
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.modal').forEach(function(modalEl) {
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        });
+    });
+});
 
 window.abrirproveedor = function () {
     const modalElement = document.getElementById('modal-proveedores');

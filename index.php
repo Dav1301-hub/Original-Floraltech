@@ -83,5 +83,3 @@ try {
     // Manejo básico de errores
     die("Error: " . $e->getMessage());
 }
-
-?>

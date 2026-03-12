@@ -304,8 +304,7 @@ class User
     public function getTiposUsuario() {
         return [
             1 => 'Administrador',
-            2 => 'Vendedor', 
-            3 => 'Inventario',
+            2 => 'Empleado',
             4 => 'Repartidor',
             5 => 'Cliente'
         ];

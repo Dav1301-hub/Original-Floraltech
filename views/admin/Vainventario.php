@@ -420,7 +420,7 @@
                 <div class="card-body py-3 px-2">
                     <i class="fas fa-gift fa-lg text-primary mb-2"></i>
                     <div class="fw-bold text-muted small">Próximos a Caducar</div>
-                    <div class="fs-4 fw-bold text-dark"><?= $proximos_caducar ?? 1 ?></div>
+                    <div class="fs-4 fw-bold text-dark"><?= $proximos_caducar ?? 0 ?></div>
                     <small class="text-muted" style="font-size: 0.75rem;">En 7 días</small>
                 </div>
             </div>
