@@ -121,7 +121,7 @@ class Cinventario {
                                 exit;
                             }
                             
-                            header('Location: ?ctrl=Cinventario&success=1');
+                            header('Location: ?ctrl=cinventario&success=1');
                             exit;
                         } catch (Exception $e) {
                             $mensaje = $e->getMessage();
@@ -140,7 +140,7 @@ class Cinventario {
                                     exit;
                                 }
                                 // Redirigir con parámetros especiales para mostrar modal de confirmación
-                                header('Location: ?ctrl=Cinventario&duplicado=1&producto_id=' . 
+                                header('Location: ?ctrl=cinventario&duplicado=1&producto_id=' . 
                                        $datos_duplicado['producto_id'] . 
                                        '&producto_nombre=' . urlencode($datos_duplicado['producto_nombre']) .
                                        '&stock_actual=' . $datos_duplicado['stock_actual'] .
@@ -156,7 +156,7 @@ class Cinventario {
                                 exit;
                             }
                             
-                            header('Location: ?ctrl=Cinventario&error=' . urlencode($mensaje));
+                            header('Location: ?ctrl=cinventario&error=' . urlencode($mensaje));
                             exit;
                         }
                         break;
@@ -164,42 +164,42 @@ class Cinventario {
                     case 'actualizar_parametros':
                         $this->inventarioModel->actualizarParametros($_POST);
                         $this->mensaje_exito = 'Parámetros de inventario actualizados correctamente';
-                        header('Location: ?ctrl=Cinventario&success=parametros_actualizados');
+                        header('Location: ?ctrl=cinventario&success=parametros_actualizados');
                         exit;
                         break;
                         
                     case 'nueva_flor':
                         $this->inventarioModel->crearNuevaFlor($_POST);
                         $this->mensaje_exito = 'Nueva flor creada exitosamente';
-                        header('Location: ?ctrl=Cinventario&success=nueva_flor');
+                        header('Location: ?ctrl=cinventario&success=nueva_flor');
                         exit;
                         break;
                         
                     case 'editar_flor':
                         $this->inventarioModel->actualizarFlor($_POST);
                         $this->mensaje_exito = 'Flor actualizada exitosamente';
-                        header('Location: ?ctrl=Cinventario&success=flor_editada');
+                        header('Location: ?ctrl=cinventario&success=flor_editada');
                         exit;
                         break;
                         
                     case 'eliminar_flor':
                         $this->inventarioModel->eliminarFlor($_POST['id_flor']);
                         $this->mensaje_exito = 'Flor eliminada exitosamente';
-                        header('Location: ?ctrl=Cinventario&success=flor_eliminada');
+                        header('Location: ?ctrl=cinventario&success=flor_eliminada');
                         exit;
                         break;
                         
                     case 'agregar_a_inventario':
                         $this->inventarioModel->agregarFlorAInventario($_POST['id_flor']);
                         $this->mensaje_exito = 'Flor agregada al inventario exitosamente. Puedes actualizar el stock y precio desde la gestión de inventario.';
-                        header('Location: ?ctrl=Cinventario&success=agregada_inventario');
+                        header('Location: ?ctrl=cinventario&success=agregada_inventario');
                         exit;
                         break;
                         
                     case 'nuevo_proveedor':
                         $this->inventarioModel->crearProveedor($_POST);
                         $this->mensaje_exito = 'Proveedor agregado exitosamente';
-                        header('Location: ?ctrl=Cinventario&success=proveedor_agregado');
+                        header('Location: ?ctrl=cinventario&success=proveedor_agregado');
                         exit;
                         break;
                         
@@ -226,10 +226,10 @@ class Cinventario {
                         $resultado = $this->inventarioModel->eliminarProveedor($_POST['proveedor_id']);
                         if ($resultado['success']) {
                             $this->mensaje_exito = 'Proveedor eliminado exitosamente';
-                            header('Location: ?ctrl=Cinventario&success=proveedor_eliminado');
+                            header('Location: ?ctrl=cinventario&success=proveedor_eliminado');
                         } else {
                             $this->mensaje_error = $resultado['message'];
-                            header('Location: ?ctrl=Cinventario&error=proveedor_eliminar_fallido');
+                            header('Location: ?ctrl=cinventario&error=proveedor_eliminar_fallido');
                         }
                         exit;
                         break;
@@ -316,7 +316,7 @@ class Cinventario {
                                 echo json_encode(['success' => false, 'message' => 'ID de producto requerido']);
                                 exit;
                             }
-                            header('Location: ?ctrl=Cinventario&error=' . urlencode('ID de producto requerido'));
+                            header('Location: ?ctrl=cinventario&error=' . urlencode('ID de producto requerido'));
                             exit;
                         }
                         
@@ -335,9 +335,9 @@ class Cinventario {
                             
                             // Redirect para formularios POST tradicionales
                             if ($resultado['success']) {
-                                header('Location: ?ctrl=Cinventario&success=producto_eliminado');
+                                header('Location: ?ctrl=cinventario&success=producto_eliminado');
                             } else {
-                                header('Location: ?ctrl=Cinventario&error=' . urlencode($resultado['message']));
+                                header('Location: ?ctrl=cinventario&error=' . urlencode($resultado['message']));
                             }
                         } catch (Exception $e) {
                             // Respuesta JSON para peticiones AJAX
@@ -345,7 +345,7 @@ class Cinventario {
                                 echo json_encode(['success' => false, 'message' => $e->getMessage()]);
                                 exit;
                             }
-                            header('Location: ?ctrl=Cinventario&error=' . urlencode($e->getMessage()));
+                            header('Location: ?ctrl=cinventario&error=' . urlencode($e->getMessage()));
                         }
                         exit;
                         break;
@@ -691,7 +691,7 @@ class Cinventario {
             
         } catch (Exception $e) {
             // En caso de error, redirigir con mensaje
-            header('Location: ?ctrl=Cinventario&error=export_failed');
+            header('Location: ?ctrl=cinventario&error=export_failed');
             exit;
         }
     }
@@ -906,7 +906,7 @@ class Cinventario {
             
         } catch (Exception $e) {
             error_log('Error al exportar PDF: ' . $e->getMessage());
-            header('Location: ?ctrl=Cinventario&error=export_pdf_failed');
+            header('Location: ?ctrl=cinventario&error=export_pdf_failed');
             exit;
         }
     }

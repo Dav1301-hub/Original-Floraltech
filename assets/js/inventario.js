@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const formData = new FormData(formNuevoProducto);
 
-        fetch(formNuevoProducto.getAttribute('action') || '?ctrl=Cinventario', {
+        fetch(formNuevoProducto.getAttribute('action') || '?ctrl=cinventario', {
             method: 'POST',
             body: formData,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -374,7 +374,7 @@ function procesarEliminarProducto(id) {
     const formData = new FormData();
     formData.append('id', id);
 
-    fetch(`?ctrl=Cinventario&accion=eliminar_producto`, {
+    fetch(`?ctrl=cinventario&accion=eliminar_producto`, {
         method: 'POST',
         body: formData,
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -413,7 +413,7 @@ function agregarAInventario(id) {
     console.log('Agregando stock al producto con ID:', id);
 
     // Primero obtener los datos del producto para mostrar en el modal
-    fetch(`?ctrl=Cinventario&accion=obtener_producto&id=${id}`)
+    fetch(`?ctrl=cinventario&accion=obtener_producto&id=${id}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -730,7 +730,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const formData = new FormData(this);
 
-            fetch('?ctrl=Cinventario', {
+            fetch('?ctrl=cinventario', {
                 method: 'POST',
                 body: formData,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }

@@ -54,17 +54,29 @@ if (!isset($_SESSION['user']) && !$isPublicAction) {
 }
 
 // 5. Validar y cargar el controlador
-$controllerFile = CONTROLLERS_DIR . $ctrl . '.php';
+// Normalizar ctrl a minúsculas para búsqueda del archivo (Linux es case-sensitive)
+$ctrlNormalized = strtolower($ctrl);
+$controllerFile = CONTROLLERS_DIR . $ctrlNormalized . '.php';
 if (!file_exists($controllerFile)) {
-    die("Error: El controlador '$ctrl' no existe.");
+    // Intentar con el ctrl original (por si el archivo usa mayúsculas)
+    $controllerFile = CONTROLLERS_DIR . $ctrl . '.php';
+    if (!file_exists($controllerFile)) {
+        die("Error: El controlador '$ctrl' no existe.");
+    }
+} else {
+    $ctrl = $ctrlNormalized;
 }
 
 require_once $controllerFile;
 
 // 6. Verificar que la clase del controlador existe
+// Intentar con el nombre tal cual, luego con ucfirst (Ej: cinventario -> Cinventario)
 $controllerClass = $ctrl;
 if (!class_exists($controllerClass)) {
-    die("Error: La clase '$controllerClass' no está definida.");
+    $controllerClass = ucfirst($ctrl);
+    if (!class_exists($controllerClass)) {
+        die("Error: La clase '$ctrl' no está definida.");
+    }
 }
 
 // 7. Instanciar el controlador y llamar a la acción

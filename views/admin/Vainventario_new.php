@@ -612,7 +612,7 @@ const InventarioApp = {
     exportarExcel() {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = '?ctrl=Cinventario';
+        form.action = '?ctrl=cinventario';
         form.innerHTML = '<input type="hidden" name="accion" value="exportar_inventario">';
         document.body.appendChild(form);
         form.submit();
@@ -621,7 +621,7 @@ const InventarioApp = {
 
     exportarPDF() {
         const tipo = confirm('¿Exportar TODO el inventario?') ? 'todos' : 'perecedero';
-        window.location.href = `?ctrl=Cinventario&action=exportarInventarioPDF&tipo=${tipo}`;
+        window.location.href = `?ctrl=cinventario&action=exportarInventarioPDF&tipo=${tipo}`;
     }
 };
 
