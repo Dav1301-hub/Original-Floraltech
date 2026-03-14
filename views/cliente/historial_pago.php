@@ -34,6 +34,7 @@ $stmt = $db->prepare("
     SELECT 
         p.*,
         DATE_FORMAT(p.fecha_pedido, '%d/%m/%Y %H:%i') as fecha_formato,
+        DATE_FORMAT(p.fecha_pedido, '%d %b') as fecha_corta,
         pg.estado_pag,
         pg.metodo_pago,
         pg.fecha_pago,
@@ -65,145 +66,107 @@ $stmt = $db->prepare("
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/dashboard-cliente.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="cliente-theme">
     <div class="dashboard-container">
-        <!-- Header Estilizado -->
-        <nav class="navbar">
-            <div class="navbar-brand">
-                <i class="fas fa-seedling"></i>
-                FloralTech
-            </div>
-            <div class="navbar-user">
-                <div class="user-info">
-                    <p class="user-name">Historial de Pedidos</p>
-                    <p class="user-welcome">Todos tus pedidos anteriores</p>
-                </div>
-                <a href="index.php?ctrl=cliente&action=dashboard" class="logout-btn">
-                    <i class="fas fa-arrow-left"></i> Volver al Dashboard
-                </a>
-            </div>
-        </nav>
+        <?php $navbar_volver_url = 'index.php?ctrl=cliente&action=dashboard'; $usuario = $_SESSION['user']; include __DIR__ . '/partials/navbar_cliente.php'; ?>
 
+        <div class="main-content">
         <!-- Contenedor para alertas dinámicas -->
         <div id="alert-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000; width: 300px;"></div>
 
-        <div class="card">
+        <div class="content-card card">
             <div class="card-header">
                 <i class="fas fa-history"></i> Historial Completo de Pedidos
             </div>
             <div class="card-body">
                 <?php if (!empty($historial_pedidos)): ?>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
+                    <div class="table-responsive pedidos-table-wrap">
+                        <table class="table table-hover align-middle pedidos-dashboard-table">
+                            <thead>
                                 <tr>
-                                    <th>Pedido</th>
-                                    <th>Fecha</th>
-                                    <th>Items</th>
-                                    <th>Monto</th>
-                                    <th>Estado Pedido</th>
-                                    <th>Estado Pago</th>
-                                    <th>Método Pago</th>
-                                    <th>Factura</th>
+                                    <th><i class="fas fa-receipt me-1 opacity-75"></i> Pedido</th>
+                                    <th class="d-none d-md-table-cell"><i class="fas fa-calendar-alt me-1 opacity-75"></i> Fecha</th>
+                                    <th class="d-none d-lg-table-cell"><i class="fas fa-list me-1 opacity-75"></i> Items</th>
+                                    <th><i class="fas fa-tag me-1 opacity-75"></i> Monto</th>
+                                    <th><i class="fas fa-box me-1 opacity-75"></i> Estado</th>
+                                    <th class="d-none d-sm-table-cell"><i class="fas fa-credit-card me-1 opacity-75"></i> Pago</th>
+                                    <th class="d-none d-xl-table-cell"><i class="fas fa-wallet me-1 opacity-75"></i> Método</th>
+                                    <th class="text-end">Acción</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($historial_pedidos as $pedido): ?>
-                                    <tr>
+                                    <?php
+                                    $estado_pedido = strtolower($pedido['estado']);
+                                    $estados_pedido_clases = [
+                                        'completado' => 'badge-estado-success',
+                                        'pendiente' => 'badge-estado-warning',
+                                        'procesando' => 'badge-estado-info',
+                                        'cancelado' => 'badge-estado-danger',
+                                        'enviado' => 'badge-estado-primary',
+                                        'entregado' => 'badge-estado-success'
+                                    ];
+                                    $badge_estado = $estados_pedido_clases[$estado_pedido] ?? 'badge-estado-secondary';
+                                    $estado_pago = $pedido['estado_pag'] ?? 'Sin pago';
+                                    $pago_badge_class = (strtolower($estado_pago) === 'completado') ? 'badge-estado-success' : ((strtolower($estado_pago) === 'pendiente') ? 'badge-estado-warning' : 'badge-estado-danger');
+                                    $fecha_detalle = $pedido['fecha_formato'] ?? '';
+                                    $dir_entrega = !empty(trim($pedido['direccion_entrega'] ?? '')) ? $pedido['direccion_entrega'] : null;
+                                    $notas_pedido = !empty(trim($pedido['notas'] ?? '')) ? $pedido['notas'] : null;
+                                    $fecha_ent = !empty($pedido['fecha_entrega_solicitada']) ? date('d/m/Y', strtotime($pedido['fecha_entrega_solicitada'])) : null;
+                                    $productos = !empty(trim($pedido['items_detalle'] ?? '')) ? $pedido['items_detalle'] : null;
+                                    ?>
+                                    <tr class="pedido-main-row" role="button" tabindex="0">
                                         <td>
-                                            <strong>#<?= htmlspecialchars($pedido['numped']) ?></strong>
+                                            <span class="pedido-num">#<?= htmlspecialchars($pedido['numped']) ?></span>
+                                            <div class="d-md-none small text-muted mt-1"><?= htmlspecialchars($pedido['fecha_corta'] ?? $pedido['fecha_formato']) ?></div>
                                         </td>
-                                        <td>
-                                            <?= htmlspecialchars($pedido['fecha_formato']) ?>
+                                        <td class="d-none d-md-table-cell text-muted"><?= htmlspecialchars($pedido['fecha_corta'] ?? $pedido['fecha_formato']) ?></td>
+                                        <td class="d-none d-lg-table-cell">
+                                            <small><?= (int)$pedido['total_items'] ?> items</small>
+                                            <div class="text-muted small text-truncate" style="max-width:120px" title="<?= htmlspecialchars($pedido['items_detalle'] ?? '') ?>"><?= htmlspecialchars($pedido['items_detalle'] ?? '-') ?></div>
                                         </td>
+                                        <td><span class="monto-pedido">$<?= number_format($pedido['monto_total'], 2) ?></span></td>
                                         <td>
-                                            <small><?= $pedido['total_items'] ?> items</small>
-                                            <br>
-                                            <span class="text-muted small"><?= htmlspecialchars($pedido['items_detalle'] ?? 'Sin detalles') ?></span>
+                                            <span class="badge-pedido <?= $badge_estado ?>"><?= htmlspecialchars($pedido['estado']) ?></span>
+                                            <div class="d-sm-none mt-1">
+                                                <span class="badge-pedido <?= $pago_badge_class ?> badge-pedido-sm"><?= htmlspecialchars($estado_pago) ?></span>
+                                            </div>
                                         </td>
-                                        <td>
-                                            <strong>$<?= number_format($pedido['monto_total'], 2) ?></strong>
+                                        <td class="d-none d-sm-table-cell">
+                                            <span class="badge-pedido <?= $pago_badge_class ?>"><?= htmlspecialchars($estado_pago) ?></span>
                                         </td>
-                                        <td>
-                                            <?php
-                                            $badge_class = '';
-                                            switch (strtolower($pedido['estado'])) {
-                                                case 'completado':
-                                                    $badge_class = 'bg-success';
-                                                    break;
-                                                case 'pendiente':
-                                                    $badge_class = 'bg-warning';
-                                                    break;
-                                                case 'procesando':
-                                                    $badge_class = 'bg-info';
-                                                    break;
-                                                case 'cancelado':
-                                                    $badge_class = 'bg-danger';
-                                                    break;
-                                                default:
-                                                    $badge_class = 'bg-info';
-                                            }
-                                            ?>
-                                            <span class="badge <?= $badge_class ?>">
-                                                <?= htmlspecialchars($pedido['estado']) ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <?php if ($pedido['estado_pag']): ?>
-                                                <?php
-                                                $pago_badge = '';
-                                                switch (strtolower($pedido['estado_pag'])) {
-                                                    case 'completado':
-                                                        $pago_badge = 'bg-success';
-                                                        break;
-                                                    case 'pendiente':
-                                                        $pago_badge = 'bg-warning';
-                                                        break;
-                                                    default:
-                                                        $pago_badge = 'bg-info';
-                                                }
-                                                ?>
-                                                <span class="badge <?= $pago_badge ?>">
-                                                    <?= htmlspecialchars($pedido['estado_pag']) ?>
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="badge bg-danger">Sin pago</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?= $pedido['metodo_pago'] ? htmlspecialchars($pedido['metodo_pago']) : '-' ?>
-                                        </td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                <!-- Botón para generar factura - SIEMPRE visible y funcional -->
-                                                <a href="index.php?ctrl=cliente&action=generar_factura&idpedido=<?= $pedido['idped'] ?>" 
-                                                class="btn btn-outline-primary btn-sm"
-                                                title="Descargar Factura"
-                                                target="_blank">
-                                                    <i class="fas fa-file-pdf"></i> Factura
+                                        <td class="d-none d-xl-table-cell text-muted small"><?= $pedido['metodo_pago'] ? htmlspecialchars($pedido['metodo_pago']) : '-' ?></td>
+                                        <td class="text-end pedido-row-actions">
+                                            <div class="d-flex flex-wrap gap-1 justify-content-end">
+                                                <a href="index.php?ctrl=cliente&action=generar_factura&idpedido=<?= $pedido['idped'] ?>" class="btn btn-action btn-pdf" title="Descargar Factura" target="_blank">
+                                                    <i class="fas fa-file-pdf"></i><span class="d-none d-md-inline ms-1">PDF</span>
                                                 </a>
-                                                <!-- Botón Pagar (solo si está pendiente) -->
-                                                <?php if (strtolower($pedido['estado_pag'] ?? 'sin pago') === 'pendiente' || 
-                                                          strtolower($pedido['estado_pag'] ?? '') === 'sin pago'): ?>
-                                                    <button type="button"
-                                                    class="btn btn-outline-warning btn-sm"
-                                                    title="Pagar Pedido"
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#modalPago"
-                                                    onclick="prepararModalPago('<?= htmlspecialchars($pedido['numped']) ?>', '<?= number_format($pedido['monto_total'], 2, '.', '') ?>')">
-                                                        <i class="fas fa-credit-card"></i> Pagar
+                                                <?php if (strtolower($pedido['estado_pag'] ?? 'sin pago') === 'pendiente' || strtolower($pedido['estado_pag'] ?? '') === 'sin pago'): ?>
+                                                    <button type="button" class="btn btn-action btn-pagar" title="Pagar Pedido" data-bs-toggle="modal" data-bs-target="#modalPago"
+                                                        onclick="prepararModalPago('<?= htmlspecialchars($pedido['numped']) ?>', '<?= number_format($pedido['monto_total'], 2, '.', '') ?>', <?= (int)$pedido['idped'] ?>)">
+                                                        <i class="fas fa-credit-card"></i><span class="d-none d-md-inline ms-1">Pagar</span>
                                                     </button>
                                                 <?php endif; ?>
-                                                
-                                                <!-- Nuevo botón para enviar factura por email -->
-                                                <button type="button" 
-                                                        class="btn btn-outline-success btn-sm btn-enviar-factura"
-                                                        title="Enviar Factura por Email"
-                                                        data-idpedido="<?= $pedido['idped'] ?>"
-                                                        data-email="<?= htmlspecialchars($usuario['email']) ?>">
-                                                    <i class="fas fa-envelope"></i> Enviar
+                                                <button type="button" class="btn btn-action btn-enviar-factura" title="Enviar Factura por Email" data-idpedido="<?= $pedido['idped'] ?>" data-email="<?= htmlspecialchars($usuario['email']) ?>">
+                                                    <i class="fas fa-envelope"></i><span class="d-none d-md-inline ms-1">Enviar</span>
                                                 </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="pedido-detail-row">
+                                        <td colspan="9" class="pedido-detail-cell">
+                                            <div class="pedido-detail-inner">
+                                                <div class="pedido-detail-item"><strong>Producto:</strong> <?= $productos ? htmlspecialchars($productos) : '<span class="text-muted">—</span>' ?></div>
+                                                <div class="pedido-detail-item"><strong>Fecha:</strong> <?= htmlspecialchars($fecha_detalle) ?></div>
+                                                <?php if ($fecha_ent): ?>
+                                                    <div class="pedido-detail-item"><strong>Entrega solicitada:</strong> <?= htmlspecialchars($fecha_ent) ?></div>
+                                                <?php endif; ?>
+                                                <?php if ($dir_entrega): ?>
+                                                    <div class="pedido-detail-item"><strong>Dirección de entrega:</strong> <?= htmlspecialchars($dir_entrega) ?></div>
+                                                <?php endif; ?>
+                                                <div class="pedido-detail-item"><strong>Comentario:</strong> <?= $notas_pedido ? nl2br(htmlspecialchars($notas_pedido)) : '<span class="text-muted">Ninguno</span>' ?></div>
                                             </div>
                                         </td>
                                     </tr>
@@ -266,13 +229,14 @@ $stmt = $db->prepare("
                 <i class="fas fa-plus"></i> Nuevo Pedido
             </a>
         </div>
+        </div>
     </div>
 
     <!-- Modal de Pago -->
     <div class="modal fade" id="modalPago" tabindex="-1" aria-labelledby="modalPagoLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-primary text-white">
+                <div class="modal-header modal-header-cliente text-white">
                     <h5 class="modal-title" id="modalPagoLabel">
                         <i class="fas fa-credit-card me-2"></i>Realizar Pago
                     </h5>
@@ -332,7 +296,7 @@ $stmt = $db->prepare("
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <!-- <button type="button" class="btn btn-primary">Notificar Pago</button> -->
+                    <a href="#" id="btnIrAPagar" class="btn btn-success"><i class="fas fa-external-link-alt me-1"></i> Ir a pagar este pedido</a>
                 </div>
             </div>
         </div>
@@ -353,27 +317,17 @@ $stmt = $db->prepare("
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    // Variables globales para el modal
     let currentPedidoId = '';
-    
-    // Función para preparar el modal con los datos del pedido
-    function prepararModalPago(numPed, monto) {
+    function prepararModalPago(numPed, monto, idped) {
         document.getElementById('modalNumPed').textContent = numPed;
-        
-        // Formatear monto con comas para miles
-        const formatMonto = parseFloat(monto).toLocaleString('es-CO', { 
-            minimumFractionDigits: 2, 
-            maximumFractionDigits: 2 
-        });
+        const formatMonto = parseFloat(monto).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         document.getElementById('modalMontoTotal').textContent = formatMonto;
-        
-        // Resetear selección
         document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('selected'));
         document.getElementById('qrContainer').style.display = 'none';
         document.getElementById('efectivoContainer').style.display = 'none';
-        
-        // Guardar ID
-        currentPedidoId = numPed;
+        currentPedidoId = idped || '';
+        var link = document.getElementById('btnIrAPagar');
+        link.href = currentPedidoId ? ('index.php?ctrl=cliente&action=realizar_pago&idpedido=' + currentPedidoId) : '#';
     }
 
     // Función para seleccionar método de pago en el modal
@@ -397,6 +351,17 @@ $stmt = $db->prepare("
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        // Filas expandibles: clic en la fila muestra/oculta el detalle (excepto en botones/enlaces)
+        document.querySelectorAll('.pedido-main-row').forEach(function(row) {
+            row.addEventListener('click', function(e) {
+                if (e.target.closest('.pedido-row-actions a, .pedido-row-actions button')) return;
+                var next = row.nextElementSibling;
+                if (next && next.classList.contains('pedido-detail-row')) {
+                    next.classList.toggle('visible');
+                }
+            });
+        });
+
         // Función para mostrar alertas dinámicas
         function showAlert(type, message) {
             const alertContainer = document.getElementById('alert-container');

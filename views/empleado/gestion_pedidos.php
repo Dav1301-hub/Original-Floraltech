@@ -1,8 +1,6 @@
 <?php
-// views/empleado/gestion_pedidos.php
-// Los datos de pedidos ya vienen paginados desde el controlador de empleado
-
-// Obtener mensajes de sesión si existen
+$navbar_volver_url = 'index.php?ctrl=empleado&action=dashboard';
+$navbar_volver_text = 'Volver al Dashboard';
 $mensaje = isset($_SESSION['mensaje']) ? $_SESSION['mensaje'] : '';
 $tipo_mensaje = isset($_SESSION['tipo_mensaje']) ? $_SESSION['tipo_mensaje'] : '';
 // Limpiar los mensajes después de mostrarlos
@@ -29,6 +27,22 @@ if (!isset($pedidosPaginados)) {
 
 // Las variables de paginación también vienen del controlador:
 // $paginaActual, $totalPaginas, $totalPedidos, $pedidosPorPagina
+
+function badgeEstadoPedido($estado) {
+    $e = $estado ?? '';
+    if ($e === 'Pendiente') return 'warning text-dark';
+    if ($e === 'En proceso' || $e === 'En Proceso') return 'info';
+    if ($e === 'Completado') return 'success';
+    if ($e === 'Cancelado') return 'danger';
+    return 'secondary';
+}
+function badgeEstadoPago($estado) {
+    $e = strtolower($estado ?? '');
+    if ($e === 'completado' || $e === 'aprobado') return 'success';
+    if ($e === 'pendiente') return 'warning text-dark';
+    if ($e === 'cancelado' || $e === 'rechazado') return 'danger';
+    return 'secondary';
+}
 ?>
 <!DOCTYPE html>
     <html lang="es">
@@ -37,357 +51,21 @@ if (!isset($pedidosPaginados)) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Gestión de Pedidos - FloralTech</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link rel="stylesheet" href="assets/css/dashboard-cliente.css">
-        <link rel="stylesheet" href="assets/css/dashboard-general.css">
-        <link rel="stylesheet" href="assets/css/styles.css">
+        <link rel="stylesheet" href="assets/css/dashboard-empleado.css">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
-            :root {
-                --empleado-primary: #28a745;
-                --empleado-secondary: #20c997;
-                --empleado-accent: #17a2b8;
-                --bg-light: #f8f9fa;
-                --border-radius: 12px;
-                --shadow: 0 2px 8px rgba(0,0,0,0.1);
-                --transition: all 0.3s ease;
-            }
-
-            body {
-                font-family: 'Poppins', sans-serif;
-                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-                margin: 0;
-                padding: 0;
-                min-height: 100vh;
-            }
-
-            .dashboard-container {
-                display: flex;
-                flex-direction: column;
-                min-height: 100vh;
-                max-width: 100vw;
-                overflow-x: hidden;
-            }
-
-            .navbar {
-                background: linear-gradient(135deg, var(--empleado-primary), var(--empleado-secondary));
-                padding: 0.5rem 1rem;
-                box-shadow: var(--shadow);
-                position: sticky;
-                top: 0;
-                z-index: 1000;
-            }
-
-            .navbar-brand {
-                color: white !important;
-                font-weight: 600;
-                font-size: 1.2rem;
-            }
-
-            .navbar-user {
-                display: flex;
-                align-items: center;
-                gap: 1rem;
-            }
-
-            .user-info {
-                text-align: right;
-                margin: 0;
-            }
-
-            .user-name {
-                color: white;
-                margin: 0;
-                font-size: 0.9rem;
-                font-weight: 500;
-            }
-
-            .user-welcome {
-                color: rgba(255,255,255,0.8);
-                margin: 0;
-                font-size: 0.8rem;
-            }
-
-            .logout-btn {
-                background: rgba(255,255,255,0.2);
-                border: 1px solid rgba(255,255,255,0.3);
-                color: white;
-                padding: 0.4rem 0.8rem;
-                border-radius: 6px;
-                text-decoration: none;
-                font-size: 0.85rem;
-                transition: var(--transition);
-            }
-
-            .logout-btn:hover {
-                background: rgba(255,255,255,0.3);
-                color: white;
-                text-decoration: none;
-            }
-
-            .main-content {
-                flex: 1;
-                padding: 1rem;
-                max-width: 100%;
-                box-sizing: border-box;
-            }
-
-            .content-wrapper {
-                max-width: 100%;
-                margin: 0;
-            }
-
-            .filter-card {
-                background: white;
-                border-radius: var(--border-radius);
-                box-shadow: var(--shadow);
-                padding: 1rem;
-                margin-bottom: 1rem;
-                border: 1px solid #e9ecef;
-            }
-
-            .filter-title {
-                color: var(--empleado-primary);
-                font-size: 1.1rem;
-                font-weight: 600;
-                margin-bottom: 0.75rem;
-                border-bottom: 2px solid var(--empleado-primary);
-                padding-bottom: 0.5rem;
-            }
-
-            .content-card {
-                background: white;
-                border-radius: var(--border-radius);
-                box-shadow: var(--shadow);
-                border: 1px solid #e9ecef;
-                margin-bottom: 1rem;
-            }
-
-            .pedido-list-header {
-                background: linear-gradient(135deg, var(--empleado-primary), var(--empleado-secondary));
-                color: white;
-                padding: 0.75rem 1rem;
-                border-radius: var(--border-radius) var(--border-radius) 0 0;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                font-weight: 600;
-            }
-
-            .pedido-list-header .badge {
-                background: rgba(255,255,255,0.2);
-                color: white;
-                border: 1px solid rgba(255,255,255,0.3);
-                padding: 0.25rem 0.5rem;
-                border-radius: 6px;
-                font-size: 0.85rem;
-            }
-
-            .table {
-                margin: 0;
-                font-size: 0.9rem;
-            }
-
-            .table th {
-                background: var(--bg-light);
-                border-top: none;
-                padding: 0.75rem 0.5rem;
-                font-weight: 600;
-                color: #495057;
-                font-size: 0.85rem;
-            }
-
-            .table td {
-                padding: 0.75rem 0.5rem;
-                vertical-align: middle;
-                border-top: 1px solid #dee2e6;
-            }
-
-            .table-hover tbody tr:hover {
-                background-color: #f8f9fa;
-            }
-
-            .btn {
-                border-radius: 6px;
-                font-size: 0.85rem;
-                padding: 0.4rem 0.8rem;
-                transition: var(--transition);
-            }
-
-            .btn-success {
-                background: linear-gradient(135deg, var(--empleado-primary), var(--empleado-secondary));
-                border: none;
-            }
-
-            .btn-success:hover {
-                background: var(--empleado-primary);
-                transform: translateY(-1px);
-            }
-
-            .btn-sm {
-                padding: 0.25rem 0.5rem;
-                font-size: 0.8rem;
-            }
-
-            .form-control, .form-select {
-                border-radius: 6px;
-                border: 1px solid #ced4da;
-                padding: 0.5rem 0.75rem;
-                font-size: 0.85rem;
-                transition: var(--transition);
-            }
-
-            .form-control:focus, .form-select:focus {
-                border-color: var(--empleado-primary);
-                box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
-            }
-
-            .form-label {
-                font-weight: 500;
-                margin-bottom: 0.25rem;
-                font-size: 0.85rem;
-                color: #495057;
-            }
-
-            .empty-state-pedidos {
-                text-align: center;
-                padding: 2rem 1rem;
-                color: #6c757d;
-            }
-
-            .empty-state-pedidos i {
-                font-size: 2.5rem;
-                margin-bottom: 0.75rem;
-                opacity: 0.5;
-                color: var(--empleado-primary);
-            }
-
-            .empty-state-pedidos h4 {
-                font-size: 1.2rem;
-                margin-bottom: 0.5rem;
-                color: #495057;
-                font-weight: 600;
-            }
-
-            .alert {
-                border-radius: 6px;
-                padding: 0.75rem 1rem;
-                margin-bottom: 1rem;
-                border: none;
-                font-size: 0.9rem;
-            }
-
-            .badge {
-                font-size: 0.75rem;
-                padding: 0.35rem 0.6rem;
-                border-radius: 6px;
-            }
-
-            /* Estilos de Paginación */
-            .pagination {
-                --bs-pagination-color: var(--empleado-primary);
-                --bs-pagination-border-color: #dee2e6;
-                --bs-pagination-hover-color: white;
-                --bs-pagination-hover-bg: var(--empleado-primary);
-                --bs-pagination-hover-border-color: var(--empleado-primary);
-                --bs-pagination-active-color: white;
-                --bs-pagination-active-bg: var(--empleado-primary);
-                --bs-pagination-active-border-color: var(--empleado-primary);
-                --bs-pagination-disabled-color: #6c757d;
-                --bs-pagination-disabled-bg: white;
-                --bs-pagination-disabled-border-color: #dee2e6;
-            }
-
-            .pagination .page-link {
-                border-radius: 6px;
-                margin: 0 2px;
-                transition: all 0.2s ease;
-                font-size: 0.85rem;
-                padding: 0.5rem 0.75rem;
-            }
-
-            .pagination .page-item.active .page-link {
-                box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
-            }
-
-            /* Responsive Design */
-            @media (max-width: 768px) {
-                .main-content {
-                    padding: 0.5rem;
-                }
-                
-                .filter-card {
-                    padding: 0.75rem;
-                }
-                
-                .table-responsive {
-                    font-size: 0.8rem;
-                }
-                
-                .navbar-user {
-                    flex-direction: column;
-                    align-items: flex-end;
-                    gap: 0.5rem;
-                }
-                
-                .user-info {
-                    font-size: 0.8rem;
-                }
-            }
-
-            @media (max-width: 576px) {
-                .pedido-list-header {
-                    flex-direction: column;
-                    gap: 0.5rem;
-                    text-align: center;
-                }
-                
-                .table th, .table td {
-                    padding: 0.5rem 0.25rem;
-                    font-size: 0.8rem;
-                }
-
-                /* Paginación responsiva */
-                .pagination {
-                    flex-wrap: wrap;
-                    justify-content: center;
-                }
-
-                .pagination .page-link {
-                    padding: 0.375rem 0.5rem;
-                    font-size: 0.8rem;
-                    margin: 0 1px;
-                }
-
-                /* Ocultar información de "Mostrando X de Y" en móviles */
-                .d-flex.justify-content-between {
-                    flex-direction: column;
-                    gap: 1rem;
-                    text-align: center;
-                }
-            }
+            .filter-card { background: var(--emp-bg-card); border: 1px solid var(--emp-border); border-radius: var(--emp-radius); box-shadow: var(--emp-shadow); padding: 1rem; margin-bottom: 1rem; }
+            .filter-title { color: var(--emp-primary); font-size: 1.05rem; font-weight: 600; margin-bottom: 0.75rem; border-bottom: 2px solid var(--emp-primary); padding-bottom: 0.5rem; }
+            .pedido-list-header { background: var(--emp-header-bg); color: white; padding: 0.75rem 1rem; border-radius: var(--emp-radius) var(--emp-radius) 0 0; display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
+            .pedido-list-header .badge { background: rgba(255,255,255,0.2); color: white; }
+            .empty-state-pedidos { text-align: center; padding: 2rem 1rem; color: var(--emp-text-muted); }
+            .empty-state-pedidos i { font-size: 2.5rem; margin-bottom: 0.75rem; color: var(--emp-text-light); }
+            .empty-state-pedidos h4 { font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--emp-text); font-weight: 600; }
         </style>
     </head>
-    <body>
+    <body class="empleado-theme">
         <div class="dashboard-container">
-            <!-- Navbar compacta -->
-            <nav class="navbar">
-                <div class="container-fluid">
-                    <div class="navbar-brand">
-                        <i class="fas fa-seedling me-2"></i>FloralTech - Gestión de Pedidos
-                    </div>
-                    <div class="navbar-user">
-                        <div class="user-info">
-                            <p class="user-name">Bienvenido, <?= htmlspecialchars($_SESSION['nombre_completo'] ?? 'Usuario') ?></p>
-                            <p class="user-welcome">Panel Empleado</p>
-                        </div>
-                        <a href="index.php?ctrl=empleado&action=dashboard" class="logout-btn">
-                            <i class="fas fa-arrow-left me-1"></i>Volver
-                        </a>
-                    </div>
-                </div>
-            </nav>
-
+            <?php include __DIR__ . '/partials/navbar_empleado.php'; ?>
             <div class="main-content">
                 <div class="content-wrapper">
                     <!-- Filtros compactos -->
@@ -404,7 +82,7 @@ if (!isset($pedidosPaginados)) {
                                 <select name="estado_pedido" class="form-select">
                                     <option value="">Todos los estados</option>
                                     <option value="Pendiente" <?= $estadoPedido=='Pendiente'?'selected':'' ?>>Pendiente</option>
-                                    <option value="En Proceso" <?= $estadoPedido=='En Proceso'?'selected':'' ?>>En Proceso</option>
+                                    <option value="En proceso" <?= ($estadoPedido==='En proceso' || $estadoPedido==='En Proceso')?'selected':'' ?>>En proceso</option>
                                     <option value="En Preparación" <?= $estadoPedido=='En Preparación'?'selected':'' ?>>En Preparación</option>
                                     <option value="Completado" <?= $estadoPedido=='Completado'?'selected':'' ?>>Completado</option>
                                     <option value="Cancelado" <?= $estadoPedido=='Cancelado'?'selected':'' ?>>Cancelado</option>
@@ -523,40 +201,73 @@ if (!isset($pedidosPaginados)) {
                                 </div>
                             <?php else: ?>
                                 <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0">
-                                        <thead>
+                                    <table class="table table-hover align-middle mb-0" id="tablaPedidosEmpleado">
+                                        <thead class="table-light">
                                             <tr>
                                                 <th>Pedido</th>
                                                 <th>Cliente</th>
-                                                <th>Estado Actual</th>
-                                                <th>Actualizar Estado</th>
+                                                <th>Fecha</th>
+                                                <th>Entrega</th>
+                                                <th>Total</th>
+                                                <th>Estado pedido</th>
+                                                <th>Estado pago</th>
+                                                <th class="text-center">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php foreach ($pedidosPaginados as $pedido): ?>
-                                                <tr>
-                                                    <td class="fw-bold text-primary">PED-<?php echo $pedido['idped']; ?></td>
-                                                    <td><?php echo htmlspecialchars($pedido['cliente_nombre']); ?></td>
+                                            <?php foreach ($pedidosPaginados as $pedido):
+                                                $estado = $pedido['estado'] ?? '';
+                                                $estadoPago = $pedido['estado_pago'] ?? 'Sin pago';
+                                                $fechaPed = !empty($pedido['fecha_pedido']) ? date('d/m/Y H:i', strtotime($pedido['fecha_pedido'])) : 'N/D';
+                                                $fechaEnt = !empty($pedido['fecha_entrega_solicitada']) ? date('d/m/Y', strtotime($pedido['fecha_entrega_solicitada'])) : '';
+                                            ?>
+                                                <tr data-id="<?= (int)$pedido['idped'] ?>"
+                                                    data-numero="<?= htmlspecialchars($pedido['numped'] ?? '') ?>"
+                                                    data-cliente="<?= htmlspecialchars($pedido['cliente_nombre'] ?? '') ?>"
+                                                    data-email="<?= htmlspecialchars($pedido['cliente_email'] ?? '') ?>"
+                                                    data-fecha-creacion="<?= htmlspecialchars($fechaPed) ?>"
+                                                    data-fecha-entrega="<?= htmlspecialchars($fechaEnt) ?>"
+                                                    data-total="<?= number_format((float)($pedido['monto_total'] ?? 0), 2, '.', '') ?>"
+                                                    data-estado="<?= htmlspecialchars($estado) ?>"
+                                                    data-estado-pago="<?= htmlspecialchars($estadoPago) ?>"
+                                                    data-total-productos="<?= (int)($pedido['total_productos'] ?? 0) ?>">
                                                     <td>
-                                                        <span class="badge bg-<?php echo ($pedido['estado'] === 'Pendiente') ? 'warning' : (($pedido['estado'] === 'Completado') ? 'success' : (($pedido['estado'] === 'Cancelado') ? 'danger' : 'info')); ?>">
-                                                            <?php echo htmlspecialchars($pedido['estado']); ?>
-                                                        </span>
+                                                        <strong class="text-primary"><?= htmlspecialchars($pedido['numped'] ?? 'PED-' . $pedido['idped']) ?></strong>
+                                                        <br><small class="text-muted">ID: <?= (int)$pedido['idped'] ?></small>
                                                     </td>
                                                     <td>
-                                                        <form method="POST" class="d-flex align-items-center gap-1">
-                                                            <input type="hidden" name="accion" value="actualizar_estado">
-                                                            <input type="hidden" name="idped" value="<?php echo $pedido['idped']; ?>">
-                                                            <select name="estado" class="form-select form-select-sm" style="width: auto;">
-                                                                <option value="Pendiente" <?php echo ($pedido['estado'] === 'Pendiente') ? 'selected' : ''; ?>>Pendiente</option>
-                                                                <option value="En Proceso" <?php echo ($pedido['estado'] === 'En Proceso' || $pedido['estado'] === 'En proceso') ? 'selected' : ''; ?>>En Proceso</option>
-                                                                <option value="En Preparación" <?php echo ($pedido['estado'] === 'En Preparación') ? 'selected' : ''; ?>>En Preparación</option>
-                                                                <option value="Completado" <?php echo ($pedido['estado'] === 'Completado') ? 'selected' : ''; ?>>Completado</option>
-                                                                <option value="Cancelado" <?php echo ($pedido['estado'] === 'Cancelado') ? 'selected' : ''; ?>>Cancelado</option>
-                                                            </select>
-                                                            <button type="submit" class="btn btn-success btn-sm">
-                                                                <i class="fas fa-sync-alt"></i> Actualizar
-                                                            </button>
-                                                        </form>
+                                                        <strong><?= htmlspecialchars($pedido['cliente_nombre'] ?? '') ?></strong>
+                                                        <?php if (!empty($pedido['cliente_email'])): ?>
+                                                        <br><small class="text-muted"><?= htmlspecialchars($pedido['cliente_email']) ?></small>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                    <td><?= $fechaPed ?></td>
+                                                    <td><?= $fechaEnt ?: '<small class="text-muted">Sin fecha</small>' ?></td>
+                                                    <td><strong class="text-success">$<?= number_format((float)($pedido['monto_total'] ?? 0), 2) ?></strong></td>
+                                                    <td><span class="badge bg-<?= badgeEstadoPedido($estado) ?>"><?= htmlspecialchars($estado) ?></span></td>
+                                                    <td><span class="badge bg-<?= badgeEstadoPago($estadoPago) ?>"><?= htmlspecialchars($estadoPago) ?></span></td>
+                                                    <td class="text-center">
+                                                        <div class="btn-group btn-group-sm" role="group">
+                                                            <button type="button" class="btn btn-outline-secondary" onclick="verDetallePedidoEmp(<?= (int)$pedido['idped'] ?>)" title="Ver detalles"><i class="fas fa-eye"></i></button>
+                                                            <a href="index.php?ctrl=empleado&action=generar_factura&idpedido=<?= (int)$pedido['idped'] ?>" class="btn btn-outline-success" title="Descargar factura" target="_blank"><i class="fas fa-file-invoice-dollar"></i></a>
+                                                            <?php if ($estado !== 'Completado' && $estado !== 'Cancelado'): ?>
+                                                            <button type="button" class="btn btn-outline-warning text-dark" onclick="editarPedidoEmp(<?= (int)$pedido['idped'] ?>)" title="Editar pedido"><i class="fas fa-pen"></i></button>
+                                                            <?php endif; ?>
+                                                            <button type="button" class="btn btn-outline-info text-info" onclick="editarPagoEmp(<?= (int)$pedido['idped'] ?>)" title="Gestionar pago"><i class="fas fa-credit-card"></i></button>
+                                                            <?php if ($estado === 'Pendiente'): ?>
+                                                                <button type="button" class="btn btn-outline-primary" onclick="cambiarEstadoEmp(<?= (int)$pedido['idped'] ?>, 'En proceso')" title="En proceso"><i class="fas fa-cog"></i></button>
+                                                                <button type="button" class="btn btn-outline-success" onclick="cambiarEstadoEmp(<?= (int)$pedido['idped'] ?>, 'Completado')" title="Completado"><i class="fas fa-check"></i></button>
+                                                                <button type="button" class="btn btn-outline-danger" onclick="cambiarEstadoEmp(<?= (int)$pedido['idped'] ?>, 'Cancelado')" title="Cancelar"><i class="fas fa-ban"></i></button>
+                                                            <?php elseif ($estado === 'En proceso' || $estado === 'En Proceso'): ?>
+                                                                <button type="button" class="btn btn-outline-success" onclick="cambiarEstadoEmp(<?= (int)$pedido['idped'] ?>, 'Completado')" title="Completado"><i class="fas fa-check"></i></button>
+                                                                <button type="button" class="btn btn-outline-danger" onclick="cambiarEstadoEmp(<?= (int)$pedido['idped'] ?>, 'Cancelado')" title="Cancelar"><i class="fas fa-ban"></i></button>
+                                                            <?php else: ?>
+                                                                <button type="button" class="btn btn-outline-secondary" onclick="cambiarEstadoEmp(<?= (int)$pedido['idped'] ?>, 'Pendiente')" title="Reabrir" <?= $estado === 'Pendiente' ? 'disabled' : '' ?>><i class="fas fa-undo"></i></button>
+                                                                <button type="button" class="btn btn-outline-primary" onclick="cambiarEstadoEmp(<?= (int)$pedido['idped'] ?>, 'En proceso')" title="En proceso" <?= ($estado === 'En proceso' || $estado === 'En Proceso') ? 'disabled' : '' ?>><i class="fas fa-cog"></i></button>
+                                                                <button type="button" class="btn btn-outline-success" onclick="cambiarEstadoEmp(<?= (int)$pedido['idped'] ?>, 'Completado')" title="Completado" <?= $estado === 'Completado' ? 'disabled' : '' ?>><i class="fas fa-check"></i></button>
+                                                                <button type="button" class="btn btn-outline-danger" onclick="cambiarEstadoEmp(<?= (int)$pedido['idped'] ?>, 'Cancelado')" title="Cancelar" <?= $estado === 'Cancelado' ? 'disabled' : '' ?>><i class="fas fa-ban"></i></button>
+                                                            <?php endif; ?>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -649,31 +360,195 @@ if (!isset($pedidosPaginados)) {
                 </div>
             </div>
         </div>
+
+        <!-- Modal Detalle -->
+        <div class="modal fade" id="modalDetallePedidoEmp" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Pedido <span id="modalNumeroPedidoEmp"></span></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="modalDetallePedidoBodyEmp"></div>
+                </div>
+            </div>
+        </div>
+        <!-- Modal Pago -->
+        <div class="modal fade" id="modalPagoPedidoEmp" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="formPagoPedidoEmp">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Pago del pedido <span id="pagoNumeroPedidoEmp"></span></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" name="id_pedido" id="pagoIdPedidoEmp">
+                            <div class="mb-3">
+                                <label class="form-label">Monto</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" step="0.01" min="0" class="form-control" name="monto_total" id="pagoMontoEmp" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Método de pago</label>
+                                <select class="form-select" name="metodo_pago" id="pagoMetodoEmp">
+                                    <option value="efectivo">Efectivo</option>
+                                    <option value="tarjeta">Tarjeta</option>
+                                    <option value="transferencia">Transferencia</option>
+                                    <option value="otro">Otro</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Estado del pago</label>
+                                <select class="form-select" name="estado_pago" id="pagoEstadoEmp">
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Completado">Completado</option>
+                                    <option value="Cancelado">Cancelado</option>
+                                    <option value="Rechazado">Rechazado</option>
+                                </select>
+                            </div>
+                            <div id="alertaPagoPedidoEmp"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            <button type="submit" class="btn btn-primary">Guardar pago</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Modal Editar pedido (datos básicos) -->
+        <div class="modal fade" id="modalEditarPedidoEmp" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="formEditarPedidoEmp">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Editar pedido <span id="editarNumeroPedidoEmp"></span></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" name="id_pedido" id="editarIdPedidoEmp">
+                            <div class="mb-3">
+                                <label class="form-label">Dirección de entrega</label>
+                                <input type="text" class="form-control" name="direccion_entrega" id="editarDireccionEmp">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Fecha entrega solicitada</label>
+                                <input type="date" class="form-control" name="fecha_entrega_solicitada" id="editarFechaEmp">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Estado del pedido</label>
+                                <select class="form-select" name="estado" id="editarEstadoEmp">
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="En proceso">En proceso</option>
+                                    <option value="Completado">Completado</option>
+                                    <option value="Cancelado">Cancelado</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notas</label>
+                                <textarea class="form-control" name="notas" id="editarNotasEmp" rows="2"></textarea>
+                            </div>
+                            <div id="alertaEditarPedidoEmp"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            // Auto-dismiss alerts after 5 seconds
-            setTimeout(function() {
-                const alerts = document.querySelectorAll('.alert');
-                alerts.forEach(alert => {
-                    const bsAlert = new bootstrap.Alert(alert);
-                    bsAlert.close();
-                });
-            }, 5000);
-
-            // Auto-submit on filter change (opcional - comentado para evitar envíos no deseados)
-            /*
-            document.addEventListener('DOMContentLoaded', function() {
-                const filterForm = document.querySelector('form');
-                const selects = filterForm.querySelectorAll('select');
-                const dateInputs = filterForm.querySelectorAll('input[type="date"]');
-                
-                [...selects, ...dateInputs].forEach(element => {
-                    element.addEventListener('change', function() {
-                        filterForm.submit();
-                    });
-                });
+            var baseUrlPedido = 'controllers/Cpedido.php';
+            function cambiarEstadoEmp(idPedido, nuevoEstado) {
+                if (!idPedido || !nuevoEstado) return;
+                var msg = { 'En proceso': 'Poner en proceso', 'Completado': 'Marcar como completado', 'Cancelado': 'Cancelar pedido', 'Pendiente': 'Reabrir pedido' };
+                if (!confirm('¿Confirmas ' + (msg[nuevoEstado] || nuevoEstado) + ' para el pedido #' + idPedido + '?')) return;
+                var btns = document.querySelectorAll('button[onclick*="cambiarEstadoEmp(' + idPedido + '"]');
+                var orig = []; btns.forEach(function(b){ orig.push(b.innerHTML); b.disabled = true; b.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; });
+                fetch(baseUrlPedido, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: new URLSearchParams({ action: 'cambiar_estado', id_pedido: idPedido, nuevo_estado: nuevoEstado })
+                }).then(function(r){ return r.json(); }).then(function(data){
+                    if (data.success) window.location.reload();
+                    else { alert(data.mensaje || 'Error'); btns.forEach(function(b,i){ b.disabled = false; b.innerHTML = orig[i]; }); }
+                }).catch(function(err){ alert('Error: ' + err); btns.forEach(function(b,i){ b.disabled = false; b.innerHTML = orig[i]; }); });
+            }
+            function verDetallePedidoEmp(idPedido) {
+                var modal = new bootstrap.Modal(document.getElementById('modalDetallePedidoEmp'));
+                var body = document.getElementById('modalDetallePedidoBodyEmp');
+                var num = document.getElementById('modalNumeroPedidoEmp');
+                body.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+                var row = document.querySelector('tr[data-id="' + idPedido + '"]');
+                if (!row) { body.innerHTML = '<div class="alert alert-danger">Pedido no encontrado.</div>'; modal.show(); return; }
+                num.textContent = '#' + (row.dataset.numero || idPedido);
+                modal.show();
+                fetch(baseUrlPedido + '?action=detalle&id=' + encodeURIComponent(idPedido)).then(function(r){ return r.json(); }).then(function(data){
+                    var prod = '<p class="text-muted">No hay productos.</p>';
+                    if (data.productos && data.productos.length) {
+                        prod = '<table class="table table-sm"><thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr></thead><tbody>';
+                        data.productos.forEach(function(p){ prod += '<tr><td>' + (p.nombre||'') + '</td><td>' + p.cantidad + '</td><td>$' + parseFloat(p.precio_unitario).toFixed(2) + '</td><td>$' + parseFloat(p.subtotal).toFixed(2) + '</td></tr>'; });
+                        prod += '</tbody></table>';
+                    }
+                    body.innerHTML = '<div class="row"><div class="col-md-6"><strong>Cliente:</strong> ' + (row.dataset.cliente||'') + '<br><strong>Email:</strong> ' + (row.dataset.email||'') + '</div><div class="col-md-6"><strong>Fecha:</strong> ' + (row.dataset.fechaCreacion||'') + '<br><strong>Entrega:</strong> ' + (row.dataset.fechaEntrega||'') + '<br><strong>Estado:</strong> ' + (row.dataset.estado||'') + '<br><strong>Pago:</strong> ' + (row.dataset.estadoPago||'') + '</div></div><hr><h6>Productos</h6>' + prod + '<div class="text-end mt-3"><strong>Total: $' + parseFloat(row.dataset.total||0).toFixed(2) + '</strong></div>';
+                }).catch(function(){ body.innerHTML = '<div class="alert alert-danger">Error al cargar.</div>'; });
+            }
+            function editarPagoEmp(idPedido) {
+                var row = document.querySelector('tr[data-id="' + idPedido + '"]');
+                document.getElementById('pagoIdPedidoEmp').value = idPedido;
+                document.getElementById('pagoNumeroPedidoEmp').textContent = '#' + (row ? row.dataset.numero : idPedido);
+                document.getElementById('pagoMontoEmp').value = row ? row.dataset.total : '';
+                document.getElementById('alertaPagoPedidoEmp').innerHTML = '';
+                new bootstrap.Modal(document.getElementById('modalPagoPedidoEmp')).show();
+            }
+            document.getElementById('formPagoPedidoEmp').addEventListener('submit', function(e){
+                e.preventDefault();
+                var f = e.target;
+                var alerta = document.getElementById('alertaPagoPedidoEmp');
+                var fd = new FormData(f);
+                fd.append('action', 'editar_pago');
+                fetch(baseUrlPedido, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd }).then(function(r){ return r.json(); }).then(function(data){
+                    if (data.success) { bootstrap.Modal.getInstance(document.getElementById('modalPagoPedidoEmp')).hide(); window.location.reload(); }
+                    else alerta.innerHTML = '<div class="alert alert-danger">' + (data.mensaje||'Error') + '</div>';
+                }).catch(function(err){ alerta.innerHTML = '<div class="alert alert-danger">Error: ' + err + '</div>'; });
             });
-            */
+            function editarPedidoEmp(idPedido) {
+                document.getElementById('editarIdPedidoEmp').value = idPedido;
+                var row = document.querySelector('tr[data-id="' + idPedido + '"]');
+                document.getElementById('editarNumeroPedidoEmp').textContent = '#' + (row ? row.dataset.numero : idPedido);
+                document.getElementById('alertaEditarPedidoEmp').innerHTML = '';
+                fetch(baseUrlPedido + '?action=detalle&id=' + idPedido).then(function(r){ return r.json(); }).then(function(data){
+                    if (data.success && data.pedido) {
+                        var p = data.pedido;
+                        document.getElementById('editarDireccionEmp').value = p.direccion_entrega || '';
+                        document.getElementById('editarFechaEmp').value = (p.fecha_entrega_solicitada || '').split(' ')[0];
+                        document.getElementById('editarEstadoEmp').value = (p.estado || 'Pendiente').replace('En Proceso','En proceso');
+                        document.getElementById('editarNotasEmp').value = p.notas || '';
+                    }
+                });
+                new bootstrap.Modal(document.getElementById('modalEditarPedidoEmp')).show();
+            }
+            document.getElementById('formEditarPedidoEmp').addEventListener('submit', function(e){
+                e.preventDefault();
+                var f = e.target;
+                var alerta = document.getElementById('alertaEditarPedidoEmp');
+                var fd = new FormData(f);
+                fd.append('action', 'editar_pedido');
+                fd.append('empleado_id', '<?= (int)($_SESSION["user"]["idusu"] ?? 0) ?>');
+                fetch(baseUrlPedido, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd }).then(function(r){ return r.json(); }).then(function(data){
+                    if (data.success) { bootstrap.Modal.getInstance(document.getElementById('modalEditarPedidoEmp')).hide(); window.location.reload(); }
+                    else alerta.innerHTML = '<div class="alert alert-danger">' + (data.mensaje||'Error') + '</div>';
+                }).catch(function(err){ alerta.innerHTML = '<div class="alert alert-danger">Error: ' + err + '</div>'; });
+            });
+            setTimeout(function() {
+                document.querySelectorAll('.alert').forEach(function(a){ try { new bootstrap.Alert(a).close(); } catch(_){} });
+            }, 5000);
         </script>
     </body>
     </html>

@@ -1,8 +1,6 @@
 <?php
-// Obtener mensajes de sesión si existen
 $mensaje = isset($_SESSION['mensaje']) ? $_SESSION['mensaje'] : '';
 $tipo_mensaje = isset($_SESSION['tipo_mensaje']) ? $_SESSION['tipo_mensaje'] : '';
-// Limpiar los mensajes después de mostrarlos
 unset($_SESSION['mensaje']);
 unset($_SESSION['tipo_mensaje']);
 ?>
@@ -11,43 +9,15 @@ unset($_SESSION['tipo_mensaje']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Empleado - FloralTech</title>
+    <title>Dashboard Empleado</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/dashboard-empleado.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="empleado-theme">
     <div class="dashboard-container">
-        <!-- Header Mejorado -->
-        <nav class="navbar">
-            <div class="container-fluid">
-                <div class="navbar-brand">
-                    <i class="fas fa-seedling me-2"></i>
-                    FloralTech - Empleado
-                </div>
-                <div class="navbar-user">
-                    <div class="user-info">
-                        <p class="user-name">Bienvenido, <?= htmlspecialchars($user['nombre_completo']) ?></p>
-                        <p class="user-welcome">
-                            <?php
-                            $tipo_empleado = '';
-                            switch($user['tpusu_idtpusu']) {
-                                case 2: $tipo_empleado = 'Panel Vendedor'; break;
-                                case 3: $tipo_empleado = 'Panel Inventario'; break;
-                                case 4: $tipo_empleado = 'Panel Repartidor'; break;
-                                default: $tipo_empleado = 'Panel Empleado'; break;
-                            }
-                            echo $tipo_empleado;
-                            ?>
-                        </p>
-                    </div>
-                    <a href="index.php?ctrl=login&action=logout" class="logout-btn">
-                        <i class="fas fa-sign-out-alt me-1"></i>Cerrar Sesión
-                    </a>
-                </div>
-            </div>
-        </nav>
+        <?php include __DIR__ . '/partials/navbar_empleado.php'; ?>
 
         <!-- Saludo Principal -->
         <div class="main-content">
@@ -56,52 +26,31 @@ unset($_SESSION['tipo_mensaje']);
                     <div class="card-body">
                         <div class="welcome-header d-flex justify-content-between align-items-center flex-wrap gap-3">
                             <div>
-                                <h2><i class="fas fa-chart-line me-2"></i>Dashboard de Empleado</h2>
-                                <p class="mb-0">Gestiona pedidos, pagos e inventario desde tu panel de control</p>
+                                <h2><i class="fas fa-chart-line me-2"></i>Dashboard</h2>
+                                <p class="mb-0 text-muted">Pedidos, pagos e inventario en un solo lugar</p>
                             </div>
-                            
-                            <!-- Filtro de Periodo -->
-                            <div class="period-filter bg-white p-2 rounded shadow-sm border">
-                                <form action="index.php" method="GET" class="d-flex align-items-center gap-2">
+                            <!-- Filtro: cambia los números de "Pedidos" y "Ventas" según el mes elegido -->
+                            <div class="period-filter-wrapper">
+                                <label class="period-filter-label">Ver estadísticas de</label>
+                                <form action="index.php" method="GET" class="d-inline">
                                     <input type="hidden" name="ctrl" value="empleado">
                                     <input type="hidden" name="action" value="dashboard">
-                                    <label class="small fw-bold text-muted mb-0"><i class="fas fa-filter me-1"></i>Periodo:</label>
-                                    <select name="periodo" class="form-select form-select-sm border-0 bg-light" onchange="this.form.submit()" style="min-width: 150px;">
-                                        <option value="">Mes Actual</option>
+                                    <select name="periodo" class="form-select form-select-sm period-filter-select" onchange="this.form.submit()" title="Elige el mes para ver pedidos y ventas de ese periodo">
+                                        <option value="">Mes actual</option>
                                         <?php if (!empty($periodos)): ?>
-                                            <?php foreach ($periodos as $p): 
+                                            <?php foreach ($periodos as $p):
                                                 $val = $p['mes'] . '-' . $p['ano'];
                                                 $selected = (isset($filtro['mes']) && $filtro['mes'] == $p['mes'] && $filtro['ano'] == $p['ano']) ? 'selected' : '';
-                                                $nombre_mes = date("F", mktime(0, 0, 0, $p['mes'], 10));
-                                                // Traducir mes si es posible o usar formato numérico
-                                                $meses_es = [
-                                                    1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio',
-                                                    7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
-                                                ];
-                                                $mes_texto = $meses_es[$p['mes']] ?? $nombre_mes;
+                                                $meses_es = [1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'];
+                                                $mes_texto = $meses_es[$p['mes']] ?? '';
                                             ?>
                                                 <option value="<?= $val ?>" <?= $selected ?>><?= $mes_texto ?> <?= $p['ano'] ?></option>
                                             <?php endforeach; ?>
                                         <?php endif; ?>
                                     </select>
                                 </form>
+                                <small class="text-muted d-block mt-1">Pedidos y ventas del mes elegido</small>
                             </div>
-                        </div>
-                        <div class="welcome-stats">
-                            <span><i class="fas fa-calendar-day me-1"></i><?= date('d/m/Y') ?></span>
-                            <span><i class="fas fa-clock me-1"></i><?= date('H:i') ?></span>
-                            <span><i class="fas fa-user-tag me-1"></i>
-                                <?php
-                                $tipo_empleado = '';
-                                switch($user['tpusu_idtpusu']) {
-                                    case 2: $tipo_empleado = 'Vendedor'; break;
-                                    case 3: $tipo_empleado = 'Inventario'; break;
-                                    case 4: $tipo_empleado = 'Repartidor'; break;
-                                    default: $tipo_empleado = 'Empleado'; break;
-                                }
-                                echo $tipo_empleado;
-                                ?>
-                            </span>
                         </div>
                     </div>
                 </div>
@@ -115,59 +64,69 @@ unset($_SESSION['tipo_mensaje']);
                 </div>
             <?php endif; ?>
 
-            <!-- Estadísticas Principales -->
+            <!-- Resumen: estas son las estadísticas según el periodo elegido arriba -->
             <div class="stats-section">
+                <h3 class="stats-section-title">Resumen</h3>
+                <p class="stats-section-desc">Números según el mes seleccionado</p>
                 <div class="stats-grid">
                     <div class="stat-card success">
-                        <div class="stat-icon">
-                            <i class="fas fa-shopping-cart"></i>
-                        </div>
+                        <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
                         <div class="stat-info">
                             <h3><?= number_format($stats['pedidos_hoy']) ?></h3>
-                            <p><?= (isset($filtro['mes']) && !empty($filtro['mes'])) ? 'Pedidos del Periodo' : 'Pedidos Hoy' ?></p>
+                            <p><?= (isset($filtro['mes']) && !empty($filtro['mes'])) ? 'Pedidos del periodo' : 'Pedidos hoy' ?></p>
                         </div>
                     </div>
-
                     <div class="stat-card warning">
-                        <div class="stat-icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
+                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
                         <div class="stat-info">
                             <h3><?= number_format($stats['pedidos_pendientes']) ?></h3>
-                            <p>Pedidos Pendientes</p>
+                            <p>Pedidos pendientes</p>
                         </div>
                     </div>
-
                     <div class="stat-card info">
-                        <div class="stat-icon">
-                            <i class="fas fa-credit-card"></i>
-                        </div>
+                        <div class="stat-icon"><i class="fas fa-credit-card"></i></div>
                         <div class="stat-info">
                             <h3><?= number_format($stats['pagos_pendientes']) ?></h3>
-                            <p>Pagos Pendientes</p>
+                            <p>Pagos pendientes</p>
                         </div>
                     </div>
-
                     <div class="stat-card success">
-                        <div class="stat-icon">
-                            <i class="fas fa-dollar-sign"></i>
-                        </div>
+                        <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
                         <div class="stat-info">
                             <h3>$<?= number_format($stats['ventas_mes'], 2) ?></h3>
-                            <p>Ventas <?= (isset($filtro['mes']) && !empty($filtro['mes'])) ? 'del Periodo' : 'del Mes' ?></p>
+                            <p>Ventas <?= (isset($filtro['mes']) && !empty($filtro['mes'])) ? 'del periodo' : 'del mes' ?></p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Grid de Contenido Principal -->
+            <!-- Acciones rápidas: siempre visibles arriba -->
+            <div class="quick-actions-bar">
+                <a href="index.php?ctrl=empleado&action=gestion_pedidos" class="quick-action-link quick-action-pedidos">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Gestionar Pedidos</span>
+                </a>
+                <a href="index.php?ctrl=empleado&action=procesar_pagos" class="quick-action-link quick-action-pagos">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Procesar Pagos</span>
+                </a>
+                <a href="index.php?ctrl=empleado&action=inventario" class="quick-action-link quick-action-inventario">
+                    <i class="fas fa-boxes"></i>
+                    <span><?= $user['tpusu_idtpusu'] == 3 ? 'Inventario completo' : 'Inventario' ?></span>
+                </a>
+                <a href="index.php?ctrl=empleado&action=configuracion" class="quick-action-link quick-action-config">
+                    <i class="fas fa-cog"></i>
+                    <span>Configuración</span>
+                </a>
+            </div>
+
+            <!-- Contenido: pedidos y alerta de stock -->
             <div class="content-grid">
-                <!-- Columna Principal - Pedidos -->
                 <div class="main-column">
                     <div class="content-card card mb-4">
                         <div class="card-header">
-                            <h5><i class="fas fa-list-alt me-2"></i>Ultimos pedidos pendientes</h5>
-                            <span class="badge bg-primary"><?= count($pedidos_pendientes) ?> pendientes</span>
+                            <h5><i class="fas fa-list-alt me-2"></i>Últimos pedidos pendientes</h5>
+                            <span class="badge bg-primary"><span class="badge-num"><?= count($pedidos_pendientes) ?></span> pendientes</span>
                         </div>
                         <div class="card-body">
                             <?php if (!empty($pedidos_pendientes)): ?>
@@ -186,9 +145,7 @@ unset($_SESSION['tipo_mensaje']);
                                         <tbody>
                                             <?php foreach (array_slice($pedidos_pendientes, 0, 10) as $pedido): ?>
                                             <tr>
-                                                <td>
-                                                    <strong class="text-primary"><?= htmlspecialchars($pedido['numped']) ?></strong>
-                                                </td>
+                                                <td><strong class="text-primary"><?= htmlspecialchars($pedido['numped']) ?></strong></td>
                                                 <td><?= htmlspecialchars($pedido['cliente_nombre']) ?></td>
                                                 <td>
                                                     <small class="text-muted d-block"><?= date('d/m/Y', strtotime($pedido['fecha_pedido'])) ?></small>
@@ -196,14 +153,10 @@ unset($_SESSION['tipo_mensaje']);
                                                 </td>
                                                 <td><strong class="text-success">$<?= number_format($pedido['monto_total'], 2) ?></strong></td>
                                                 <td>
-                                                    <span class="badge rounded-pill bg-<?= $pedido['estado'] === 'Pendiente' ? 'warning' : 'info' ?> text-dark">
-                                                        <?= htmlspecialchars($pedido['estado']) ?>
-                                                    </span>
+                                                    <span class="badge rounded-pill bg-<?= $pedido['estado'] === 'Pendiente' ? 'warning' : 'info' ?> text-dark"><?= htmlspecialchars($pedido['estado']) ?></span>
                                                 </td>
                                                 <td>
-                                                    <span class="badge rounded-pill bg-<?= $pedido['estado_pag'] === 'Completado' ? 'success' : ($pedido['estado_pag'] === 'Pendiente' ? 'warning' : 'secondary') ?>">
-                                                        <?= htmlspecialchars($pedido['estado_pag'] ?? 'Sin pago') ?>
-                                                    </span>
+                                                    <span class="badge rounded-pill bg-<?= $pedido['estado_pag'] === 'Completado' ? 'success' : ($pedido['estado_pag'] === 'Pendiente' ? 'warning' : 'secondary') ?>"><?= htmlspecialchars($pedido['estado_pag'] ?? 'Sin pago') ?></span>
                                                 </td>
                                             </tr>
                                             <?php endforeach; ?>
@@ -221,10 +174,8 @@ unset($_SESSION['tipo_mensaje']);
                     </div>
                 </div>
 
-                <!-- Columna Lateral - Alertas y Acciones -->
                 <div class="side-column">
-                    <!-- Inventario Crítico -->
-                    <div class="content-card card mb-4 border-start border-danger border-4">
+                    <div class="content-card card border-start border-danger border-4">
                         <div class="card-header bg-white">
                             <h5 class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Stock Crítico</h5>
                         </div>
@@ -242,9 +193,7 @@ unset($_SESSION['tipo_mensaje']);
                                     <?php endforeach; ?>
                                 </div>
                                 <div class="text-center mt-3">
-                                    <a href="index.php?ctrl=empleado&action=inventario" class="btn btn-sm btn-outline-danger w-100">
-                                        Ver Inventario Completo
-                                    </a>
+                                    <a href="index.php?ctrl=empleado&action=inventario" class="btn btn-sm btn-outline-danger w-100">Ver Inventario</a>
                                 </div>
                             <?php else: ?>
                                 <div class="text-center py-3 text-muted">
@@ -252,39 +201,6 @@ unset($_SESSION['tipo_mensaje']);
                                     <p class="mb-0">Todo el stock está bien</p>
                                 </div>
                             <?php endif; ?>
-                        </div>
-                    </div>
-
-
-
-                    <!-- Acciones Rápidas -->
-                    <div class="content-card card">
-                        <div class="card-header">
-                            <h5><i class="fas fa-bolt me-2"></i>Acciones Rápidas</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="quick-actions">
-                                <a href="index.php?ctrl=empleado&action=gestion_pedidos" class="action-btn btn btn-primary">
-                                    <i class="fas fa-clipboard-list"></i>
-                                    Gestionar Pedidos
-                                </a>
-                                <a href="index.php?ctrl=CempleadoPagos&action=reportes" class="action-btn btn btn-success">
-                                    <i class="fas fa-credit-card"></i>
-                                    Procesar Pagos
-                                </a>
-                                <a href="index.php?ctrl=empleado&action=inventario" class="action-btn btn btn-info">
-                                    <i class="fas fa-boxes"></i>
-                                    <?php if($user['tpusu_idtpusu'] == 3): ?>
-                                        Inventario Completo
-                                    <?php else: ?>
-                                        Inventario
-                                    <?php endif; ?>
-                                </a>
-                                <!-- <a href="index.php?ctrl=CempleadoPagos&action=reportes" class="action-btn btn btn-warning">
-                                    <i class="fas fa-chart-bar"></i>
-                                    Reportes
-                                </a> -->
-                            </div>
                         </div>
                     </div>
                 </div>

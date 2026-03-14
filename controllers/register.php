@@ -180,6 +180,17 @@ class Register {
                     $success = "Usuario registrado exitosamente.";
                     $_SESSION['register_success'] = $success;
                     error_log("=== REGISTRO EXITOSO === para usuario: " . $username);
+                    // Enviar correo de bienvenida al nuevo cliente (rol 5)
+                    if ($tpusu_idtpusu == 5) {
+                        try {
+                            require_once __DIR__ . '/../models/Mailer.php';
+                            $mailer = new Mailer();
+                            $mailer->sendWelcomeEmailCliente($email, $nombre_completo);
+                            error_log("Correo de bienvenida enviado a: " . $email);
+                        } catch (Exception $e) {
+                            error_log("No se pudo enviar correo de bienvenida: " . $e->getMessage());
+                        }
+                    }
                     // Si el usuario es administrador, redirigir al dashboard de admin
                     if ($tpusu_idtpusu == 1) {
                         // Iniciar sesión automáticamente

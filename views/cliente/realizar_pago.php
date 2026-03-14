@@ -10,6 +10,8 @@ if (!isset($_SESSION['user'])) {
     exit();
 }
 
+$usuario = $_SESSION['user'];
+
 // Obtener conexión a la base de datos
 require_once 'models/conexion.php';
 $conn = new conexion();
@@ -24,33 +26,30 @@ if ($idPedido <= 0) {
 }
 
 try {
-    // 1. Obtener ID del cliente
     $stmt = $db->prepare("SELECT idcli FROM cli WHERE email = ? LIMIT 1");
     $stmt->execute([$_SESSION['user']['email']]);
     $cliente = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!$cliente) {
         $_SESSION['mensaje_error'] = "Cliente no encontrado";
         header('Location: index.php?ctrl=cliente&action=historial');
         exit();
     }
 
-    // 2. Verificar que el pedido pertenece al cliente
     $stmt = $db->prepare("SELECT idped FROM ped WHERE idped = ? AND cli_idcli = ?");
     $stmt->execute([$idPedido, $cliente['idcli']]);
     $pedidoValido = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!$pedidoValido) {
         $_SESSION['mensaje_error'] = "No tienes permiso para acceder a este pedido";
         header('Location: index.php?ctrl=cliente&action=historial');
         exit();
     }
 
-    // 3. Obtener información del pedido (CORREGIDO: usando fecha_entrega_solicitada en lugar de fecha_entrega)
     $stmt = $db->prepare("
-        SELECT p.*, 
+        SELECT p.*,
                DATE_FORMAT(p.fecha_entrega_solicitada, '%d/%m/%Y') as fecha_entrega_formato,
-               pg.metodo_pago, 
+               pg.metodo_pago,
                pg.estado_pag,
                pg.idpago
         FROM ped p
@@ -60,11 +59,10 @@ try {
     $stmt->execute([$idPedido]);
     $pedido = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // 4. Obtener detalles del pedido
     $stmt = $db->prepare("
-        SELECT dp.*, 
-               tf.nombre, 
-               tf.precio, 
+        SELECT dp.*,
+               tf.nombre,
+               tf.precio,
                (dp.cantidad * tf.precio) as subtotal
         FROM detped dp
         JOIN tflor tf ON dp.idtflor = tf.idtflor
@@ -73,13 +71,11 @@ try {
     $stmt->execute([$idPedido]);
     $flores_pedido = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Calcular total si es necesario
     if (empty($pedido['monto_total'])) {
         $pedido['monto_total'] = array_reduce($flores_pedido, function($total, $flor) {
             return $total + ($flor['cantidad'] * $flor['precio']);
         }, 0);
     }
-
 } catch (PDOException $e) {
     error_log("Error en realizar_pago: " . $e->getMessage());
     $_SESSION['mensaje_error'] = "Error al cargar la información del pedido";
@@ -87,12 +83,13 @@ try {
     exit();
 }
 
-// Si no hay datos del pedido, redirigir
 if (empty($pedido)) {
     $_SESSION['mensaje_error'] = "No se encontró información del pedido";
     header('Location: index.php?ctrl=cliente&action=historial');
     exit();
 }
+
+$navbar_volver_url = 'index.php?ctrl=cliente&action=historial';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -101,191 +98,162 @@ if (empty($pedido)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Realizar Pago - FloralTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/dashboard-cliente.css">
+    <link rel="stylesheet" href="assets/css/dashboard-cliente.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .payment-method {
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 10px 0;
-            cursor: pointer;
-            transition: all 0.3s ease;
+        .realizar-pago-page { --rp-purple: #667eea; --rp-purple-dark: #5a67d8; --rp-radius: 16px; --rp-shadow: 0 4px 20px rgba(102, 126, 234, 0.08); }
+        .realizar-pago-page body { font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif; }
+        .realizar-pago-page .page-title-card {
+            background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+            border: 1px solid var(--cli-border);
+            border-radius: var(--rp-radius);
+            box-shadow: var(--rp-shadow);
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--rp-purple);
         }
-        .payment-method:hover {
-            border-color: #007bff;
+        .realizar-pago-page .page-title-card h1 { font-size: 1.35rem; font-weight: 700; color: var(--cli-text); margin: 0 0 0.25rem 0; }
+        .realizar-pago-page .page-title-card p { margin: 0; color: var(--cli-text-muted); font-size: 0.9rem; }
+        .realizar-pago-page .resumen-card {
+            background: #fff;
+            border: 1px solid var(--cli-border);
+            border-radius: var(--rp-radius);
+            box-shadow: var(--rp-shadow);
+            overflow: hidden;
+            margin-bottom: 1.5rem;
         }
-        .payment-method.selected {
-            border-color: #28a745;
-            background-color: #f8fff9;
+        .realizar-pago-page .resumen-card .card-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-bottom: 1px solid var(--cli-border);
+            padding: 1rem 1.25rem;
+            font-weight: 700;
+            color: var(--cli-text);
+            font-size: 1rem;
         }
-        .qr-container {
-            text-align: center;
-            padding: 20px;
-            border: 2px dashed #007bff;
-            border-radius: 10px;
-            margin: 20px 0;
+        .realizar-pago-page .resumen-card .card-header i { color: var(--rp-purple); margin-right: 0.5rem; }
+        .realizar-pago-page .resumen-card .card-body { padding: 1.25rem 1.5rem; }
+        .realizar-pago-page .pedido-num { font-weight: 700; color: var(--rp-purple); font-size: 1.05rem; }
+        .realizar-pago-page .detalle-item { padding: 0.5rem 0; border-bottom: 1px solid var(--cli-border); display: flex; justify-content: space-between; align-items: center; }
+        .realizar-pago-page .detalle-item:last-of-type { border-bottom: none; }
+        .realizar-pago-page .total-row {
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-top: 1rem;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .flower-card {
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
+        .realizar-pago-page .total-row .total-label { font-weight: 700; color: var(--cli-text); font-size: 1rem; }
+        .realizar-pago-page .total-row .total-value { font-size: 1.5rem; font-weight: 800; color: var(--rp-purple); }
+        .realizar-pago-page .info-alert {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border: 1px solid rgba(2, 132, 199, 0.25);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+            color: #0c4a6e;
+            font-size: 0.9rem;
         }
-        .readonly-info {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
-            padding: 10px;
+        .realizar-pago-page .info-alert i { color: var(--cli-info); margin-right: 0.5rem; }
+        .realizar-pago-page .btn-confirmar {
+            background: linear-gradient(135deg, var(--rp-purple) 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            padding: 0.9rem 1.5rem;
+            font-weight: 600;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
+            transition: all 0.2s ease;
+            width: 100%;
         }
-        .resumen-pago {
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .total-pago {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #28a745;
-        }
+        .realizar-pago-page .btn-confirmar:hover { color: #fff; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4); }
+        .realizar-pago-page .btn-cancelar { color: var(--cli-text-muted); text-decoration: none; font-size: 0.9rem; margin-top: 0.75rem; display: inline-block; }
+        .realizar-pago-page .btn-cancelar:hover { color: var(--rp-purple); }
+        .realizar-pago-page .pago-center { max-width: 520px; margin: 0 auto; }
     </style>
 </head>
-<body>
-    <div class="dashboard-container">
-        <!-- Header Estilizado -->
-        <nav class="navbar">
-            <div class="navbar-brand">
-                <i class="fas fa-seedling"></i>
-                FloralTech
-            </div>
-            <div class="navbar-user">
-                <div class="user-info">
-                    <p class="user-name">Realizar Pago</p>
-                    <p class="user-welcome">Completa tu transacción</p>
-                </div>
-                <a href="index.php?ctrl=cliente&action=historial" class="logout-btn">
-                    <i class="fas fa-arrow-left"></i> Volver al Historial
-                </a>
-            </div>
-        </nav>
+<body class="cliente-theme">
+    <div class="dashboard-container realizar-pago-page">
+        <?php include __DIR__ . '/partials/navbar_cliente.php'; ?>
 
-        <div class="row">
-            <!-- Columna principal -->
-           <!-- <div class="col-md-8">
-                <div class="card">
+        <div class="main-content">
+            <div class="pago-center">
+                <div class="page-title-card">
+                    <h1><i class="fas fa-credit-card me-2" style="color: var(--rp-purple);"></i>Realizar Pago</h1>
+                    <p>Completa tu transacción para el pedido seleccionado</p>
+                </div>
+
+                <?php if (!empty($_SESSION['mensaje_error'])): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <?= htmlspecialchars($_SESSION['mensaje_error']) ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    <?php unset($_SESSION['mensaje_error']); ?>
+                <?php endif; ?>
+
+                <div class="resumen-card">
                     <div class="card-header">
-                        <i class="fas fa-credit-card"></i> Realizar Pago - Pedido #<?= htmlspecialchars($pedido['numped'] ?? 'N/A') ?>
+                        <i class="fas fa-file-invoice-dollar"></i> Resumen de Pago
                     </div>
                     <div class="card-body">
-                    [Resto del contenido principal permanece igual] 
-                    </div>
-                </div>
-            </div> -->
+                        <p class="mb-3">
+                            <i class="fas fa-shopping-bag text-muted me-1"></i>
+                            <span class="pedido-num">Pedido #<?= htmlspecialchars($pedido['numped'] ?? 'N/A') ?></span>
+                        </p>
 
-            <!-- Columna lateral - Resumen del pedido MEJORADO -->
-<div class="col-md-4">
-    <div class="total-summary">
-        <h5><i class="fas fa-file-invoice-dollar"></i> Resumen de Pago</h5>
-        
-        <div class="resumen-pago">
-            <h5 class="text-center mb-3">
-                <i class="fas fa-shopping-bag"></i> Pedido #<?= htmlspecialchars($pedido['numped'] ?? 'N/A') ?>
-            </h5>
-            
-            <div class="mb-3">
-                <h6>Detalles del pedido:</h6>
-                <div class="readonly-info mb-2">
-                    <small>Número de pedido</small>
-                    <div class="fw-bold">#<?= htmlspecialchars($pedido['numped'] ?? 'N/A') ?></div>
-                </div>
-                
-                <?php if (!empty($flores_pedido)): ?>
-                    <div id="selectedFlowers">
-                        <?php foreach ($flores_pedido as $flor): ?>
-                            <div class="d-flex justify-content-between mb-1">
-                                <span><?= htmlspecialchars($flor['nombre']) ?> x<?= $flor['cantidad'] ?></span>
-                                <span>$<?= number_format($flor['subtotal'], 2) ?></span>
-                            </div>
-                        <?php endforeach; ?>
+                        <div class="mb-3">
+                            <small class="text-muted d-block mb-2">Detalles del pedido</small>
+                            <?php if (!empty($flores_pedido)): ?>
+                                <?php foreach ($flores_pedido as $flor): ?>
+                                    <div class="detalle-item">
+                                        <span><?= htmlspecialchars($flor['nombre']) ?> x<?= (int)$flor['cantidad'] ?></span>
+                                        <span class="fw-semibold">$<?= number_format($flor['subtotal'], 2) ?></span>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <p class="text-muted small mb-0">No hay productos en este pedido</p>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="detalle-item">
+                            <span>Subtotal</span>
+                            <span>$<?= number_format($pedido['monto_total'] ?? 0, 2) ?></span>
+                        </div>
+                        <div class="detalle-item">
+                            <span>Envío</span>
+                            <span class="text-success fw-semibold">Gratis</span>
+                        </div>
+
+                        <div class="total-row">
+                            <span class="total-label">Total a pagar</span>
+                            <span class="total-value">$<?= number_format($pedido['monto_total'] ?? 0, 2) ?></span>
+                        </div>
                     </div>
-                <?php else: ?>
-                    <p class="text-muted">No hay productos en este pedido</p>
-                <?php endif; ?>
+                </div>
+
+                <div class="info-alert">
+                    <i class="fas fa-info-circle"></i> El pedido se procesará una vez confirmado el pago.
+                </div>
+
+                <form method="POST" action="index.php?ctrl=cliente&action=procesar_pago">
+                    <input type="hidden" name="idpedido" value="<?= $idPedido ?>">
+                    <input type="hidden" name="idpago" value="<?= htmlspecialchars($pedido['idpago'] ?? '') ?>">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-confirmar">
+                            <i class="fas fa-check-circle me-2"></i> Confirmar Pago
+                        </button>
+                        <a href="<?= htmlspecialchars($navbar_volver_url) ?>" class="btn-cancelar text-center">
+                            <i class="fas fa-times me-1"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
             </div>
-            
-            <hr>
-            
-            <div class="d-flex justify-content-between">
-                <span>Subtotal:</span>
-                <span id="subtotalAmount">$<?= number_format($pedido['monto_total'] ?? 0, 2) ?></span>
-            </div>
-            
-            <div class="d-flex justify-content-between">
-                <span>Envío:</span>
-                <span>Gratis</span>
-            </div>
-            
-            <hr>
-            
-            <div class="d-flex justify-content-between align-items-center">
-                <strong>Total a pagar:</strong>
-                <strong id="totalAmount">$<?= number_format($pedido['monto_total'] ?? 0, 2) ?></strong>
-            </div>
-            
-            <div class="alert alert-info small mt-3">
-                <i class="fas fa-info-circle"></i> El pedido se procesará una vez confirmado el pago
-            </div>
-        </div>
-        
-        <form method="POST" action="index.php?ctrl=cliente&action=procesar_pago" class="mt-3">
-            <input type="hidden" name="idpedido" value="<?= $idPedido ?>">
-            <input type="hidden" name="idpago" value="<?= $pedido['idpago'] ?? '' ?>">
-            
-            
-            <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-success">
-                    <i class="fas fa-check-circle"></i> Confirmar Pago
-                </button>
-                <a href="index.php?ctrl=cliente&action=historial" class="btn btn-outline">
-                    <i class="fas fa-times"></i> Cancelar
-                </a>
-            </div>
-        </form>
-    </div>
-</div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function selectPaymentMethod(method) {
-            // Remover selección anterior
-            document.querySelectorAll('.payment-method').forEach(el => {
-                el.classList.remove('selected');
-            });
-            
-            // Seleccionar nuevo método
-            const radio = document.querySelector(`input[value="${method}"]`);
-            radio.checked = true;
-            radio.parentElement.classList.add('selected');
-            
-            // Mostrar/ocultar QR
-            const qrContainer = document.getElementById('qrContainer');
-            if (method === 'nequi') {
-                qrContainer.style.display = 'block';
-            } else {
-                qrContainer.style.display = 'none';
-            }
-        }
-
-        // Inicializar selección si ya hay un método seleccionado
-        document.addEventListener('DOMContentLoaded', function() {
-            const selectedMethod = document.querySelector('input[name="metodo_pago"]:checked');
-            if (selectedMethod) {
-                selectPaymentMethod(selectedMethod.value);
-            }
-        });
-    </script>
 </body>
 </html>

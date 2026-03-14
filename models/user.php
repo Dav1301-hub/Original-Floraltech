@@ -178,6 +178,23 @@ class User
             $result = $stmt->execute($params);
             if ($result) {
                 $this->touchLastAccess($this->conn->lastInsertId());
+                // Si es cliente (tpusu_idtpusu = 5), crear también en cli para que aparezca al crear pedidos
+                if (isset($data['tpusu_idtpusu']) && (int)$data['tpusu_idtpusu'] === 5) {
+                    try {
+                        $ins = $this->conn->prepare("
+                            INSERT INTO cli (nombre, direccion, telefono, email, fecha_registro)
+                            VALUES (:nombre, :direccion, :telefono, :email, CURDATE())
+                        ");
+                        $ins->execute([
+                            ':nombre'    => $data['nombre_completo'],
+                            ':direccion' => $data['direccion'] ?? 'Sin dirección',
+                            ':telefono'  => $data['telefono'],
+                            ':email'     => $data['email']
+                        ]);
+                    } catch (PDOException $e) {
+                        error_log("Register: no se pudo insertar en cli: " . $e->getMessage());
+                    }
+                }
                 return true;
             }
 
@@ -200,12 +217,21 @@ class User
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Verifica si el email o username ya existen en usu o (para email) en cli.
+     * No puede haber mismo correo en ambas tablas para distintos registros.
+     */
     public function userExists($email, $username)
     {
-        $query = "SELECT COUNT(*) FROM usu WHERE email = :email OR username = :username";
-        $stmt = $this->conn->prepare($query);
+        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM usu WHERE email = :email OR username = :username");
         $stmt->bindParam(':email', $email);
         $stmt->bindParam(':username', $username);
+        $stmt->execute();
+        if ($stmt->fetchColumn() > 0) {
+            return true;
+        }
+        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM cli WHERE email = :email");
+        $stmt->bindParam(':email', $email);
         $stmt->execute();
         return $stmt->fetchColumn() > 0;
     }

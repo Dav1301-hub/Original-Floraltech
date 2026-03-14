@@ -832,6 +832,32 @@ function guardarNuevoPedido(event) {
     const original = btn.innerHTML;
     alerta.innerHTML = '';
 
+    if (document.getElementById('pedidoModo')?.value !== 'editar') {
+        const rows = document.querySelectorAll('#tablaProductosNuevo tbody tr');
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const prodSelect = row.querySelector('.producto-select');
+            const cantidadInput = row.querySelector('.cantidad-input');
+            if (!prodSelect || !cantidadInput) continue;
+            const selected = prodSelect.options[prodSelect.selectedIndex];
+            if (!selected || !selected.value) continue;
+            const stock = parseInt(selected.dataset.stock, 10) || 0;
+            const cantidad = parseInt(cantidadInput.value, 10) || 0;
+            if (cantidad <= 0) {
+                alert('La cantidad de "' + (selected.textContent || 'producto') + '" debe ser mayor a 0.');
+                btn.disabled = false;
+                btn.innerHTML = original;
+                return;
+            }
+            if (cantidad > stock) {
+                alert('La cantidad de "' + (selected.textContent || 'producto') + '" no puede ser mayor al stock disponible (' + stock + ').');
+                btn.disabled = false;
+                btn.innerHTML = original;
+                return;
+            }
+        }
+    }
+
     const modo = document.getElementById('pedidoModo')?.value || 'crear';
     const accion = modo === 'editar' ? 'editar_pedido' : 'crear_pedido';
     const textoCarga = modo === 'editar' ? '<i class="fas fa-spinner fa-spin me-1"></i>Guardando...' : '<i class="fas fa-spinner fa-spin me-1"></i>Creando...';

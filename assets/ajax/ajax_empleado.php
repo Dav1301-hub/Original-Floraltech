@@ -71,6 +71,12 @@ if ($action === 'create') {
         echo json_encode(['success' => false, 'error' => 'Ya existe un usuario con ese email o username']);
         exit;
     }
+    $chk = $db->prepare("SELECT idcli FROM cli WHERE email = :email LIMIT 1");
+    $chk->execute([':email' => $email]);
+    if ($chk->fetch()) {
+        echo json_encode(['success' => false, 'error' => 'Ese correo ya está registrado como cliente. No puede haber el mismo correo en usuarios y clientes.']);
+        exit;
+    }
 
     try {
         $stmt = $db->prepare("
@@ -87,6 +93,21 @@ if ($action === 'create') {
             $rol,
             $estado
         ]);
+        if ($ok && (int)$rol === 5) {
+            // Rol cliente: guardar también en cli para que aparezca al crear pedidos
+            $ins = $db->prepare("INSERT INTO cli (nombre, email, telefono, direccion, fecha_registro) VALUES (?, ?, ?, ?, CURDATE())");
+            $ins->execute([$nombre, $email, $telefono, $naturaleza ?: 'Sin dirección']);
+            // Enviar correo de bienvenida al nuevo cliente
+            if (!empty($email)) {
+                try {
+                    require_once __DIR__ . '/../../models/Mailer.php';
+                    $mailer = new Mailer();
+                    $mailer->sendWelcomeEmailCliente($email, $nombre);
+                } catch (Exception $e) {
+                    error_log("ajax_empleado: correo bienvenida cliente: " . $e->getMessage());
+                }
+            }
+        }
         echo json_encode(['success' => $ok, 'id' => $ok ? $db->lastInsertId() : null]);
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'error' => 'Error: ' . $e->getMessage()]);
