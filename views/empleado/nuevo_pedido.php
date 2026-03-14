@@ -1,10 +1,21 @@
 <?php
-// views/empleado/nuevo_pedido.php
-// Formulario para crear pedido desde panel de empleado
-
 $isModal = isset($_GET['modal']) && $_GET['modal'] == '1';
+$navbar_volver_url = 'index.php?ctrl=empleado&action=gestion_pedidos';
+$navbar_volver_text = 'Volver a Pedidos';
+$user = $user ?? $_SESSION['user'] ?? [];
+$clientes = $clientes ?? [];
+$flores = $flores ?? [];
+if (!$isModal):
+    $tipo_empleado = '';
+    if (!empty($user['tpusu_idtpusu'])) {
+        switch ((int)$user['tpusu_idtpusu']) {
+            case 2: $tipo_empleado = 'Panel Vendedor'; break;
+            case 3: $tipo_empleado = 'Panel Inventario'; break;
+            case 4: $tipo_empleado = 'Panel Repartidor'; break;
+            default: $tipo_empleado = 'Panel Empleado'; break;
+        }
+    }
 ?>
-<?php if (!$isModal): ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -12,302 +23,147 @@ $isModal = isset($_GET['modal']) && $_GET['modal'] == '1';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nuevo Pedido - FloralTech Empleado</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/dashboard-general.css">
-    <link rel="stylesheet" href="assets/css/dashboard-cliente.css">
+    <link rel="stylesheet" href="assets/css/dashboard-empleado.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary-green: #28a745;
-            --secondary-green: #20c997;
-            --accent-blue: #3b82f6;
-            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
-            --border-radius: 12px;
+        .nuevo-pedido-page .content-card { margin-bottom: 1rem; }
+        .flower-card {
+            border: 1px solid var(--emp-border);
+            border-radius: var(--emp-radius-sm);
+            padding: 0.85rem 1rem;
+            margin-bottom: 0.75rem;
+            background: var(--emp-bg-card);
+            transition: var(--emp-transition);
         }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: #f8fafc;
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
+        .flower-card:hover { border-color: var(--emp-primary); box-shadow: 0 2px 8px rgba(13,148,136,0.08); }
+        .flower-card.selected { border-color: var(--emp-primary); background: var(--emp-primary-light); box-shadow: 0 0 0 2px var(--emp-primary); }
+        .flower-card.no-stock { opacity: 0.7; cursor: not-allowed; }
+        .total-summary-card {
+            background: var(--emp-bg-card);
+            border: 1px solid var(--emp-border);
+            border-radius: var(--emp-radius-sm);
+            padding: 1.25rem;
+            position: sticky;
+            top: 1rem;
+            box-shadow: var(--emp-shadow);
         }
-
-        .dashboard-container {
-            width: 100%;
-            max-width: 100%;
-            padding: 0;
-            margin: 0;
-        }
-
-        .navbar {
-            background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));
-            padding: 0.75rem 1.5rem;
-            box-shadow: var(--shadow-md);
-            border: none;
-        }
-
-        .main-content {
-            padding: 1.5rem;
-            width: 100%;
-        }
-
-        .card {
-            border: none;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow-md);
-            overflow: hidden;
-            background: white;
-            transition: transform 0.3s ease;
-        }
-
-        .flower-card { 
-            border: 1px solid #f1f5f9; 
-            border-radius: var(--border-radius); 
-            padding: 1rem; 
-            margin-bottom: 1rem; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            background: #ffffff;
-            position: relative;
-        }
-
-        .flower-card:hover { 
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.08); 
-            border-color: var(--primary-green); 
-        }
-
-        .flower-card.selected { 
-            border-color: var(--primary-green); 
-            background-color: #f0fdf4; 
-            box-shadow: 0 0 0 2px var(--primary-green);
-        }
-
-        .flower-card.no-stock { 
-            opacity: 0.7; 
-            background-color: #f8fafc; 
-            border-color: #e2e8f0 !important; 
-            cursor: not-allowed;
-        }
-
-        .quantity-control input { 
-            border-radius: 8px;
-            text-align: center;
-            font-weight: 600;
-        }
-
-        .total-summary { 
-            background: white; 
-            border-radius: var(--border-radius); 
-            padding: 1.5rem; 
-            position: sticky; 
-            top: 2rem;
-            box-shadow: var(--shadow-md);
-            border: 1px solid #f1f5f9;
-        }
-
-        .badge-stock { 
-            padding: 0.4rem 0.8rem;
-            border-radius: 6px;
-            font-weight: 500;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));
-            border: none;
-            padding: 0.75rem;
-            font-weight: 600;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(40, 167, 69, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .btn-success:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(40, 167, 69, 0.3);
-        }
-
-        .form-select, .form-control {
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            padding: 0.6rem 1rem;
-            transition: border-color 0.3s ease;
-        }
-
-        .form-select:focus, .form-control:focus {
-            border-color: var(--primary-green);
-            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
-        }
+        .badge-stock { font-size: 0.75rem; padding: 0.35rem 0.6rem; }
     </style>
 </head>
-<body>
+<body class="empleado-theme">
     <div class="dashboard-container">
-        <nav class="navbar">
-            <div class="navbar-brand" style="color: white; font-weight: 600;">
-                <i class="fas fa-seedling"></i> FloralTech - Nuevo Pedido
-            </div>
-            <div class="navbar-user">
-                <a href="index.php?ctrl=empleado&action=gestion_pedidos" class="btn btn-outline-light btn-sm">
-                    <i class="fas fa-arrow-left"></i> Volver
-                </a>
-            </div>
-        </nav>
-
+        <?php include __DIR__ . '/partials/navbar_empleado.php'; ?>
         <div class="main-content">
-            <div class="container-fluid px-0">
-            <div class="row">
-                <!-- Columna Principal - Flores -->
-                <div class="col-md-8">
-                    <div class="card shadow">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0"><i class="fas fa-leaf"></i> Seleccionar Flores</h5>
-                        </div>
-                        <div class="card-body">
-                            <form id="pedidoForm" method="POST" action="index.php?ctrl=empleado&action=crearPedidoEmpleado">
-                                <!-- Cliente Selector -->
-                                <div class="mb-4">
-                                    <label for="cli_id" class="form-label"><strong>Cliente</strong></label>
-                                    <select id="cli_id" name="cli_id" class="form-select" required>
-                                        <option value="">-- Selecciona un cliente --</option>
-                                        <?php foreach ($clientes as $cliente): ?>
-                                            <option value="<?= $cliente['idcli'] ?>">
-                                                <?= htmlspecialchars($cliente['nombre']) ?> (<?= $cliente['email'] ?? '' ?>)
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-
-                                <!-- Búsqueda de Flores -->
-                                <div class="mb-3">
-                                    <input 
-                                        type="text" 
-                                        class="form-control" 
-                                        id="flowerSearch" 
-                                        placeholder="🔍 Buscar flores..."
-                                        onkeyup="filterFlowers()"
-                                    >
-                                </div>
-
-                                <!-- Listado de Flores -->
-                                <div id="floresContainer">
-                                    <?php foreach ($flores as $flor): ?>
-                                        <div class="flower-card position-relative <?= $flor['stock'] <= 0 ? 'no-stock' : '' ?>" 
-                                             data-id="<?= $flor['idtflor'] ?>" 
-                                             data-price="<?= $flor['precio'] ?>"
-                                             data-name="<?= htmlspecialchars(strtolower($flor['nombre'])) ?>"
-                                             data-stock="<?= $flor['stock'] ?>">
-                                            
-                                            <?php if ($flor['stock'] <= 0): ?>
-                                                <span class="badge bg-danger badge-stock">Sin stock</span>
-                                            <?php else: ?>
-                                                <span class="badge bg-info badge-stock">Stock: <?= $flor['stock'] ?></span>
-                                            <?php endif; ?>
-                                            
-                                            <div class="row align-items-center">
-                                                <div class="col-md-1">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        class="form-check-input flower-checkbox"
-                                                        name="flores[<?= $flor['idtflor'] ?>][selected]"
-                                                        value="1"
-                                                        onchange="toggleFlowerSelection(<?= $flor['idtflor'] ?>)"
-                                                        <?= $flor['stock'] <= 0 ? 'disabled' : '' ?>
-                                                    >
-                                                </div>
-                                                <div class="col-md-7">
-                                                    <h6 class="mb-1 fw-bold"><?= htmlspecialchars($flor['nombre']) ?></h6>
-                                                    <p class="text-muted mb-0 small"><i class="fas fa-tags me-1"></i><?= htmlspecialchars($flor['color'] ?? '') ?></p>
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <input 
-                                                        type="number" 
-                                                        class="form-control form-control-sm quantity-input"
-                                                        name="flores[<?= $flor['idtflor'] ?>][cantidad]"
-                                                        value="0" 
-                                                        min="0"
-                                                        onchange="updateTotal()"
-                                                        disabled
-                                                    >
-                                                </div>
-                                                <div class="col-md-2 text-end">
-                                                    <strong>$<?= number_format($flor['precio'], 2) ?></strong>
+            <div class="content-wrapper nuevo-pedido-page">
+                <div class="row g-3">
+                    <div class="col-lg-8">
+                        <div class="content-card">
+                            <div class="card-header" style="background: linear-gradient(135deg, var(--emp-primary) 0%, var(--emp-primary-dark) 100%); color: #fff;">
+                                <h5 class="mb-0"><i class="fas fa-leaf me-2"></i>Seleccionar productos</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="pedidoForm" method="POST" action="index.php?ctrl=empleado&action=crearPedidoEmpleado">
+                                    <div class="mb-4">
+                                        <label for="cli_id" class="form-label fw-bold">Cliente</label>
+                                        <select id="cli_id" name="cli_id" class="form-select" required>
+                                            <option value="">— Selecciona un cliente —</option>
+                                            <?php foreach ($clientes as $c): ?>
+                                                <option value="<?= (int)$c['idcli'] ?>"><?= htmlspecialchars($c['nombre']) ?> <?= !empty($c['email']) ? '(' . htmlspecialchars($c['email']) . ')' : '' ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <input type="text" class="form-control" id="flowerSearch" placeholder="Buscar por nombre..." onkeyup="filterFlowers()">
+                                    </div>
+                                    <div id="floresContainer">
+                                        <?php foreach ($flores as $flor): ?>
+                                            <div class="flower-card <?= ($flor['stock'] ?? 0) <= 0 ? 'no-stock' : '' ?>"
+                                                 data-id="<?= (int)$flor['idtflor'] ?>"
+                                                 data-price="<?= number_format((float)($flor['precio'] ?? 0), 2, '.', '') ?>"
+                                                 data-name="<?= htmlspecialchars(mb_strtolower($flor['nombre'] ?? '')) ?>"
+                                                 data-stock="<?= (int)($flor['stock'] ?? 0) ?>">
+                                                <?php if (($flor['stock'] ?? 0) <= 0): ?>
+                                                    <span class="badge bg-danger badge-stock">Sin stock</span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-info badge-stock">Stock: <?= (int)$flor['stock'] ?></span>
+                                                <?php endif; ?>
+                                                <input type="hidden" name="flores[<?= (int)$flor['idtflor'] ?>][precio]" value="<?= number_format((float)($flor['precio'] ?? 0), 2, '.', '') ?>">
+                                                <div class="row align-items-center g-2">
+                                                    <div class="col-auto">
+                                                        <input type="checkbox" class="form-check-input flower-checkbox"
+                                                            name="flores[<?= (int)$flor['idtflor'] ?>][selected]" value="1"
+                                                            onchange="toggleFlowerSelection(<?= (int)$flor['idtflor'] ?>)"
+                                                            <?= ($flor['stock'] ?? 0) <= 0 ? 'disabled' : '' ?>>
+                                                    </div>
+                                                    <div class="col">
+                                                        <h6 class="mb-0 fw-bold"><?= htmlspecialchars($flor['nombre'] ?? '') ?></h6>
+                                                        <?php if (!empty($flor['color'])): ?>
+                                                            <small class="text-muted"><?= htmlspecialchars($flor['color']) ?></small>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div class="col-auto">
+                                                        <input type="number" class="form-control form-control-sm quantity-input" style="width: 80px;"
+                                                            name="flores[<?= (int)$flor['idtflor'] ?>][cantidad]" value="0" min="0" max="<?= max(0, (int)($flor['stock'] ?? 0)) ?>"
+                                                            onchange="updateTotal()" disabled>
+                                                    </div>
+                                                    <div class="col-auto text-end">
+                                                        <strong class="text-success">$<?= number_format((float)($flor['precio'] ?? 0), 2) ?></strong>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            </form>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Columna Lateral - Resumen y Detalles -->
-                <div class="col-md-4">
-                    <div class="total-summary shadow">
-                        <h5 class="mb-3"><i class="fas fa-shopping-cart"></i> Resumen</h5>
-                        
-                        <div class="mb-3">
-                            <label for="direccion_entrega" class="form-label"><small><strong>Dirección de Entrega</strong></small></label>
-                            <input 
-                                type="text" 
-                                class="form-control form-control-sm" 
-                                id="direccion_entrega"
-                                name="direccion_entrega"
-                                placeholder="Dirección..."
-                                form="pedidoForm"
-                            >
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="fecha_entrega" class="form-label"><small><strong>Fecha de Entrega</strong></small></label>
-                            <input 
-                                type="date" 
-                                class="form-control form-control-sm" 
-                                id="fecha_entrega"
-                                name="fecha_entrega"
-                                form="pedidoForm"
-                            >
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="notas" class="form-label"><small><strong>Notas Adicionales</strong></small></label>
-                            <textarea 
-                                class="form-control form-control-sm" 
-                                id="notas"
-                                name="notas"
-                                rows="3"
-                                placeholder="Notas..."
-                                form="pedidoForm"
-                            ></textarea>
-                        </div>
-
-                        <hr>
-
-                        <div class="mb-3">
-                            <div class="row">
-                                <div class="col-6">
+                    <div class="col-lg-4">
+                        <div class="total-summary-card">
+                            <h5 class="mb-3"><i class="fas fa-shopping-cart me-2"></i>Resumen</h5>
+                            <div class="mb-3">
+                                <label for="direccion_entrega" class="form-label small fw-bold">Dirección de entrega</label>
+                                <input type="text" class="form-control form-control-sm" id="direccion_entrega" name="direccion_entrega" placeholder="Dirección..." form="pedidoForm">
+                            </div>
+                            <div class="mb-3">
+                                <label for="fecha_entrega" class="form-label small fw-bold">Fecha de entrega</label>
+                                <input type="date" class="form-control form-control-sm" id="fecha_entrega" name="fecha_entrega" form="pedidoForm">
+                            </div>
+                            <div class="mb-3">
+                                <label for="metodo_pago" class="form-label small fw-bold">Método de pago</label>
+                                <select class="form-select form-select-sm" id="metodo_pago" name="metodo_pago" form="pedidoForm">
+                                    <option value="efectivo">Efectivo</option>
+                                    <option value="tarjeta">Tarjeta</option>
+                                    <option value="transferencia">Transferencia</option>
+                                    <option value="otro">Otro</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="estado_pago" class="form-label small fw-bold">Estado del pago</label>
+                                <select class="form-select form-select-sm" id="estado_pago" name="estado_pago" form="pedidoForm">
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Completado">Completado</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="notas" class="form-label small fw-bold">Notas</label>
+                                <textarea class="form-control form-control-sm" id="notas" name="notas" rows="2" placeholder="Notas..." form="pedidoForm"></textarea>
+                            </div>
+                            <hr>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
                                     <span class="text-muted">Subtotal</span>
-                                </div>
-                                <div class="col-6 text-end">
                                     <span id="subtotal" class="fw-bold">$0.00</span>
                                 </div>
-                            </div>
-                            <div class="row mt-2">
-                                <div class="col-6">
-                                    <small class="text-muted">Total:</small>
-                                </div>
-                                <div class="col-6 text-end">
-                                    <h5 id="total">$0.00</h5>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <span class="text-muted">Total</span>
+                                    <h5 id="total" class="mb-0 text-success">$0.00</h5>
                                 </div>
                             </div>
+                            <input type="hidden" id="monto_total" name="monto_total" form="pedidoForm" value="0">
+                            <button type="submit" form="pedidoForm" class="btn btn-success w-100" id="submitBtn" disabled>
+                                <i class="fas fa-check me-2"></i>Crear pedido
+                            </button>
                         </div>
-
-                        <input type="hidden" id="monto_total" name="monto_total" form="pedidoForm">
-
-                        <button type="submit" form="pedidoForm" class="btn btn-success w-100" id="submitBtn" disabled>
-                            <i class="fas fa-check"></i> Crear Pedido
-                        </button>
                     </div>
                 </div>
             </div>
@@ -317,60 +173,64 @@ $isModal = isset($_GET['modal']) && $_GET['modal'] == '1';
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function filterFlowers() {
-            const searchTerm = document.getElementById('flowerSearch').value.toLowerCase();
-            const flowers = document.querySelectorAll('.flower-card');
-            
-            flowers.forEach(flower => {
-                const name = flower.getAttribute('data-name');
-                if (name.includes(searchTerm)) {
-                    flower.style.display = 'block';
-                } else {
-                    flower.style.display = 'none';
-                }
+            var term = document.getElementById('flowerSearch').value.toLowerCase();
+            document.querySelectorAll('.flower-card').forEach(function(el) {
+                el.style.display = el.getAttribute('data-name').indexOf(term) !== -1 ? 'block' : 'none';
             });
         }
-
         function toggleFlowerSelection(florid) {
-            const checkbox = document.querySelector(`input[name="flores[${florid}][selected]"]`);
-            const quantityInput = document.querySelector(`input[name="flores[${florid}][cantidad]"]`);
-            const card = document.querySelector(`[data-id="${florid}"]`);
-            
-            if (checkbox.checked) {
-                quantityInput.disabled = false;
-                quantityInput.value = 1;
-                card.classList.add('selected');
+            var q = document.querySelector('input[name="flores[' + florid + '][cantidad]"]');
+            var card = document.querySelector('.flower-card[data-id="' + florid + '"]');
+            var chk = document.querySelector('input[name="flores[' + florid + '][selected]"]');
+            if (chk && chk.checked) {
+                if (q) { q.disabled = false; q.value = 1; }
+                if (card) card.classList.add('selected');
             } else {
-                quantityInput.disabled = true;
-                quantityInput.value = 0;
-                card.classList.remove('selected');
+                if (q) { q.disabled = true; q.value = 0; }
+                if (card) card.classList.remove('selected');
             }
-            
             updateTotal();
         }
-
         function updateTotal() {
-            let total = 0;
-            const quantityInputs = document.querySelectorAll('.quantity-input:not(:disabled)');
-            
-            quantityInputs.forEach(input => {
-                const quantity = parseInt(input.value) || 0;
-                const card = input.closest('.flower-card');
-                const price = parseFloat(card.getAttribute('data-price'));
-                total += quantity * price;
+            var total = 0;
+            document.querySelectorAll('.quantity-input:not(:disabled)').forEach(function(input) {
+                var q = parseInt(input.value, 10) || 0;
+                var card = input.closest('.flower-card');
+                if (card) total += q * parseFloat(card.getAttribute('data-price'));
             });
-            
             document.getElementById('subtotal').textContent = '$' + total.toFixed(2);
             document.getElementById('total').textContent = '$' + total.toFixed(2);
-            document.getElementById('monto_total').value = total;
-            
-            // Habilitar/deshabilitar botón submit
-            const submitBtn = document.getElementById('submitBtn');
-            const clientSelect = document.getElementById('cli_id');
-            submitBtn.disabled = total === 0 || clientSelect.value === '';
+            document.getElementById('monto_total').value = total.toFixed(2);
+            var submitBtn = document.getElementById('submitBtn');
+            var cli = document.getElementById('cli_id');
+            submitBtn.disabled = total === 0 || !cli || cli.value === '';
         }
-
-        // Validar cliente
         document.getElementById('cli_id').addEventListener('change', updateTotal);
+
+        document.getElementById('pedidoForm').addEventListener('submit', function(e) {
+            var invalid = false;
+            var msg = '';
+            document.querySelectorAll('.flower-card:not(.no-stock)').forEach(function(card) {
+                var id = card.getAttribute('data-id');
+                var stock = parseInt(card.getAttribute('data-stock'), 10) || 0;
+                var input = document.querySelector('input[name="flores[' + id + '][cantidad]"]');
+                if (!input || input.disabled) return;
+                var qty = parseInt(input.value, 10) || 0;
+                if (qty <= 0) {
+                    var nombre = card.querySelector('h6');
+                    msg = 'La cantidad de "' + (nombre ? nombre.textContent : 'producto') + '" debe ser mayor a 0.';
+                    invalid = true;
+                } else if (qty > stock) {
+                    var nombre = card.querySelector('h6');
+                    msg = 'La cantidad de "' + (nombre ? nombre.textContent : 'producto') + '" no puede ser mayor al stock disponible (' + stock + ').';
+                    invalid = true;
+                }
+            });
+            if (invalid) {
+                e.preventDefault();
+                alert(msg);
+            }
+        });
     </script>
 </body>
 </html>

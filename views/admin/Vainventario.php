@@ -420,7 +420,7 @@
                 <div class="card-body py-3 px-2">
                     <i class="fas fa-gift fa-lg text-primary mb-2"></i>
                     <div class="fw-bold text-muted small">Próximos a Caducar</div>
-                    <div class="fs-4 fw-bold text-dark"><?= $proximos_caducar ?? 1 ?></div>
+                    <div class="fs-4 fw-bold text-dark"><?= $proximos_caducar ?? 0 ?></div>
                     <small class="text-muted" style="font-size: 0.75rem;">En 7 días</small>
                 </div>
             </div>
@@ -1157,7 +1157,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form method="POST" action="?ctrl=Cinventario" id="form-nuevo-producto">
+                <form method="POST" action="?ctrl=cinventario" id="form-nuevo-producto">
                     <input type="hidden" name="accion" value="nuevo_producto">
                     
                     <div class="row g-3">
@@ -1350,7 +1350,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form method="POST" action="?ctrl=Cinventario" id="form-nuevo-proveedor">
+                <form method="POST" action="?ctrl=cinventario" id="form-nuevo-proveedor">
                     <input type="hidden" name="accion" value="nuevo_proveedor">
                     
                     <div class="row g-3">
@@ -1675,7 +1675,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form method="POST" action="?ctrl=Cinventario" id="form-eliminar-proveedor">
+                <form method="POST" action="?ctrl=cinventario" id="form-eliminar-proveedor">
                     <input type="hidden" name="accion" value="eliminar_proveedor">
                     <input type="hidden" name="proveedor_id" id="eliminar_proveedor_id">
                     <div class="text-center">
@@ -1710,7 +1710,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form method="POST" action="?ctrl=Cinventario" id="form-configuracion">
+                <form method="POST" action="?ctrl=cinventario" id="form-configuracion">
                     <input type="hidden" name="accion" value="actualizar_parametros">
                     
                     <div class="row g-3">
@@ -3031,7 +3031,7 @@ function exportarInventario() {
         // Crear formulario temporal
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = '?ctrl=Cinventario';
+        form.action = '?ctrl=cinventario';
         form.style.display = 'none';
         
         const actionInput = document.createElement('input');
@@ -3185,7 +3185,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Crear y enviar formulario
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = '?ctrl=Cinventario';
+                form.action = '?ctrl=cinventario';
                 form.style.display = 'none';
                 
                 const input = document.createElement('input');
@@ -3236,7 +3236,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 btnExportarPDF.disabled = true;
                 
                 // Descargar PDF
-                window.location.href = `?ctrl=Cinventario&action=exportarInventarioPDF&tipo=${tipo}`;
+                window.location.href = `?ctrl=cinventario&action=exportarInventarioPDF&tipo=${tipo}`;
                 
                 // Restaurar botón
                 setTimeout(() => {
@@ -4852,7 +4852,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Limpiar la URL después de mostrar el modal (opcional)
         // Esto evita que el modal se muestre de nuevo si se recarga la página
-        const cleanUrl = window.location.pathname + '?ctrl=Cinventario';
+        const cleanUrl = window.location.pathname + '?ctrl=cinventario';
         window.history.replaceState({}, document.title, cleanUrl);
     }
 });

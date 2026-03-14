@@ -139,7 +139,12 @@ class empleado {
             $pagos_pendientes = $this->obtenerPagosPendientesDetallados();
             error_log("Pagos pendientes obtenidos: " . count($pagos_pendientes));
             
-            $pagos_verificados = $this->obtenerPagosVerificadosRecientes();
+            $filtro_completados = [
+                'estado'      => isset($_GET['filtro_estado']) && in_array($_GET['filtro_estado'], ['Completado', 'Rechazado'], true) ? $_GET['filtro_estado'] : '',
+                'fecha_desde' => isset($_GET['fecha_desde']) ? trim($_GET['fecha_desde']) : '',
+                'fecha_hasta' => isset($_GET['fecha_hasta']) ? trim($_GET['fecha_hasta']) : ''
+            ];
+            $pagos_verificados = $this->obtenerPagosVerificadosRecientes($filtro_completados);
             error_log("Pagos verificados obtenidos: " . count($pagos_verificados));
             
         } catch (Exception $e) {
@@ -161,8 +166,62 @@ class empleado {
     
     public function inventario() {
         $user = $_SESSION['user'];
-        $stats = $this->obtenerEstadisticasInventario();
-        $productos = $this->obtenerProductosInventario();
+        require_once __DIR__ . '/../models/minventario.php';
+        $invModel = new Minventario();
+        
+        $stats = $invModel->getEstadisticasInventario();
+        $categorias = $invModel->listarTipos();
+        
+        $por_pagina = 10;
+        $pagina_p = max(1, (int)($_GET['pagina_perecederos'] ?? 1));
+        $pagina_np = max(1, (int)($_GET['pagina_no_perecederos'] ?? 1));
+        $pagina_prov = max(1, (int)($_GET['pagina_proveedores'] ?? 1));
+        
+        $filtros_base = [];
+        $buscar = isset($_GET['buscar']) ? trim((string)$_GET['buscar']) : '';
+        if ($buscar !== '') {
+            require_once __DIR__ . '/../helpers/security_helper.php';
+            $buscar_ok = sanitizarCampoBusqueda($buscar, 'buscar_inventario');
+            if ($buscar_ok !== false && $buscar_ok !== '') {
+                $filtros_base['buscar'] = $buscar_ok;
+            }
+        }
+        if (!empty($_GET['categoria'])) {
+            $filtros_base['categoria'] = $_GET['categoria'];
+        }
+        if (!empty($_GET['estado_stock']) && in_array($_GET['estado_stock'], ['normal', 'bajo', 'critico', 'sin_stock'], true)) {
+            $filtros_base['estado_stock'] = $_GET['estado_stock'];
+        }
+        
+        $filtros_p = array_merge($filtros_base, ['tipo_producto' => 'perecedero']);
+        $filtros_np = array_merge($filtros_base, ['tipo_producto' => 'no_perecedero']);
+        
+        $offset_p = ($pagina_p - 1) * $por_pagina;
+        $offset_np = ($pagina_np - 1) * $por_pagina;
+        $offset_prov = ($pagina_prov - 1) * $por_pagina;
+        
+        $inventario_perecederos = $invModel->getInventarioPaginado($por_pagina, $offset_p, $filtros_p);
+        $total_perecederos = $invModel->getTotalElementos($filtros_p);
+        $total_paginas_perecederos = max(1, (int)ceil($total_perecederos / $por_pagina));
+        
+        $inventario_no_perecederos = $invModel->getInventarioPaginado($por_pagina, $offset_np, $filtros_np);
+        $total_no_perecederos = $invModel->getTotalElementos($filtros_np);
+        $total_paginas_no_perecederos = max(1, (int)ceil($total_no_perecederos / $por_pagina));
+        
+        $proveedores = $invModel->getProveedoresConProductos($por_pagina, $offset_prov);
+        $total_proveedores = $invModel->getTotalProveedores();
+        $total_paginas_proveedores = max(1, (int)ceil($total_proveedores / $por_pagina));
+        
+        $total_elementos_perecederos = $total_perecederos;
+        $total_elementos_no_perecederos = $total_no_perecederos;
+        $total_elementos_proveedores = $total_proveedores;
+        $pagina_actual_perecederos = $pagina_p;
+        $pagina_actual_no_perecederos = $pagina_np;
+        $pagina_actual_proveedores = $pagina_prov;
+        $offset_perecederos = $offset_p;
+        $offset_no_perecederos = $offset_np;
+        $offset_proveedores = $offset_prov;
+        $elementos_por_pagina = $por_pagina;
         
         include 'views/empleado/inventario.php';
     }
@@ -219,7 +278,268 @@ class empleado {
         header('Location: index.php?ctrl=empleado&action=gestion_pedidos');
         exit();
     }
-    
+
+    /**
+     * Genera y descarga la factura PDF de un pedido (igual que en cliente).
+     */
+    public function generar_factura() {
+        $idPedido = $_GET['idpedido'] ?? 0;
+        try {
+            if (empty($idPedido)) {
+                throw new Exception("No se ha especificado un número de pedido");
+            }
+            $pedido = $this->obtenerDetallesPedidoParaFactura($idPedido);
+            if (!$pedido) {
+                throw new Exception("El pedido no existe");
+            }
+            $pago = $this->obtenerPagoPorPedido($idPedido);
+            $detalles = $this->obtenerDetallesItemsPedidoFactura($idPedido);
+
+            require_once __DIR__ . '/../libs/fpdf/fpdf.php';
+            require_once __DIR__ . '/../controllers/cliente.php';
+
+            $pdf = new FacturaPDF();
+            $pdf->AliasNbPages();
+            $pdf->SetMargins(10, 30, 10);
+            $pdf->SetAutoPageBreak(true, 25);
+            $pdf->AddPage();
+
+            $colorSecundario = array(220, 230, 241);
+            $colorTexto = array(50, 50, 50);
+            $pdf->SetTextColor($colorTexto[0], $colorTexto[1], $colorTexto[2]);
+
+            $pdf->SetFont('Arial', 'B', 14);
+            $pdf->Cell(0, 10, 'FACTURA #' . $pedido['numped'], 0, 1);
+            $pdf->SetFont('Arial', '', 10);
+            $pdf->Cell(0, 6, 'Fecha: ' . date('d/m/Y H:i', strtotime($pedido['fecha_pedido'])), 0, 1);
+            $pdf->Ln(5);
+
+            $pdf->SetFont('Arial', 'B', 11);
+            $pdf->Cell(95, 7, 'DATOS DEL CLIENTE', 0, 0);
+            $pdf->Cell(95, 7, 'INFORMACION DE PAGO', 0, 1);
+            $pdf->SetFont('Arial', '', 10);
+
+            $nombreCliente = $pedido['nombre_cliente'] ?? 'Cliente';
+            $emailCliente = $pedido['email'] ?? '';
+            $naturalezaCliente = $pedido['naturaleza'] ?? '';
+
+            $pdf->Cell(95, 6, $nombreCliente, 0, 0);
+            $pdf->Cell(95, 6, 'Metodo: ' . ($pago ? $pago['metodo_pago'] : 'No registrado'), 0, 1);
+            $pdf->Cell(95, 6, $emailCliente, 0, 0);
+            $pdf->Cell(95, 6, 'Estado: ' . ($pago ? $pago['estado_pag'] : 'No registrado'), 0, 1);
+            $pdf->Cell(95, 6, $naturalezaCliente, 0, 0);
+            $pdf->Cell(95, 6, 'Fecha pago: ' . ($pago ? date('d/m/Y', strtotime($pago['fecha_pago'])) : 'N/A'), 0, 1);
+            $pdf->Ln(10);
+
+            $pdf->SetFillColor($colorSecundario[0], $colorSecundario[1], $colorSecundario[2]);
+            $pdf->SetFont('Arial', 'B', 11);
+            $pdf->Cell(100, 8, 'DESCRIPCION', 1, 0, 'L', true);
+            $pdf->Cell(30, 8, 'CANTIDAD', 1, 0, 'C', true);
+            $pdf->Cell(30, 8, 'PRECIO UNIT.', 1, 0, 'R', true);
+            $pdf->Cell(30, 8, 'SUBTOTAL', 1, 1, 'R', true);
+            $pdf->SetFont('Arial', '', 10);
+            $pdf->SetFillColor(255, 255, 255);
+
+            foreach ($detalles as $item) {
+                if ($pdf->GetY() > 240) {
+                    $pdf->AddPage();
+                    $pdf->SetFont('Arial', 'B', 11);
+                    $pdf->Cell(100, 8, 'DESCRIPCION', 'LRB', 0, 'L', true);
+                    $pdf->Cell(30, 8, 'CANTIDAD', 'LRB', 0, 'C', true);
+                    $pdf->Cell(30, 8, 'PRECIO UNIT.', 'LRB', 0, 'R', true);
+                    $pdf->Cell(30, 8, 'SUBTOTAL', 'LRB', 1, 'R', true);
+                    $pdf->SetFont('Arial', '', 10);
+                }
+                $pdf->Cell(100, 7, $item['nombre'], 'LR', 0, 'L');
+                $pdf->Cell(30, 7, $item['cantidad'], 'LR', 0, 'C');
+                $pdf->Cell(30, 7, '$' . number_format($item['precio_unitario'], 2), 'LR', 0, 'R');
+                $pdf->Cell(30, 7, '$' . number_format($item['subtotal'], 2), 'LR', 1, 'R');
+            }
+
+            $pdf->Cell(190, 0, '', 'T');
+            $pdf->Ln(5);
+            $pdf->SetFont('Arial', 'B', 12);
+            $pdf->Cell(160, 8, 'TOTAL:', 0, 0, 'R');
+            $pdf->Cell(30, 8, '$' . number_format($pedido['monto_total'], 2), 0, 1, 'R');
+            $pdf->SetY(-33);
+            $pdf->SetFont('Arial', 'I', 8);
+            $pdf->MultiCell(0, 4, "Términos y condiciones: El pago debe realizarse dentro de los 5 días hábiles.\nCualquier retraso puede incurrir en intereses moratorios.", 0, 'C');
+
+            $pdf->Output('D', 'factura_' . $pedido['numped'] . '.pdf');
+            exit();
+        } catch (Exception $e) {
+            $_SESSION['mensaje'] = "Error al generar factura: " . $e->getMessage();
+            $_SESSION['tipo_mensaje'] = 'danger';
+            header('Location: index.php?ctrl=empleado&action=gestion_pedidos');
+            exit();
+        }
+    }
+
+    private function obtenerDetallesPedidoParaFactura($idPedido) {
+        $stmt = $this->db->prepare("
+            SELECT p.*, c.nombre as nombre_cliente, c.email, COALESCE(c.direccion, '') as naturaleza
+            FROM ped p
+            JOIN cli c ON p.cli_idcli = c.idcli
+            WHERE p.idped = ?
+        ");
+        $stmt->execute([$idPedido]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    private function obtenerPagoPorPedido($idPedido) {
+        $stmt = $this->db->prepare("
+            SELECT * FROM pagos WHERE ped_idped = ? ORDER BY idpago DESC LIMIT 1
+        ");
+        $stmt->execute([$idPedido]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    private function obtenerDetallesItemsPedidoFactura($idPedido) {
+        $stmt = $this->db->prepare("
+            SELECT dp.*, tf.nombre FROM detped dp
+            JOIN tflor tf ON dp.idtflor = tf.idtflor
+            WHERE dp.idped = ?
+        ");
+        $stmt->execute([$idPedido]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Genera el PDF de la factura en memoria (para adjuntar al correo).
+     */
+    private function generarFacturaPdfEnMemoria($pedido, $pago, $detalles) {
+        try {
+            require_once __DIR__ . '/../libs/fpdf/fpdf.php';
+            require_once __DIR__ . '/../controllers/cliente.php';
+            $pdf = new FacturaPDF();
+            $pdf->AliasNbPages();
+            $pdf->SetMargins(10, 30, 10);
+            $pdf->SetAutoPageBreak(true, 25);
+            $pdf->AddPage();
+            $colorSecundario = array(220, 230, 241);
+            $colorTexto = array(50, 50, 50);
+            $pdf->SetTextColor($colorTexto[0], $colorTexto[1], $colorTexto[2]);
+            $pdf->SetFont('Arial', 'B', 14);
+            $pdf->Cell(0, 10, 'FACTURA #' . $pedido['numped'], 0, 1);
+            $pdf->SetFont('Arial', '', 10);
+            $pdf->Cell(0, 6, 'Fecha: ' . date('d/m/Y H:i', strtotime($pedido['fecha_pedido'])), 0, 1);
+            $pdf->Ln(5);
+            $pdf->SetFont('Arial', 'B', 11);
+            $pdf->Cell(95, 7, 'DATOS DEL CLIENTE', 0, 0);
+            $pdf->Cell(95, 7, 'INFORMACION DE PAGO', 0, 1);
+            $pdf->SetFont('Arial', '', 10);
+            $nombreCliente = $pedido['nombre_cliente'] ?? 'Cliente';
+            $emailCliente = $pedido['email'] ?? '';
+            $naturalezaCliente = $pedido['naturaleza'] ?? '';
+            $pdf->Cell(95, 6, $nombreCliente, 0, 0);
+            $pdf->Cell(95, 6, 'Metodo: ' . ($pago ? $pago['metodo_pago'] : 'No registrado'), 0, 1);
+            $pdf->Cell(95, 6, $emailCliente, 0, 0);
+            $pdf->Cell(95, 6, 'Estado: ' . ($pago ? $pago['estado_pag'] : 'No registrado'), 0, 1);
+            $pdf->Cell(95, 6, $naturalezaCliente, 0, 0);
+            $pdf->Cell(95, 6, 'Fecha pago: ' . ($pago ? date('d/m/Y', strtotime($pago['fecha_pago'])) : 'N/A'), 0, 1);
+            $pdf->Ln(10);
+            $pdf->SetFillColor($colorSecundario[0], $colorSecundario[1], $colorSecundario[2]);
+            $pdf->SetFont('Arial', 'B', 11);
+            $pdf->Cell(100, 8, 'DESCRIPCION', 1, 0, 'L', true);
+            $pdf->Cell(30, 8, 'CANTIDAD', 1, 0, 'C', true);
+            $pdf->Cell(30, 8, 'PRECIO UNIT.', 1, 0, 'R', true);
+            $pdf->Cell(30, 8, 'SUBTOTAL', 1, 1, 'R', true);
+            $pdf->SetFont('Arial', '', 10);
+            $pdf->SetFillColor(255, 255, 255);
+            foreach ($detalles as $item) {
+                if ($pdf->GetY() > 240) {
+                    $pdf->AddPage();
+                    $pdf->SetFont('Arial', 'B', 11);
+                    $pdf->Cell(100, 8, 'DESCRIPCION', 'LRB', 0, 'L', true);
+                    $pdf->Cell(30, 8, 'CANTIDAD', 'LRB', 0, 'C', true);
+                    $pdf->Cell(30, 8, 'PRECIO UNIT.', 'LRB', 0, 'R', true);
+                    $pdf->Cell(30, 8, 'SUBTOTAL', 'LRB', 1, 'R', true);
+                    $pdf->SetFont('Arial', '', 10);
+                }
+                $pdf->Cell(100, 7, $item['nombre'], 'LR', 0, 'L');
+                $pdf->Cell(30, 7, $item['cantidad'], 'LR', 0, 'C');
+                $pdf->Cell(30, 7, '$' . number_format($item['precio_unitario'], 2), 'LR', 0, 'R');
+                $pdf->Cell(30, 7, '$' . number_format($item['subtotal'], 2), 'LR', 1, 'R');
+            }
+            $pdf->Cell(190, 0, '', 'T');
+            $pdf->Ln(5);
+            $pdf->SetFont('Arial', 'B', 12);
+            $pdf->Cell(160, 8, 'TOTAL:', 0, 0, 'R');
+            $pdf->Cell(30, 8, '$' . number_format($pedido['monto_total'], 2), 0, 1, 'R');
+            $pdf->SetY(-33);
+            $pdf->SetFont('Arial', 'I', 8);
+            $pdf->MultiCell(0, 4, "Términos y condiciones: El pago debe realizarse dentro de los 5 días hábiles.\nCualquier retraso puede incurrir en intereses moratorios.", 0, 'C');
+            return $pdf->Output('S');
+        } catch (Exception $e) {
+            error_log("Error generarFacturaPdfEnMemoria empleado: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Envía la factura por correo al cliente (misma config que cliente).
+     */
+    private function enviarFacturaPorEmailEmpleado($email_destino, $pedido, $pdf_content) {
+        $autoload = __DIR__ . '/../vendor/autoload.php';
+        if (file_exists($autoload)) {
+            require_once $autoload;
+        }
+        if (file_exists(__DIR__ . '/../config/email_config.php')) {
+            require_once __DIR__ . '/../config/email_config.php';
+        }
+        if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+            error_log("Empleado: PHPMailer no disponible, no se envía factura por correo.");
+            return false;
+        }
+        $host = defined('MAIL_HOST') ? MAIL_HOST : 'smtp.gmail.com';
+        $port = defined('MAIL_PORT') ? (int) MAIL_PORT : 587;
+        $user = defined('MAIL_USERNAME') ? MAIL_USERNAME : 'epymes270@gmail.com';
+        $pass = defined('MAIL_PASSWORD') ? MAIL_PASSWORD : '';
+        $from = defined('MAIL_FROM_EMAIL') ? MAIL_FROM_EMAIL : $user;
+        $fromName = defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'FloralTech';
+        $enc = defined('MAIL_ENCRYPTION') ? strtolower(MAIL_ENCRYPTION) : 'tls';
+        try {
+            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host = $host;
+            $mail->SMTPAuth = true;
+            $mail->Username = $user;
+            $mail->Password = $pass;
+            $mail->SMTPSecure = ($enc === 'ssl') ? PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS : PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = $port;
+            $mail->SMTPOptions = array('ssl' => array('verify_peer' => false, 'verify_peer_name' => false, 'allow_self_signed' => true));
+            $mail->setFrom($from, $fromName);
+            $mail->addAddress($email_destino, $pedido['nombre_cliente'] ?? 'Cliente');
+            $mail->addReplyTo($from, $fromName);
+            $mail->Subject = 'Factura #' . $pedido['numped'] . ' - FloralTech';
+            $mail->isHTML(true);
+            $mail->Body = '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">'
+                . '<h2 style="color: #4CAF50;">Factura #' . htmlspecialchars($pedido['numped']) . '</h2>'
+                . '<p>Estimado/a ' . htmlspecialchars($pedido['nombre_cliente'] ?? 'Cliente') . ',</p>'
+                . '<p>Adjunto encontrará la factura del pedido <strong>#' . htmlspecialchars($pedido['numped']) . '</strong>.</p>'
+                . '<div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #4CAF50; margin: 20px 0;">'
+                . '<p><strong>Resumen del pedido:</strong></p>'
+                . '<p>📅 Fecha: ' . date('d/m/Y H:i', strtotime($pedido['fecha_pedido'])) . '</p>'
+                . '<p>💰 Total: <strong>$' . number_format($pedido['monto_total'], 2) . '</strong></p>'
+                . '<p>📦 Estado: ' . htmlspecialchars($pedido['estado'] ?? '') . '</p></div>'
+                . '<p>El archivo PDF adjunto contiene la factura completa con todos los detalles.</p>'
+                . '<p>Gracias por su compra,<br><strong>El equipo de FloralTech</strong></p>'
+                . '<hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">'
+                . '<p style="color: #666; font-size: 12px; text-align: center;">© ' . date('Y') . ' FloralTech</p></div>';
+            $mail->AltBody = 'Factura #' . $pedido['numped'] . ' - FloralTech' . PHP_EOL . PHP_EOL
+                . 'Estimado/a ' . ($pedido['nombre_cliente'] ?? 'Cliente') . ',' . PHP_EOL . PHP_EOL
+                . 'Adjunto encontrará la factura del pedido #' . $pedido['numped'] . '.' . PHP_EOL . PHP_EOL
+                . 'Gracias por su compra, El equipo de FloralTech';
+            $mail->addStringAttachment($pdf_content, 'Factura_' . $pedido['numped'] . '.pdf');
+            $mail->CharSet = 'UTF-8';
+            $mail->SMTPDebug = 0;
+            return $mail->send();
+        } catch (Exception $e) {
+            error_log("Error enviarFacturaPorEmailEmpleado: " . $e->getMessage());
+            return false;
+        }
+    }
+
     // Métodos privados para obtener datos
     private function obtenerEstadisticas($mes = null, $ano = null) {
         try {
@@ -343,6 +663,10 @@ class empleado {
         }
     }
 
+    /**
+     * Stock crítico: mismo criterio que inventario admin (0-9 unidades).
+     * Solo productos que existen en inv, ordenados por stock ascendente.
+     */
     private function obtenerStockCritico() {
         try {
             $stmt = $this->db->prepare("
@@ -350,15 +674,20 @@ class empleado {
                     tflor.nombre,
                     tflor.naturaleza,
                     COALESCE(inv.stock, 0) as stock
-                FROM tflor
-                LEFT JOIN inv ON tflor.idtflor = inv.tflor_idtflor
+                FROM inv
+                INNER JOIN tflor ON tflor.idtflor = inv.tflor_idtflor
                 WHERE tflor.activo = 1 
-                AND COALESCE(inv.stock, 0) < 5
-                ORDER BY inv.stock ASC
-                LIMIT 5
+                AND COALESCE(inv.stock, 0) < 10
+                ORDER BY COALESCE(inv.stock, 0) ASC
+                LIMIT 15
             ");
             $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Excluir productos sin nombre o con nombre vacío (evitar datos de prueba)
+            return array_values(array_filter($rows, function ($item) {
+                $nombre = trim($item['nombre'] ?? '');
+                return $nombre !== '';
+            }));
         } catch (Exception $e) {
             error_log('Error en obtenerStockCritico: ' . $e->getMessage());
             return [];
@@ -407,119 +736,99 @@ class empleado {
     
     private function obtenerPagosPendientesDetallados() {
         try {
+            // Usar solo columnas que existen en la tabla pagos (transaccion_id, comprobante_transferencia)
+            // para evitar fallo y que no se use la consulta de respaldo con "Cliente desconocido"
             $stmt = $this->db->prepare("
                 SELECT 
-                    pg.*,
+                    pg.idpago,
+                    pg.ped_idped,
+                    pg.monto,
+                    pg.metodo_pago,
+                    pg.estado_pag,
+                    pg.fecha_pago,
+                    pg.transaccion_id,
+                    pg.comprobante_transferencia,
+                    pg.verificado_por,
+                    pg.fecha_verificacion,
                     p.numped,
-                    c.nombre as cliente_nombre,
-                    COALESCE(pg.referencia, '') as referencia,
-                    COALESCE(pg.observaciones, '') as observaciones,
-                    COALESCE(pg.comprobante, '') as comprobante
+                    COALESCE(c.nombre, 'Sin nombre') as cliente_nombre,
+                    COALESCE(pg.transaccion_id, '') as referencia,
+                    COALESCE(pg.comprobante_transferencia, '') as comprobante
                 FROM pagos pg
                 INNER JOIN ped p ON pg.ped_idped = p.idped
-                INNER JOIN cli c ON p.cli_idcli = c.idcli
+                LEFT JOIN cli c ON p.cli_idcli = c.idcli
                 WHERE pg.estado_pag = 'Pendiente'
                 ORDER BY pg.fecha_pago DESC
             ");
             $stmt->execute();
             $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            // Asegurar que todos los campos existan con valores por defecto
             foreach ($resultados as &$pago) {
                 $pago['referencia'] = $pago['referencia'] ?? '';
-                $pago['observaciones'] = $pago['observaciones'] ?? '';
+                $pago['observaciones'] = '';
                 $pago['comprobante'] = $pago['comprobante'] ?? '';
             }
-            
-            error_log("obtenerPagosPendientesDetallados: Encontrados " . count($resultados) . " pagos pendientes");
             return $resultados;
         } catch (Exception $e) {
             error_log("Error en obtenerPagosPendientesDetallados: " . $e->getMessage());
-            // Intentar una consulta más simple si falla la completa
-            try {
-                $stmt = $this->db->prepare("
-                    SELECT 
-                        pg.*,
-                        'Sin pedido' as numped,
-                        'Cliente desconocido' as cliente_nombre,
-                        '' as referencia_pago,
-                        '' as observaciones,
-                        '' as archivo_comprobante
-                    FROM pagos pg
-                    WHERE pg.estado_pag = 'Pendiente'
-                    ORDER BY pg.fecha_pago DESC
-                ");
-                $stmt->execute();
-                $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                error_log("obtenerPagosPendientesDetallados (consulta simple): Encontrados " . count($resultados) . " pagos pendientes");
-                return $resultados;
-            } catch (Exception $e2) {
-                error_log("Error en consulta simple de pagos pendientes: " . $e2->getMessage());
-                return [];
-            }
+            return [];
         }
     }
     
-    private function obtenerPagosVerificadosRecientes() {
+    /**
+     * Pagos verificados (Completado/Rechazado) con filtro opcional por estado y rango de fechas.
+     * @param array $filtros ['estado' => 'Completado'|'Rechazado'|'', 'fecha_desde' => 'Y-m-d', 'fecha_hasta' => 'Y-m-d']
+     */
+    private function obtenerPagosVerificadosRecientes(array $filtros = []) {
         try {
-            // Primero verificar si existe la columna fecha_verificacion
-            $stmt = $this->db->prepare("SHOW COLUMNS FROM pagos LIKE 'fecha_verificacion'");
-            $stmt->execute();
-            $fecha_verificacion_exists = $stmt->fetch();
-            
-            if ($fecha_verificacion_exists) {
-                // Si existe la columna fecha_verificacion, usarla
-                $stmt = $this->db->prepare("
-                    SELECT 
-                        pg.*,
-                        p.numped,
-                        c.nombre as cliente_nombre,
-                        u.nombre_completo as verificado_por_nombre,
-                        COALESCE(pg.referencia, '') as referencia,
-                        COALESCE(pg.observaciones, '') as observaciones,
-                        COALESCE(pg.comprobante, '') as comprobante,
-                        COALESCE(pg.observaciones_empleado, '') as observaciones_empleado
-                    FROM pagos pg
-                    INNER JOIN ped p ON pg.ped_idped = p.idped
-                    INNER JOIN cli c ON p.cli_idcli = c.idcli
-                    LEFT JOIN usu u ON pg.verificado_por = u.idusu
-                    WHERE pg.estado_pag IN ('Completado', 'Rechazado')
-                    ORDER BY pg.fecha_verificacion DESC
-                    LIMIT 10
-                ");
-            } else {
-                // Si no existe, usar fecha_pago como alternativa
-                $stmt = $this->db->prepare("
-                    SELECT 
-                        pg.*,
-                        p.numped,
-                        c.nombre as cliente_nombre,
-                        '' as verificado_por_nombre,
-                        COALESCE(pg.referencia_pago, '') as referencia_pago,
-                        COALESCE(pg.observaciones, '') as observaciones,
-                        COALESCE(pg.archivo_comprobante, '') as archivo_comprobante,
-                        COALESCE(pg.observaciones_empleado, '') as observaciones_empleado
-                    FROM pagos pg
-                    INNER JOIN ped p ON pg.ped_idped = p.idped
-                    INNER JOIN cli c ON p.cli_idcli = c.idcli
-                    WHERE pg.estado_pag IN ('Completado', 'Rechazado')
-                    ORDER BY pg.fecha_pago DESC
-                    LIMIT 10
-                ");
+            $where = ["pg.estado_pag IN ('Completado', 'Rechazado')"];
+            $params = [];
+            if (!empty($filtros['estado'])) {
+                $where[] = "pg.estado_pag = ?";
+                $params[] = $filtros['estado'];
             }
-            
-            $stmt->execute();
+            if (!empty($filtros['fecha_desde'])) {
+                $where[] = "DATE(COALESCE(pg.fecha_verificacion, pg.fecha_pago)) >= ?";
+                $params[] = $filtros['fecha_desde'];
+            }
+            if (!empty($filtros['fecha_hasta'])) {
+                $where[] = "DATE(COALESCE(pg.fecha_verificacion, pg.fecha_pago)) <= ?";
+                $params[] = $filtros['fecha_hasta'];
+            }
+            $whereSQL = implode(' AND ', $where);
+            $limit = (!empty($filtros['estado']) || !empty($filtros['fecha_desde']) || !empty($filtros['fecha_hasta'])) ? 50 : 10;
+            $sql = "
+                SELECT 
+                    pg.idpago,
+                    pg.ped_idped,
+                    pg.monto,
+                    pg.metodo_pago,
+                    pg.estado_pag,
+                    pg.fecha_pago,
+                    pg.transaccion_id,
+                    pg.comprobante_transferencia,
+                    pg.verificado_por,
+                    pg.fecha_verificacion,
+                    p.numped,
+                    COALESCE(c.nombre, 'Sin nombre') as cliente_nombre,
+                    u.nombre_completo as verificado_por_nombre,
+                    COALESCE(pg.transaccion_id, '') as referencia,
+                    COALESCE(pg.comprobante_transferencia, '') as comprobante
+                FROM pagos pg
+                INNER JOIN ped p ON pg.ped_idped = p.idped
+                LEFT JOIN cli c ON p.cli_idcli = c.idcli
+                LEFT JOIN usu u ON pg.verificado_por = u.idusu
+                WHERE $whereSQL
+                ORDER BY COALESCE(pg.fecha_verificacion, pg.fecha_pago) DESC
+                LIMIT $limit
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
             $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            // Asegurar que todos los campos existan con valores por defecto
             foreach ($resultados as &$pago) {
-                $pago['referencia_pago'] = $pago['referencia_pago'] ?? '';
-                $pago['observaciones'] = $pago['observaciones'] ?? '';
-                $pago['archivo_comprobante'] = $pago['archivo_comprobante'] ?? '';
-                $pago['observaciones_empleado'] = $pago['observaciones_empleado'] ?? '';
+                $pago['referencia'] = $pago['referencia'] ?? '';
+                $pago['comprobante'] = $pago['comprobante'] ?? '';
                 $pago['verificado_por_nombre'] = $pago['verificado_por_nombre'] ?? '';
             }
-            
             return $resultados;
         } catch (Exception $e) {
             error_log("Error en obtenerPagosVerificadosRecientes: " . $e->getMessage());
@@ -527,22 +836,25 @@ class empleado {
         }
     }
     
+    /**
+     * Estadísticas de inventario: mismo criterio que admin (tabla inv, stock, precio).
+     */
     private function obtenerEstadisticasInventario() {
         try {
             $stmt = $this->db->prepare("
                 SELECT 
-                    COUNT(DISTINCT tflor.idtflor) as total_productos,
-                    COUNT(CASE WHEN COALESCE(inv.cantidad_disponible, 0) < 5 AND COALESCE(inv.cantidad_disponible, 0) > 0 THEN 1 END) as stock_bajo,
-                    COUNT(CASE WHEN COALESCE(inv.cantidad_disponible, 0) = 0 THEN 1 END) as sin_stock,
-                    COALESCE(SUM(tflor.precio * COALESCE(inv.cantidad_disponible, 0)), 0) as valor_total
-                FROM tflor
-                LEFT JOIN inv ON tflor.idtflor = inv.tflor_idtflor
-                WHERE tflor.activo = 1
+                    COUNT(*) as total_productos,
+                    COUNT(CASE WHEN stock >= 10 AND stock < 20 THEN 1 END) as stock_bajo,
+                    COUNT(CASE WHEN stock >= 1 AND stock <= 9 THEN 1 END) as stock_critico,
+                    COUNT(CASE WHEN stock = 0 OR stock IS NULL THEN 1 END) as sin_stock,
+                    COALESCE(SUM(stock * precio), 0) as valor_total
+                FROM inv
             ");
             $stmt->execute();
             return $stmt->fetch(PDO::FETCH_ASSOC) ?: [
                 'total_productos' => 0,
                 'stock_bajo' => 0,
+                'stock_critico' => 0,
                 'sin_stock' => 0,
                 'valor_total' => 0
             ];
@@ -551,82 +863,108 @@ class empleado {
             return [
                 'total_productos' => 0,
                 'stock_bajo' => 0,
+                'stock_critico' => 0,
                 'sin_stock' => 0,
                 'valor_total' => 0
             ];
         }
     }
     
+    /**
+     * Lista productos del inventario (tabla inv + tflor). Paginación en BD. Criterios alineados con admin.
+     * @return array ['items' => [...], 'total' => int]
+     */
     private function obtenerProductosInventario() {
         try {
-            $where_conditions = [];
+            $where_conditions = ["t.activo = 1"];
             $params = [];
             
-            // Filtros de búsqueda
-            if (isset($_GET['categoria']) && !empty($_GET['categoria'])) {
-                $where_conditions[] = "tflor.naturaleza LIKE ?";
-                $params[] = '%' . $_GET['categoria'] . '%';
+            if (isset($_GET['categoria']) && $_GET['categoria'] !== '') {
+                $where_conditions[] = "t.naturaleza = ?";
+                $params[] = $_GET['categoria'];
             }
             
-            if (isset($_GET['stock_estado']) && !empty($_GET['stock_estado'])) {
+            if (isset($_GET['stock_estado']) && $_GET['stock_estado'] !== '') {
                 switch ($_GET['stock_estado']) {
-                    case 'alto':
-                        $where_conditions[] = "COALESCE(inv.cantidad_disponible, 0) > 20";
-                        break;
-                    case 'medio':
-                        $where_conditions[] = "COALESCE(inv.cantidad_disponible, 0) BETWEEN 5 AND 20";
+                    case 'normal':
+                        $where_conditions[] = "COALESCE(i.stock, 0) >= 20";
                         break;
                     case 'bajo':
-                        $where_conditions[] = "COALESCE(inv.cantidad_disponible, 0) BETWEEN 1 AND 4";
+                        $where_conditions[] = "COALESCE(i.stock, 0) >= 10 AND COALESCE(i.stock, 0) < 20";
+                        break;
+                    case 'critico':
+                        $where_conditions[] = "COALESCE(i.stock, 0) >= 1 AND COALESCE(i.stock, 0) <= 9";
                         break;
                     case 'sin_stock':
-                        $where_conditions[] = "COALESCE(inv.cantidad_disponible, 0) = 0";
+                        $where_conditions[] = "(COALESCE(i.stock, 0) = 0 OR i.stock IS NULL)";
                         break;
                 }
             }
             
-            if (isset($_GET['buscar']) && !empty($_GET['buscar'])) {
-                // Validar entrada contra inyección SQL
+            if (isset($_GET['buscar']) && $_GET['buscar'] !== '') {
                 require_once __DIR__ . '/../helpers/security_helper.php';
-                
                 $busqueda_limpia = sanitizarCampoBusqueda($_GET['buscar'], 'buscar_inventario');
-                
                 if ($busqueda_limpia === false) {
                     $_SESSION['error_seguridad'] = "Entrada inválida detectada. Por seguridad, tu búsqueda fue bloqueada.";
                     header('Location: index.php?ctrl=empleado&action=inventario');
                     exit();
                 }
-                
-                $where_conditions[] = "(tflor.nombre LIKE ? OR tflor.naturaleza LIKE ?)";
+                $where_conditions[] = "(t.nombre LIKE ? OR t.naturaleza LIKE ?)";
                 $params[] = '%' . $busqueda_limpia . '%';
                 $params[] = '%' . $busqueda_limpia . '%';
             }
             
-            $where_clause = 'WHERE tflor.activo = 1';
-            if (!empty($where_conditions)) {
-                $where_clause .= ' AND ' . implode(' AND ', $where_conditions);
-            }
+            $where_sql = implode(' AND ', $where_conditions);
+            $params_count = $params;
+            
+            $sql_count = "SELECT COUNT(*) as total FROM inv i INNER JOIN tflor t ON i.tflor_idtflor = t.idtflor WHERE $where_sql";
+            $stmt_count = $this->db->prepare($sql_count);
+            $stmt_count->execute($params_count);
+            $total = (int) $stmt_count->fetch(PDO::FETCH_ASSOC)['total'];
+            
+            $productos_por_pagina = 10;
+            $pagina_actual = isset($_GET['pagina']) ? max(1, (int)$_GET['pagina']) : 1;
+            $offset = ($pagina_actual - 1) * $productos_por_pagina;
+            $total_paginas = $total > 0 ? (int) ceil($total / $productos_por_pagina) : 1;
             
             $stmt = $this->db->prepare("
                 SELECT 
-                    tflor.idtflor,
-                    tflor.nombre,
-                    tflor.naturaleza,
-                    tflor.precio,
-                    tflor.color,
-                    COALESCE(inv.cantidad_disponible, 0) as cantidad_disponible,
-                    inv.fecha_actualizacion
-                FROM tflor
-                LEFT JOIN inv ON tflor.idtflor = inv.tflor_idtflor
-                $where_clause
-                ORDER BY tflor.nombre
+                    i.idinv,
+                    i.tflor_idtflor as idtflor,
+                    COALESCE(t.nombre, CONCAT('Producto ', i.idinv)) as nombre,
+                    COALESCE(t.naturaleza, '') as naturaleza,
+                    i.precio,
+                    COALESCE(i.stock, 0) as stock,
+                    i.fecha_actualizacion
+                FROM inv i
+                INNER JOIN tflor t ON i.tflor_idtflor = t.idtflor
+                WHERE $where_sql
+                ORDER BY i.stock ASC, t.nombre ASC
+                LIMIT ? OFFSET ?
             ");
-            
+            $params[] = $productos_por_pagina;
+            $params[] = $offset;
             $stmt->execute($params);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return [
+                'items' => $items,
+                'total' => $total,
+                'pagina_actual' => $pagina_actual,
+                'total_paginas' => $total_paginas,
+                'productos_por_pagina' => $productos_por_pagina,
+                'offset' => $offset
+            ];
         } catch (Exception $e) {
             error_log("Error en obtenerProductosInventario: " . $e->getMessage());
-            return [];
+            return [
+                'items' => [],
+                'total' => 0,
+                'pagina_actual' => 1,
+                'total_paginas' => 1,
+                'productos_por_pagina' => 10,
+                'offset' => 0
+            ];
         }
     }
     
@@ -649,9 +987,9 @@ class empleado {
             
             if (isset($_GET['estado_pago']) && !empty($_GET['estado_pago'])) {
                 if ($_GET['estado_pago'] === 'Sin pago') {
-                    $where_conditions[] = "pg.estado_pag IS NULL";
+                    $where_conditions[] = "(SELECT estado_pag FROM pagos WHERE ped_idped = p.idped ORDER BY idpago DESC LIMIT 1) IS NULL";
                 } else {
-                    $where_conditions[] = "pg.estado_pag = ?";
+                    $where_conditions[] = "(SELECT estado_pag FROM pagos WHERE ped_idped = p.idped ORDER BY idpago DESC LIMIT 1) = ?";
                     $params[] = $_GET['estado_pago'];
                 }
                 error_log("Filtro estado_pago: " . $_GET['estado_pago']);
@@ -674,23 +1012,24 @@ class empleado {
                 $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
             }
             
-            // Consulta con LEFT JOIN para incluir información de pagos
+            // Una fila por pedido: estado_pago del último pago, total_productos
             $sql = "
                 SELECT 
                     p.idped,
                     p.numped,
                     p.fecha_pedido,
+                    p.fecha_entrega_solicitada,
                     p.monto_total,
                     p.estado,
-                    c.nombre as cliente_nombre,
-                    c.email as cliente_email,
-                    COALESCE(pg.estado_pag, 'Sin pago') as estado_pag
+                    c.nombre AS cliente_nombre,
+                    c.email AS cliente_email,
+                    COALESCE((SELECT pg.estado_pag FROM pagos pg WHERE pg.ped_idped = p.idped ORDER BY pg.idpago DESC LIMIT 1), 'Sin pago') AS estado_pago,
+                    (SELECT COUNT(*) FROM detped d WHERE d.idped = p.idped) AS total_productos
                 FROM ped p
                 INNER JOIN cli c ON p.cli_idcli = c.idcli
-                LEFT JOIN pagos pg ON p.idped = pg.ped_idped
                 $where_clause
                 ORDER BY p.fecha_pedido DESC
-                LIMIT 100
+                LIMIT 500
             ";
             
             error_log("=== UPDATED SQL Query with JOIN ===");
@@ -716,15 +1055,20 @@ class empleado {
     private function actualizarEstadoPago($id_pago, $nuevo_estado, $observaciones = '') {
         try {
             $empleado_id = $_SESSION['user']['idusu'] ?? null;
-            $stmt = $this->db->prepare("
-                UPDATE pagos 
-                SET estado_pag = ?, 
-                    observaciones_empleado = ?,
-                    verificado_por = ?,
-                    fecha_verificacion = NOW()
-                WHERE idpago = ?
-            ");
-            $stmt->execute([$nuevo_estado, $observaciones, $empleado_id, $id_pago]);
+            // Intentar con observaciones_empleado si existe la columna
+            try {
+                $stmt = $this->db->prepare("
+                    UPDATE pagos 
+                    SET estado_pag = ?, observaciones_empleado = ?, verificado_por = ?, fecha_verificacion = NOW()
+                    WHERE idpago = ?
+                ");
+                $stmt->execute([$nuevo_estado, $observaciones, $empleado_id, $id_pago]);
+            } catch (Exception $e) {
+                $stmt = $this->db->prepare("
+                    UPDATE pagos SET estado_pag = ?, verificado_por = ?, fecha_verificacion = NOW() WHERE idpago = ?
+                ");
+                $stmt->execute([$nuevo_estado, $empleado_id, $id_pago]);
+            }
         
         // 🔑 Si el pago es "Rechazado", restaurar stock
         if ($nuevo_estado === 'Rechazado') {
@@ -1073,26 +1417,23 @@ class empleado {
      */
     public function crearPedidoEmpleado() {
         try {
-            // Validar datos POST
             if (!isset($_POST['cli_id']) || !isset($_POST['flores'])) {
                 throw new Exception("Datos incompletos");
             }
 
             $cli_id = intval($_POST['cli_id']);
-            $flores = $_POST['flores']; // Array de [idtflor => cantidad]
-            $direccion_entrega = $_POST['direccion_entrega'] ?? null;
-            $fecha_entrega = $_POST['fecha_entrega'] ?? null;
-            $notas = $_POST['notas'] ?? null;
+            $flores = $_POST['flores'] ?? [];
+            $direccion_entrega = trim($_POST['direccion_entrega'] ?? '') ?: null;
+            $fecha_entrega = trim($_POST['fecha_entrega'] ?? '') ?: null;
+            $notas = trim($_POST['notas'] ?? '') ?: null;
             $monto_total = floatval($_POST['monto_total'] ?? 0);
+            $metodo_pago = in_array($_POST['metodo_pago'] ?? '', ['efectivo','tarjeta','transferencia','otro'], true) ? $_POST['metodo_pago'] : 'efectivo';
+            $estado_pago = in_array($_POST['estado_pago'] ?? '', ['Pendiente','Completado'], true) ? $_POST['estado_pago'] : 'Pendiente';
 
-            // Crear pedido base
-            require_once 'models/data.php';
-            $modelData = new data();
-            
-            // Generar número de pedido
             $numped = 'PED-' . date('YmdHis') . '-' . $cli_id;
-            
-            // INSERT en ped tabla
+
+            $this->db->beginTransaction();
+
             $stmt = $this->db->prepare("
                 INSERT INTO ped (numped, fecha_pedido, monto_total, estado, cli_idcli, direccion_entrega, fecha_entrega_solicitada, empleado_id, notas)
                 VALUES (?, NOW(), ?, 'Pendiente', ?, ?, ?, ?, ?)
@@ -1109,33 +1450,87 @@ class empleado {
 
             $pedido_id = $this->db->lastInsertId();
 
-            // Agregar detalles (flores) al pedido
             $stmt_det = $this->db->prepare("
                 INSERT INTO detped (idped, idtflor, cantidad, precio_unitario)
                 VALUES (?, ?, ?, ?)
             ");
 
+            $items_para_descontar = [];
             foreach ($flores as $idtflor => $data) {
-                $cantidad = intval($data['cantidad']);
-                $precio = floatval($data['precio']);
-                
-                if ($cantidad > 0) {
-                    $stmt_det->execute([
-                        $pedido_id,
-                        $idtflor,
-                        $cantidad,
-                        $precio
-                    ]);
+                $cantidad = (int)($data['cantidad'] ?? 0);
+                $precio = (float)($data['precio'] ?? 0);
+                if ($cantidad <= 0 || $precio <= 0) continue;
+                $stmt_nom = $this->db->prepare("SELECT nombre FROM tflor WHERE idtflor = ?");
+                $stmt_nom->execute([$idtflor]);
+                $nombre_flor = $stmt_nom->fetchColumn() ?: 'Producto';
+                $stmt_inv = $this->db->prepare("SELECT COALESCE(stock, cantidad_disponible, 0) as disp FROM inv WHERE tflor_idtflor = ? LIMIT 1");
+                $stmt_inv->execute([$idtflor]);
+                $row_inv = $stmt_inv->fetch(PDO::FETCH_ASSOC);
+                $stock_actual = (int)($row_inv['disp'] ?? 0);
+                if ($cantidad > $stock_actual) {
+                    throw new Exception("La cantidad de \"$nombre_flor\" no puede ser mayor al stock disponible ($stock_actual).");
                 }
+                $stmt_det->execute([$pedido_id, $idtflor, $cantidad, $precio]);
+                $items_para_descontar[] = ['idtflor' => (int)$idtflor, 'cantidad' => $cantidad];
+            }
+            if (empty($items_para_descontar)) {
+                throw new Exception("Debe agregar al menos un producto con cantidad mayor a 0.");
             }
 
-            $_SESSION['mensaje'] = "Pedido #$pedido_id creado exitosamente";
+            // Descontar del inventario al crear el pedido (igual que cliente y admin)
+            require_once __DIR__ . '/../models/minventario.php';
+            $invModel = new Minventario();
+            $motivo = "Descuento por pedido #$pedido_id";
+            foreach ($items_para_descontar as $item) {
+                $invModel->descontarStock($item['idtflor'], $item['cantidad'], $motivo);
+            }
+
+            $stmt_pago = $this->db->prepare("
+                INSERT INTO pagos (ped_idped, monto, metodo_pago, estado_pag, fecha_pago) VALUES (?, ?, ?, ?, NOW())
+            ");
+            $stmt_pago->execute([$pedido_id, $monto_total, $metodo_pago, $estado_pago]);
+
+            $this->db->commit();
+
+            // Enviar factura por correo al cliente (si está activado en config y el cliente tiene email)
+            if (file_exists(__DIR__ . '/../config/email_config.php')) {
+                require_once __DIR__ . '/../config/email_config.php';
+            }
+            $enviar_factura_activo = defined('ENVIAR_FACTURA_AL_CREAR_PEDIDO') ? ENVIAR_FACTURA_AL_CREAR_PEDIDO : true;
+            $stmt_cli = $this->db->prepare("SELECT email, nombre FROM cli WHERE idcli = ?");
+            $stmt_cli->execute([$cli_id]);
+            $cli_row = $stmt_cli->fetch(PDO::FETCH_ASSOC);
+            $email_cliente = trim($cli_row['email'] ?? '');
+            if ($enviar_factura_activo && $email_cliente !== '' && filter_var($email_cliente, FILTER_VALIDATE_EMAIL)) {
+                $pedido = $this->obtenerDetallesPedidoParaFactura($pedido_id);
+                $pago = $this->obtenerPagoPorPedido($pedido_id);
+                $detalles = $this->obtenerDetallesItemsPedidoFactura($pedido_id);
+                if ($pedido && !empty($detalles)) {
+                    $pdf_content = $this->generarFacturaPdfEnMemoria($pedido, $pago, $detalles);
+                    if ($pdf_content) {
+                        $enviado = $this->enviarFacturaPorEmailEmpleado($email_cliente, $pedido, $pdf_content);
+                        if ($enviado) {
+                            $_SESSION['mensaje'] = "Pedido #$pedido_id creado exitosamente. Se descontó el inventario y se envió la factura al correo del cliente.";
+                        } else {
+                            $_SESSION['mensaje'] = "Pedido #$pedido_id creado exitosamente. Se descontó el inventario. No se pudo enviar la factura por correo.";
+                        }
+                    } else {
+                        $_SESSION['mensaje'] = "Pedido #$pedido_id creado exitosamente. Se descontó el inventario.";
+                    }
+                } else {
+                    $_SESSION['mensaje'] = "Pedido #$pedido_id creado exitosamente. Se descontó el inventario.";
+                }
+            } else {
+                $_SESSION['mensaje'] = "Pedido #$pedido_id creado exitosamente. Se descontó el inventario.";
+            }
             $_SESSION['tipo_mensaje'] = 'success';
-            
             header('Location: index.php?ctrl=empleado&action=gestion_pedidos');
             exit();
 
         } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log("Error en crearPedidoEmpleado: " . $e->getMessage());
             $_SESSION['mensaje'] = "Error al crear pedido: " . $e->getMessage();
             $_SESSION['tipo_mensaje'] = 'danger';
@@ -1148,28 +1543,24 @@ class empleado {
      * Sirve el formulario de nuevo pedido como modal/fragmento
      */
     public function nuevoPedidoForm() {
-        // Similar a ajax_nuevo_pedido.php pero para empleados
         try {
-            // Obtener clientes disponibles
-            $stmt = $this->db->prepare("
-                SELECT idcli, nombre, email, telefono, direccion 
-                FROM cli 
-                ORDER BY nombre ASC
-            ");
-            $stmt->execute();
-            $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $user = $_SESSION['user'];
+            // Lista unificada: cli + usuarios con rol cliente (5), igual que admin
+            require_once __DIR__ . '/Cpedido.php';
+            $cpedido = new Cpedido();
+            $clientes = $cpedido->listarClientes();
 
-            // Obtener flores disponibles
+            // Solo productos que existen en inventario (inv) — no mostrar tflor sin registro en inv
             $stmt = $this->db->prepare("
                 SELECT 
                     tf.idtflor,
                     tf.nombre,
-                    tf.naturaleza as color,
+                    tf.naturaleza AS color,
                     tf.descripcion,
-                    tf.precio,
-                    COALESCE(i.stock, 0) as stock
-                FROM tflor tf
-                LEFT JOIN inv i ON tf.idtflor = i.tflor_idtflor
+                    i.precio,
+                    COALESCE(i.stock, 0) AS stock
+                FROM inv i
+                INNER JOIN tflor tf ON tf.idtflor = i.tflor_idtflor
                 ORDER BY tf.nombre
             ");
             $stmt->execute();
@@ -1180,6 +1571,13 @@ class empleado {
             error_log("Error en nuevoPedidoForm: " . $e->getMessage());
             echo "Error: " . $e->getMessage();
         }
+    }
+
+    /**
+     * Configuración de cuenta del empleado (perfil y cambio de contraseña).
+     */
+    public function configuracion() {
+        include 'views/empleado/configuracion.php';
     }
 }
 ?>

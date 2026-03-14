@@ -34,8 +34,12 @@ class ReportesController {
         $modalPagos = $this->filtrarPagos($dtAllPagos, $_GET);
 
         // Tarjetas resumidas
-        $datos['ventas']['pedidos'] = count($dtAll);
-        $datos['ventas']['total'] = array_sum(array_column($dtAll, 'monto_total'));
+        $pedidosCompletados = array_filter($dtAll, function($p) {
+            return strtolower(trim($p['estado'])) === 'completado';
+        });
+
+        $datos['ventas']['pedidos'] = count($pedidosCompletados);
+        $datos['ventas']['total'] = array_sum(array_column($pedidosCompletados, 'monto_total'));
 
         $datos['pagos']['realizados'] = array_sum(array_map(function($p) {
             return strtolower($p['estado_pag']) === 'completado' ? $p['monto'] : 0;

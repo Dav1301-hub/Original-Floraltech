@@ -110,6 +110,53 @@ class cliente {
     public function realizar_pago() {
         include 'views/cliente/realizar_pago.php';
     }
+
+    /**
+     * Procesar confirmación de pago desde la página realizar_pago (cliente marca como pagado).
+     */
+    public function procesar_pago() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?ctrl=cliente&action=dashboard');
+            exit();
+        }
+        $idpedido = (int)($_POST['idpedido'] ?? 0);
+        $idpago = (int)($_POST['idpago'] ?? 0);
+        $metodo_pago = in_array($_POST['metodo_pago'] ?? '', ['efectivo', 'nequi', 'tarjeta', 'transferencia', 'otro'], true) ? $_POST['metodo_pago'] : 'efectivo';
+        if ($idpedido <= 0) {
+            $_SESSION['mensaje'] = 'Pedido no válido.';
+            $_SESSION['tipo_mensaje'] = 'danger';
+            header('Location: index.php?ctrl=cliente&action=dashboard');
+            exit();
+        }
+        try {
+            $pedido = $this->obtenerDetallesPedido($idpedido);
+            if (!$pedido || (int)$pedido['cli_idcli'] !== (int)$this->cliente_id) {
+                $_SESSION['mensaje'] = 'No tiene permiso para registrar el pago de este pedido.';
+                $_SESSION['tipo_mensaje'] = 'danger';
+                header('Location: index.php?ctrl=cliente&action=dashboard');
+                exit();
+            }
+            if ($idpago > 0) {
+                $stmt = $this->db->prepare("UPDATE pagos SET estado_pag = 'Completado', metodo_pago = ? WHERE idpago = ? AND ped_idped = ?");
+                $stmt->execute([$metodo_pago, $idpago, $idpedido]);
+            } else {
+                $stmt = $this->db->prepare("UPDATE pagos SET estado_pag = 'Completado', metodo_pago = ? WHERE ped_idped = ?");
+                $stmt->execute([$metodo_pago, $idpedido]);
+            }
+            if ($stmt->rowCount() > 0) {
+                $_SESSION['mensaje'] = 'Pago registrado correctamente. Gracias por su pago.';
+                $_SESSION['tipo_mensaje'] = 'success';
+            } else {
+                $_SESSION['mensaje'] = 'No se encontró el registro de pago para actualizar.';
+                $_SESSION['tipo_mensaje'] = 'warning';
+            }
+        } catch (Exception $e) {
+            $_SESSION['mensaje'] = 'Error al procesar el pago: ' . $e->getMessage();
+            $_SESSION['tipo_mensaje'] = 'danger';
+        }
+        header('Location: index.php?ctrl=cliente&action=dashboard');
+        exit();
+    }
     
     public function nuevo_pedido() {
         // Obtener flores disponibles para mostrar en la vista
@@ -121,7 +168,7 @@ class cliente {
                     tf.naturaleza as color,
                     tf.precio,
                     tf.descripcion,
-                    COALESCE(i.cantidad_disponible, 0) as stock
+                    COALESCE(i.stock, i.cantidad_disponible, 0) as stock
                 FROM tflor tf
                 LEFT JOIN inv i ON tf.idtflor = i.tflor_idtflor
                 ORDER BY tf.nombre
@@ -194,6 +241,26 @@ class cliente {
                 if ($monto_total <= 0) {
                     throw new Exception("El monto total debe ser mayor a cero");
                 }
+
+                // Validar que ninguna cantidad sea 0 ni mayor al stock disponible
+                foreach ($detalles_pedido as $detalle) {
+                    if ($detalle['cantidad'] <= 0) {
+                        $stmt_n = $this->db->prepare("SELECT nombre FROM tflor WHERE idtflor = ?");
+                        $stmt_n->execute([$detalle['idtflor']]);
+                        $nom = $stmt_n->fetchColumn() ?: 'Producto';
+                        throw new Exception("La cantidad de \"$nom\" debe ser mayor a 0.");
+                    }
+                    $stmt_inv = $this->db->prepare("SELECT COALESCE(stock, cantidad_disponible, 0) as disp FROM inv WHERE tflor_idtflor = ? LIMIT 1");
+                    $stmt_inv->execute([$detalle['idtflor']]);
+                    $row = $stmt_inv->fetch(PDO::FETCH_ASSOC);
+                    $stock_actual = (int)($row['disp'] ?? 0);
+                    if ($detalle['cantidad'] > $stock_actual) {
+                        $stmt_n = $this->db->prepare("SELECT nombre FROM tflor WHERE idtflor = ?");
+                        $stmt_n->execute([$detalle['idtflor']]);
+                        $nom = $stmt_n->fetchColumn() ?: 'Producto';
+                        throw new Exception("La cantidad de \"$nom\" no puede ser mayor al stock disponible ($stock_actual).");
+                    }
+                }
                 
                 $this->db->beginTransaction();
                 
@@ -248,15 +315,33 @@ class cliente {
                 
                 $this->db->commit();
                 
+                // Enviar factura por correo al cliente tras crear el pedido
+                $email_enviado = false;
+                try {
+                    $pedido = $this->obtenerDetallesPedido($pedido_id);
+                    $pago = $this->obtenerPagoPorPedido($pedido_id);
+                    $detalles = $this->obtenerDetallesItemsPedido($pedido_id);
+                    if ($pedido && !empty($_SESSION['user']['email'])) {
+                        $pdf_content = $this->generarFacturaEnMemoria($pedido_id, $pedido, $pago, $detalles);
+                        $email_cliente = $_SESSION['user']['email'];
+                        $email_enviado = $this->enviarEmailConPHPMailer($email_cliente, $pedido, $pdf_content);
+                    }
+                } catch (Exception $e) {
+                    error_log("Envío de factura por email tras crear pedido: " . $e->getMessage());
+                }
+                
                 if ($metodo_pago === 'transferencia') {
                     $_SESSION['mensaje'] = "Pedido creado exitosamente. Número de pedido: $numped. Su pago por transferencia está pendiente de verificación por nuestro equipo.";
                     $_SESSION['info_transferencia'] = "Recuerde que debe realizar la transferencia bancaria según los datos mostrados en el formulario. Un empleado verificará su pago para procesar el pedido.";
                 } else {
                     $_SESSION['mensaje'] = "Pedido creado exitosamente. Número de pedido: $numped";
                 }
+                if ($email_enviado) {
+                    $_SESSION['mensaje'] .= " Se ha enviado la factura a tu correo.";
+                }
                 $_SESSION['tipo_mensaje'] = "success";
                 
-                error_log("Pedido creado exitosamente: $numped, Cliente ID: $this->cliente_id, Detalles: " . count($detalles_pedido) . " items");
+                error_log("Pedido creado exitosamente: $numped, Cliente ID: $this->cliente_id, Detalles: " . count($detalles_pedido) . " items" . ($email_enviado ? ", factura enviada por email" : ""));
                 
                 header('Location: index.php?ctrl=cliente&action=dashboard');
                 exit();
@@ -288,7 +373,7 @@ class cliente {
                     tf.naturaleza as color,
                     tf.precio,
                     tf.descripcion,
-                    COALESCE(i.cantidad_disponible, 0) as stock
+                    COALESCE(i.stock, i.cantidad_disponible, 0) as stock
                 FROM tflor tf
                 LEFT JOIN inv i ON tf.idtflor = i.tflor_idtflor
                 ORDER BY tf.nombre
@@ -662,7 +747,7 @@ class cliente {
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
         $mail->Username = 'epymes270@gmail.com';
-        $mail->Password = 'gzeq vnry rjgp mvdl'; // contraseña de aplicación
+        $mail->Password = 'hadm asrg qkww kjcr'; // contraseña de aplicación
         $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
         

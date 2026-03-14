@@ -468,7 +468,12 @@ class Minventario {
     public function agregarProducto($data) {
         try {
             // Validar datos básicos requeridos
-            if (empty($data['nombre_producto']) || empty($data['stock']) || empty($data['precio'])) {
+            $nombre = isset($data['nombre_producto']) ? trim((string)$data['nombre_producto']) : '';
+            $tieneStock = array_key_exists('stock', $data) && $data['stock'] !== '' && $data['stock'] !== null;
+            $tienePrecio = array_key_exists('precio', $data) && $data['precio'] !== '' && $data['precio'] !== null;
+
+            // Nota: Para productos perecederos (flores), el stock inicial puede ser 0 y luego se gestiona por lotes.
+            if ($nombre === '' || !$tieneStock || !$tienePrecio) {
                 throw new Exception('Nombre del producto, stock y precio son obligatorios');
             }
             
@@ -1298,13 +1303,18 @@ class Minventario {
         }
     }
 
+    private function columnExists($table, $column) {
+        $stmt = $this->db->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
+        $stmt->execute([$column]);
+        return (bool) $stmt->fetch();
+    }
+
     /**
      * Descontar stock al realizar un pedido
      */
     public function descontarStock($idtflor, $cantidad, $motivo = "Venta online - Reducción de stock") {
         try {
-            // Verificar stock actual
-            $sql_verificar = "SELECT idinv, stock, cantidad_disponible FROM inv WHERE tflor_idtflor = :tflor_id";
+            $sql_verificar = "SELECT idinv, stock FROM inv WHERE tflor_idtflor = :tflor_id";
             $stmt_verificar = $this->db->prepare($sql_verificar);
             $stmt_verificar->bindParam(':tflor_id', $idtflor, PDO::PARAM_INT);
             $stmt_verificar->execute();
@@ -1314,34 +1324,32 @@ class Minventario {
                 throw new Exception("El producto no existe en inventario");
             }
             
-            if ($inventario['cantidad_disponible'] < $cantidad) {
-                throw new Exception("Stock insuficiente para el producto seleccionado");
+            $stock_actual = (int)($inventario['stock'] ?? 0);
+            if ($stock_actual < $cantidad) {
+                throw new Exception("Stock insuficiente para el producto seleccionado (hay $stock_actual, se piden $cantidad)");
             }
             
-            $nuevo_stock = $inventario['stock'] - $cantidad;
-            $nueva_disponibilidad = $inventario['cantidad_disponible'] - $cantidad;
+            $nuevo_stock = $stock_actual - $cantidad;
             
-            // Actualizar stock
-            $sql_update = "UPDATE inv SET stock = :nuevo_stock, cantidad_disponible = :nueva_disponibilidad, fecha_actualizacion = NOW() WHERE idinv = :idinv";
-            $stmt_update = $this->db->prepare($sql_update);
+            $stmt_update = $this->db->prepare("UPDATE inv SET stock = :nuevo_stock, fecha_actualizacion = NOW() WHERE idinv = :idinv");
             $stmt_update->bindParam(':nuevo_stock', $nuevo_stock, PDO::PARAM_INT);
-            $stmt_update->bindParam(':nueva_disponibilidad', $nueva_disponibilidad, PDO::PARAM_INT);
             $stmt_update->bindParam(':idinv', $inventario['idinv'], PDO::PARAM_INT);
-            
             if (!$stmt_update->execute()) {
                 throw new Exception("Error al actualizar el stock");
+            }
+            if ($this->columnExists('inv', 'cantidad_disponible')) {
+                $this->db->prepare("UPDATE inv SET cantidad_disponible = cantidad_disponible - :cant WHERE idinv = :idinv")
+                    ->execute([':cant' => $cantidad, ':idinv' => $inventario['idinv']]);
             }
             
             // Registrar en historial
             $this->registrarMovimientoInventario(
-                $inventario['idinv'], 
-                $inventario['stock'], 
-                $nuevo_stock, 
+                $inventario['idinv'],
+                (int)$inventario['stock'],
+                $nuevo_stock,
                 $motivo
             );
-            
             return true;
-            
         } catch (Exception $e) {
             throw $e;
         } catch (PDOException $e) {
@@ -1354,30 +1362,28 @@ class Minventario {
      */
     public function restaurarStock($idtflor, $cantidad, $motivo = "Pedido cancelado - Restauración de stock") {
         try {
-            // Verificar existencia del producto en inventario
-            $sql_verificar = "SELECT idinv, stock, cantidad_disponible FROM inv WHERE tflor_idtflor = :tflor_id";
+            $sql_verificar = "SELECT idinv, stock FROM inv WHERE tflor_idtflor = :tflor_id";
             $stmt_verificar = $this->db->prepare($sql_verificar);
             $stmt_verificar->bindParam(':tflor_id', $idtflor, PDO::PARAM_INT);
             $stmt_verificar->execute();
             $inventario = $stmt_verificar->fetch(PDO::FETCH_ASSOC);
             
             if (!$inventario) {
-                // Si no existe en inventario (raro si se descontó antes), no hacemos nada o lanzamos error
                 return false;
             }
             
-            $nuevo_stock = $inventario['stock'] + $cantidad;
-            $nueva_disponibilidad = $inventario['cantidad_disponible'] + $cantidad;
+            $stock_actual = (int)($inventario['stock'] ?? 0);
+            $nuevo_stock = $stock_actual + $cantidad;
             
-            // Actualizar stock
-            $sql_update = "UPDATE inv SET stock = :nuevo_stock, cantidad_disponible = :nueva_disponibilidad, fecha_actualizacion = NOW() WHERE idinv = :idinv";
-            $stmt_update = $this->db->prepare($sql_update);
+            $stmt_update = $this->db->prepare("UPDATE inv SET stock = :nuevo_stock, fecha_actualizacion = NOW() WHERE idinv = :idinv");
             $stmt_update->bindParam(':nuevo_stock', $nuevo_stock, PDO::PARAM_INT);
-            $stmt_update->bindParam(':nueva_disponibilidad', $nueva_disponibilidad, PDO::PARAM_INT);
             $stmt_update->bindParam(':idinv', $inventario['idinv'], PDO::PARAM_INT);
-            
             if (!$stmt_update->execute()) {
                 throw new Exception("Error al restaurar el stock");
+            }
+            if ($this->columnExists('inv', 'cantidad_disponible')) {
+                $this->db->prepare("UPDATE inv SET cantidad_disponible = cantidad_disponible + :cant WHERE idinv = :idinv")
+                    ->execute([':cant' => $cantidad, ':idinv' => $inventario['idinv']]);
             }
             
             // Registrar en historial

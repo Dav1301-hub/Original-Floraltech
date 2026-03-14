@@ -217,198 +217,190 @@ $stmt = $db->prepare("
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/dashboard-cliente.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="cliente-theme">
     <div class="dashboard-container">
-        <!-- Header Estilizado -->
-        <nav class="navbar">
-            <div class="navbar-brand">
-                <i class="fas fa-seedling"></i>
-                FloralTech
-            </div>
-            <div class="navbar-user">
-                <div class="user-info">
-                    <p class="user-name">Bienvenido, <?= htmlspecialchars($usuario['nombre_completo']) ?></p>
-                    <p class="user-welcome">Panel de Cliente</p>
+        <?php $navbar_volver_url = ''; include __DIR__ . '/partials/navbar_cliente.php'; ?>
+
+        <div class="main-content">
+            <?php if (isset($_SESSION['mensaje'])): ?>
+                <div class="alert alert-<?= $_SESSION['tipo_mensaje'] ?? 'info' ?> alert-dismissible fade show" role="alert">
+                    <i class="fas fa-info-circle me-2"></i><?= htmlspecialchars($_SESSION['mensaje']) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
-                <a href="index.php?ctrl=login&action=logout" class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                <?php unset($_SESSION['mensaje'], $_SESSION['tipo_mensaje']); ?>
+            <?php endif; ?>
+            <?php if (isset($_SESSION['info_transferencia'])): ?>
+                <div class="alert alert-warning alert-dismissible fade show">
+                    <i class="fas fa-university me-2"></i><strong>Información sobre transferencia:</strong><br>
+                    <?= htmlspecialchars($_SESSION['info_transferencia']) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <?php unset($_SESSION['info_transferencia']); ?>
+            <?php endif; ?>
+
+            <div class="welcome-section">
+                <div class="welcome-card card">
+                    <div class="card-body">
+                        <div class="welcome-header">
+                            <h2><i class="fas fa-chart-line me-2"></i>¡Hola, <?= explode(' ', $usuario['nombre_completo'])[0] ?>!</h2>
+                            <p class="mb-0 text-muted">Bienvenido a FloralTech. Aquí tienes un resumen de toda tu actividad.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-section">
+                <h3 class="stats-section-title">Resumen</h3>
+                <p class="stats-section-desc">Tus pedidos y gastos en un vistazo</p>
+                <div class="stats-grid">
+                    <div class="stat-card success">
+                        <div class="stat-icon"><i class="fas fa-shopping-bag"></i></div>
+                        <div class="stat-info">
+                            <h3><?= number_format($total_pedidos) ?></h3>
+                            <p>Total Pedidos</p>
+                        </div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                        <div class="stat-info">
+                            <h3><?= number_format($pedidos_pendientes) ?></h3>
+                            <p>Pendientes de Envío</p>
+                        </div>
+                    </div>
+                    <div class="stat-card danger">
+                        <div class="stat-icon"><i class="fas fa-credit-card"></i></div>
+                        <div class="stat-info">
+                            <h3><?= number_format($pagos_pendientes) ?></h3>
+                            <p>Por Pagar</p>
+                        </div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="stat-info">
+                            <h3><?= number_format($pedidos_completados) ?></h3>
+                            <p>Completados</p>
+                        </div>
+                    </div>
+                    <div class="stat-card info">
+                        <div class="stat-icon"><i class="fas fa-wallet"></i></div>
+                        <div class="stat-info">
+                            <h3>$<?= number_format($estadisticas['total_gastado'], 2) ?></h3>
+                            <p>Total Gastado</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quick-actions-bar">
+                <a href="index.php?ctrl=cliente&action=nuevo_pedido" class="quick-action-link quick-action-pedidos">
+                    <i class="fas fa-plus"></i><span>Nuevo Pedido</span>
+                </a>
+                <a href="index.php?ctrl=cliente&action=historial" class="quick-action-link quick-action-pagos">
+                    <i class="fas fa-history"></i><span>Historial</span>
+                </a>
+                <a href="index.php?ctrl=cliente&action=configuracion" class="quick-action-link quick-action-inventario">
+                    <i class="fas fa-cog"></i><span>Configuración</span>
                 </a>
             </div>
-        </nav>
 
-        <!-- Mensajes del sistema -->
-        <?php if (isset($_SESSION['mensaje'])): ?>
-            <div class="alert alert-<?= $_SESSION['tipo_mensaje'] ?? 'info' ?> alert-dismissible fade show">
-                <i class="fas fa-info-circle"></i>
-                <?= htmlspecialchars($_SESSION['mensaje']) ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            <?php unset($_SESSION['mensaje'], $_SESSION['tipo_mensaje']); ?>
-        <?php endif; ?>
-
-        <?php if (isset($_SESSION['info_transferencia'])): ?>
-            <div class="alert alert-warning alert-dismissible fade show">
-                <i class="fas fa-university"></i>
-                <strong>Información importante sobre transferencia:</strong><br>
-                <?= htmlspecialchars($_SESSION['info_transferencia']) ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            <?php unset($_SESSION['info_transferencia']); ?>
-        <?php endif; ?>
-
-        <!-- Saludo Principal Estilizado -->
-        <div class="welcome-card card border-0 shadow-sm mb-4">
-            <div class="card-body p-4">
-                <div class="welcome-header text-start">
-                    <div>
-                        <h2 class="mb-1 text-primary">¡Hola, <?= explode(' ', $usuario['nombre_completo'])[0] ?>!</h2>
-                        <p class="text-muted mb-0">Bienvenido a FloralTech. Aquí tienes un resumen de toda tu actividad.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-            <!-- Statistics minimalistas -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon primary">
-                        <i class="fas fa-shopping-bag"></i>
-                    </div>
-                    <div class="stat-number"><?= number_format($total_pedidos) ?></div>
-                    <div class="stat-label">Total Pedidos</div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon warning">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <div class="stat-number"><?= number_format($pedidos_pendientes) ?></div>
-                    <div class="stat-label">Pendientes de Envío</div>
-                    <?php if ($pedidos_pendientes > 0): ?>
-                        <div class="stat-change negative">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon danger">
-                        <i class="fas fa-credit-card"></i>
-                    </div>
-                    <div class="stat-number"><?= number_format($pagos_pendientes) ?></div>
-                    <div class="stat-label">Por Pagar</div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon success">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div class="stat-number"><?= number_format($pedidos_completados) ?></div>
-                    <div class="stat-label">Completados</div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon info">
-                        <i class="fas fa-wallet"></i>
-                    </div>
-                    <div class="stat-number">$<?= number_format($estadisticas['total_gastado'], 2) ?></div>
-                    <div class="stat-label">Total Gastado</div>
-                </div>
-            </div>
-
-            <!-- Content Grid minimalista -->
             <div class="content-grid">
-                <!-- Recent Orders simplificado -->
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="mb-0"><i class="fas fa-list-alt me-2 text-primary"></i> Todos tus Pedidos</h5>
+                <div class="main-column">
+                <div class="content-card card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-list-alt me-2"></i> Todos tus Pedidos</h5>
                     </div>
                     <div class="card-body">
                         <?php if (!empty($pedidos_recientes)): ?>
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle">
-                                    <thead class="table-light">
+                            <div class="table-responsive pedidos-table-wrap">
+                                <table class="table table-hover align-middle pedidos-dashboard-table">
+                                    <thead>
                                         <tr>
-                                            <th>Pedido</th>
-                                            <th class="d-none d-md-table-cell">Fecha</th>
-                                            <th>Monto</th>
-                                            <th>Estado</th>
-                                            <th class="d-none d-sm-table-cell">Pago</th>
-                                            <th>Acción</th>
+                                            <th><i class="fas fa-receipt me-1 opacity-75"></i> Pedido</th>
+                                            <th class="d-none d-md-table-cell"><i class="fas fa-calendar-alt me-1 opacity-75"></i> Fecha</th>
+                                            <th><i class="fas fa-tag me-1 opacity-75"></i> Monto</th>
+                                            <th><i class="fas fa-box me-1 opacity-75"></i> Estado</th>
+                                            <th class="d-none d-sm-table-cell"><i class="fas fa-credit-card me-1 opacity-75"></i> Pago</th>
+                                            <th class="text-end">Acción</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php foreach ($pedidos_recientes as $pedido): ?>
-                                            <tr>
+                                            <?php 
+                                            $estado_pago = $pedido['estado_pago'] ?? 'Sin pago';
+                                            $fecha_detalle = $pedido['fecha_formato'] ?? '';
+                                            $dir_entrega = !empty(trim($pedido['direccion_entrega'] ?? '')) ? $pedido['direccion_entrega'] : null;
+                                            $notas_pedido = !empty(trim($pedido['notas'] ?? '')) ? $pedido['notas'] : null;
+                                            $fecha_ent = !empty($pedido['fecha_entrega_solicitada']) ? date('d/m/Y', strtotime($pedido['fecha_entrega_solicitada'])) : null;
+                                            $productos = !empty(trim($pedido['flores_nombres'] ?? '')) ? $pedido['flores_nombres'] : null;
+                                            ?>
+                                            <tr class="pedido-main-row" role="button" tabindex="0">
                                                 <td>
-                                                    <strong>#<?= htmlspecialchars($pedido['numped']) ?></strong>
-                                                    <div class="d-md-none small text-muted"><?= htmlspecialchars($pedido['fecha_corta']) ?></div>
+                                                    <span class="pedido-num">#<?= htmlspecialchars($pedido['numped']) ?></span>
+                                                    <div class="d-md-none small text-muted mt-1"><?= htmlspecialchars($pedido['fecha_corta']) ?></div>
                                                 </td>
-                                                <td class="d-none d-md-table-cell">
-                                                    <?= htmlspecialchars($pedido['fecha_corta']) ?>
-                                                </td>
-                                                <td>
-                                                    <span class="fw-bold">$<?= number_format($pedido['monto_total'], 2) ?></span>
-                                                </td>
+                                                <td class="d-none d-md-table-cell text-muted"><?= htmlspecialchars($pedido['fecha_corta']) ?></td>
+                                                <td><span class="monto-pedido">$<?= number_format($pedido['monto_total'], 2) ?></span></td>
                                                 <td>
                                                     <?php
                                                     $estado_pedido = strtolower($pedido['estado']);
                                                     $estados_pedido_clases = [
-                                                        'completado' => 'bg-success',
-                                                        'pendiente' => 'bg-warning text-dark',
-                                                        'procesando' => 'bg-info',
-                                                        'cancelado' => 'bg-danger',
-                                                        'enviado' => 'bg-primary',
-                                                        'entregado' => 'bg-success'
+                                                        'completado' => 'badge-estado-success',
+                                                        'pendiente' => 'badge-estado-warning',
+                                                        'procesando' => 'badge-estado-info',
+                                                        'cancelado' => 'badge-estado-danger',
+                                                        'enviado' => 'badge-estado-primary',
+                                                        'entregado' => 'badge-estado-success'
                                                     ];
-                                                    $badge_class = $estados_pedido_clases[$estado_pedido] ?? 'bg-secondary';
+                                                    $badge_class = $estados_pedido_clases[$estado_pedido] ?? 'badge-estado-secondary';
                                                     ?>
-                                                    <span class="badge <?= $badge_class ?>">
-                                                        <?= htmlspecialchars($pedido['estado']) ?>
-                                                    </span>
+                                                    <span class="badge-pedido <?= $badge_class ?>"><?= htmlspecialchars($pedido['estado']) ?></span>
                                                     <div class="d-sm-none mt-1">
                                                         <?php
-                                                        $estado_pago = $pedido['estado_pago'] ?? 'Sin pago';
-                                                        $pago_bg = (strtolower($estado_pago) === 'completado') ? 'bg-success' : ((strtolower($estado_pago) === 'pendiente') ? 'bg-warning text-dark' : 'bg-danger');
+                                                        $pago_bg = (strtolower($estado_pago) === 'completado') ? 'badge-estado-success' : ((strtolower($estado_pago) === 'pendiente') ? 'badge-estado-warning' : 'badge-estado-danger');
                                                         ?>
-                                                        <span class="badge <?= $pago_bg ?>" style="font-size: 0.65rem;">
-                                                            <?= htmlspecialchars($estado_pago) ?>
-                                                        </span>
+                                                        <span class="badge-pedido <?= $pago_bg ?> badge-pedido-sm"><?= htmlspecialchars($estado_pago) ?></span>
                                                     </div>
                                                 </td>
                                                 <td class="d-none d-sm-table-cell">
                                                     <?php
                                                     $pago_badge_class = '';
-                                                    $estado_pago = $pedido['estado_pago'] ?? 'Sin pago';
                                                     switch (strtolower($estado_pago)) {
-                                                        case 'completado': $pago_badge_class = 'bg-success'; break;
-                                                        case 'pendiente': $pago_badge_class = 'bg-warning text-dark'; break;
+                                                        case 'completado': $pago_badge_class = 'badge-estado-success'; break;
+                                                        case 'pendiente': $pago_badge_class = 'badge-estado-warning'; break;
                                                         case 'rechazado':
-                                                        case 'sin pago': $pago_badge_class = 'bg-danger'; break;
-                                                        default: $pago_badge_class = 'bg-secondary';
+                                                        case 'sin pago': $pago_badge_class = 'badge-estado-danger'; break;
+                                                        default: $pago_badge_class = 'badge-estado-secondary';
                                                     }
                                                     ?>
-                                                    <span class="badge <?= $pago_badge_class ?>">
-                                                        <?= htmlspecialchars($estado_pago) ?>
-                                                    </span>
+                                                    <span class="badge-pedido <?= $pago_badge_class ?>"><?= htmlspecialchars($estado_pago) ?></span>
                                                 </td>
-                                                <td>
-                                                    <div class="btn-group">
-                                                        <?php if (strtolower($estado_pago) === 'pendiente' || strtolower($estado_pago) === 'sin pago'): ?>
-                                                            <button type="button"
-                                                            class="btn btn-warning btn-sm"
-                                                            onclick="prepararModalPago('<?= htmlspecialchars($pedido['numped']) ?>', '<?= number_format($pedido['monto_total'], 2, '.', '') ?>')">
-                                                                <i class="fas fa-credit-card"></i> <span class="d-none d-md-inline">Pagar</span>
-                                                            </button>
-                                                        <?php else: ?>
-                                                            <a href="index.php?ctrl=cliente&action=generar_factura&idpedido=<?= $pedido['idped'] ?>" 
-                                                            class="btn btn-outline-primary btn-sm"
-                                                            target="_blank">
-                                                                <i class="fas fa-file-pdf"></i> <span class="d-none d-md-inline">PDF</span>
-                                                            </a>
+                                                <td class="text-end pedido-row-actions">
+                                                    <?php if (strtolower($estado_pago) === 'pendiente' || strtolower($estado_pago) === 'sin pago'): ?>
+                                                        <button type="button" class="btn btn-action btn-pagar" data-bs-toggle="modal" data-bs-target="#modalPago"
+                                                            onclick="prepararModalPago('<?= htmlspecialchars($pedido['numped']) ?>', '<?= number_format($pedido['monto_total'], 2, '.', '') ?>', <?= (int)$pedido['idped'] ?>)">
+                                                            <i class="fas fa-credit-card"></i><span class="d-none d-md-inline ms-1">Pagar</span>
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <a href="index.php?ctrl=cliente&action=generar_factura&idpedido=<?= $pedido['idped'] ?>" class="btn btn-action btn-pdf" target="_blank">
+                                                            <i class="fas fa-file-pdf"></i><span class="d-none d-md-inline ms-1">PDF</span>
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                            <tr class="pedido-detail-row">
+                                                <td colspan="6" class="pedido-detail-cell">
+                                                    <div class="pedido-detail-inner">
+                                                        <div class="pedido-detail-item"><strong>Producto:</strong> <?= $productos ? htmlspecialchars($productos) : '<span class="text-muted">—</span>' ?></div>
+                                                        <div class="pedido-detail-item"><strong>Fecha:</strong> <?= htmlspecialchars($fecha_detalle) ?></div>
+                                                        <?php if ($fecha_ent): ?>
+                                                            <div class="pedido-detail-item"><strong>Entrega solicitada:</strong> <?= htmlspecialchars($fecha_ent) ?></div>
                                                         <?php endif; ?>
+                                                        <?php if ($dir_entrega): ?>
+                                                            <div class="pedido-detail-item"><strong>Dirección de entrega:</strong> <?= htmlspecialchars($dir_entrega) ?></div>
+                                                        <?php endif; ?>
+                                                        <div class="pedido-detail-item"><strong>Comentario:</strong> <?= $notas_pedido ? nl2br(htmlspecialchars($notas_pedido)) : '<span class="text-muted">Ninguno</span>' ?></div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -427,42 +419,18 @@ $stmt = $db->prepare("
                         <?php endif; ?>
                     </div>
                 </div>
+                </div>
 
-                <!-- Sidebar minimalista -->
-                <div>
-                    <!-- Quick Actions -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <i class="fas fa-bolt"></i> Acciones
-                        </div>
-                        <div class="card-body">
-                            <div class="quick-actions">
-                                <a href="index.php?ctrl=cliente&action=nuevo_pedido" class="btn btn-primary">
-                                    <i class="fas fa-plus"></i> Nuevo Pedido
-                                </a>
-                                <a href="index.php?ctrl=cliente&action=historial" class="btn btn-outline">
-                                    <i class="fas fa-history"></i> Historial
-                                </a>
-
-                                <a href="index.php?ctrl=cliente&action=configuracion" class="btn btn-outline">
-                                    <i class="fas fa-cog"></i> Configuración
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Flores Favoritas minimalista -->
+                <div class="sidebar-column">
                     <?php if (!empty($flores_favoritas)): ?>
-                    <div class="card mb-3">
+                    <div class="content-card card">
                         <div class="card-header">
-                            <i class="fas fa-heart"></i> Favoritas
+                            <h5 class="mb-0"><i class="fas fa-heart me-2"></i> Favoritas</h5>
                         </div>
                         <div class="card-body">
-                            <?php foreach (array_slice($flores_favoritas, 0, 2) as $flor): ?>
+                            <?php foreach (array_slice($flores_favoritas, 0, 5) as $flor): ?>
                                 <div class="activity-item">
-                                    <div class="activity-icon success">
-                                        <i class="fas fa-seedling"></i>
-                                    </div>
+                                    <div class="activity-icon success"><i class="fas fa-seedling"></i></div>
                                     <div class="activity-content">
                                         <h6><?= htmlspecialchars($flor['nombre']) ?></h6>
                                         <p><?= $flor['total_comprado'] ?> compradas</p>
@@ -472,8 +440,6 @@ $stmt = $db->prepare("
                         </div>
                     </div>
                     <?php endif; ?>
-
-                    </div>
                 </div>
             </div>
         </div>
@@ -483,7 +449,7 @@ $stmt = $db->prepare("
     <div class="modal fade" id="modalPago" tabindex="-1" aria-labelledby="modalPagoLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-primary text-white">
+                <div class="modal-header modal-header-cliente text-white">
                     <h5 class="modal-title" id="modalPagoLabel">
                         <i class="fas fa-credit-card me-2"></i>Realizar Pago
                     </h5>
@@ -543,13 +509,15 @@ $stmt = $db->prepare("
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <!-- <button type="button" class="btn btn-primary">Notificar Pago</button> -->
+                    <a href="#" id="btnIrAPagar" class="btn btn-success">
+                        <i class="fas fa-external-link-alt me-1"></i> Ir a pagar este pedido
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Estilos adicionales para el modal -->
+    <!-- Estilos adicionales para el modal y filas expandibles -->
     <style>
         .payment-method:hover {
             border-color: #0d6efd !important;
@@ -564,40 +532,25 @@ $stmt = $db->prepare("
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    // Variables globales para el modal
+    // Variables globales para el modal (idped = ID numérico del pedido para la URL)
     let currentPedidoId = '';
     
-    // Función para preparar el modal con los datos del pedido
-    function prepararModalPago(numPed, monto) {
+    function prepararModalPago(numPed, monto, idped) {
         document.getElementById('modalNumPed').textContent = numPed;
-        
-        // Formatear monto con comas para miles
-        const formatMonto = parseFloat(monto).toLocaleString('es-CO', { 
-            minimumFractionDigits: 2, 
-            maximumFractionDigits: 2 
-        });
+        const formatMonto = parseFloat(monto).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         document.getElementById('modalMontoTotal').textContent = formatMonto;
-        
-        // Resetear selección
         document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('selected'));
         document.getElementById('qrContainer').style.display = 'none';
         document.getElementById('efectivoContainer').style.display = 'none';
-        
-        // Guardar ID
-        currentPedidoId = numPed;
+        currentPedidoId = idped || '';
+        var link = document.getElementById('btnIrAPagar');
+        link.href = currentPedidoId ? ('index.php?ctrl=cliente&action=realizar_pago&idpedido=' + currentPedidoId) : '#';
     }
 
     // Función para seleccionar método de pago en el modal
     function selectPaymentMethod(method) {
-        // Remover clase selected de todos
-        document.querySelectorAll('.payment-method').forEach(el => {
-            el.classList.remove('selected');
-        });
-        
-        // Añadir clase selected al método elegido
+        document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('selected'));
         document.getElementById('method-' + method).classList.add('selected');
-        
-        // Mostrar contenido correspondiente
         if (method === 'nequi') {
             document.getElementById('qrContainer').style.display = 'block';
             document.getElementById('efectivoContainer').style.display = 'none';
@@ -606,8 +559,18 @@ $stmt = $db->prepare("
             document.getElementById('qrContainer').style.display = 'none';
         }
     }
+
+    // Filas expandibles: clic en la fila muestra/oculta el detalle (excepto en botones/enlaces)
+    document.querySelectorAll('.pedido-main-row').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+            if (e.target.closest('.pedido-row-actions a, .pedido-row-actions button')) return;
+            var next = row.nextElementSibling;
+            if (next && next.classList.contains('pedido-detail-row')) {
+                next.classList.toggle('visible');
+            }
+        });
+    });
     </script>
-    <script src="assets/js/dashboard-cliente.js"></script>
     <script src="assets/js/dashboard-cliente.js"></script>
 </body>
 </html>

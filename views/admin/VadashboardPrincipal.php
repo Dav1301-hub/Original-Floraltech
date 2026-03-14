@@ -103,7 +103,7 @@ function render_admin_view(string $filePath, array $context = []): void
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/dashboard-admin.css?v=2">
-    <link rel="stylesheet" href="assets/css/admin-unificado.css?v=7">
+    <link rel="stylesheet" href="assets/css/admin-unificado.css?v=2">
     <!-- Charts and Calendar Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.css" rel="stylesheet">

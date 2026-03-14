@@ -12,6 +12,7 @@ class Cinventario {
     private $stock_bajo = 0;
     private $stock_critico = 0;
     private $sin_stock = 0;
+    private $proximos_caducar = 0;
     private $valor_total = 0;
     private $inventario = [];
     private $inventario_perecederos = [];
@@ -87,6 +88,8 @@ class Cinventario {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$this->inventarioModel) {
             return;
         }
+
+        $esAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
         
         try {
             if (isset($_POST['accion'])) {
@@ -111,7 +114,14 @@ class Cinventario {
                             
                             $this->inventarioModel->agregarProducto($_POST);
                             $this->mensaje_exito = 'Producto agregado al inventario exitosamente';
-                            header('Location: ?ctrl=Cinventario&success=1');
+                            
+                            if ($esAjax) {
+                                header('Content-Type: application/json');
+                                echo json_encode(['success' => true, 'message' => $this->mensaje_exito]);
+                                exit;
+                            }
+                            
+                            header('Location: ?ctrl=cinventario&success=1');
                             exit;
                         } catch (Exception $e) {
                             $mensaje = $e->getMessage();
@@ -119,8 +129,18 @@ class Cinventario {
                             // Verificar si es un error de producto duplicado (JSON)
                             if (strpos($mensaje, '{"tipo":"producto_duplicado"') === 0) {
                                 $datos_duplicado = json_decode($mensaje, true);
+                                
+                                if ($esAjax) {
+                                    header('Content-Type: application/json');
+                                    echo json_encode([
+                                        'success' => false,
+                                        'tipo' => 'producto_duplicado',
+                                        'data' => $datos_duplicado
+                                    ]);
+                                    exit;
+                                }
                                 // Redirigir con parámetros especiales para mostrar modal de confirmación
-                                header('Location: ?ctrl=Cinventario&duplicado=1&producto_id=' . 
+                                header('Location: ?ctrl=cinventario&duplicado=1&producto_id=' . 
                                        $datos_duplicado['producto_id'] . 
                                        '&producto_nombre=' . urlencode($datos_duplicado['producto_nombre']) .
                                        '&stock_actual=' . $datos_duplicado['stock_actual'] .
@@ -129,7 +149,14 @@ class Cinventario {
                             }
                             
                             error_log('Error al agregar producto: ' . $mensaje);
-                            header('Location: ?ctrl=Cinventario&error=' . urlencode($mensaje));
+                            
+                            if ($esAjax) {
+                                header('Content-Type: application/json');
+                                echo json_encode(['success' => false, 'message' => $mensaje]);
+                                exit;
+                            }
+                            
+                            header('Location: ?ctrl=cinventario&error=' . urlencode($mensaje));
                             exit;
                         }
                         break;
@@ -137,42 +164,42 @@ class Cinventario {
                     case 'actualizar_parametros':
                         $this->inventarioModel->actualizarParametros($_POST);
                         $this->mensaje_exito = 'Parámetros de inventario actualizados correctamente';
-                        header('Location: ?ctrl=Cinventario&success=parametros_actualizados');
+                        header('Location: ?ctrl=cinventario&success=parametros_actualizados');
                         exit;
                         break;
                         
                     case 'nueva_flor':
                         $this->inventarioModel->crearNuevaFlor($_POST);
                         $this->mensaje_exito = 'Nueva flor creada exitosamente';
-                        header('Location: ?ctrl=Cinventario&success=nueva_flor');
+                        header('Location: ?ctrl=cinventario&success=nueva_flor');
                         exit;
                         break;
                         
                     case 'editar_flor':
                         $this->inventarioModel->actualizarFlor($_POST);
                         $this->mensaje_exito = 'Flor actualizada exitosamente';
-                        header('Location: ?ctrl=Cinventario&success=flor_editada');
+                        header('Location: ?ctrl=cinventario&success=flor_editada');
                         exit;
                         break;
                         
                     case 'eliminar_flor':
                         $this->inventarioModel->eliminarFlor($_POST['id_flor']);
                         $this->mensaje_exito = 'Flor eliminada exitosamente';
-                        header('Location: ?ctrl=Cinventario&success=flor_eliminada');
+                        header('Location: ?ctrl=cinventario&success=flor_eliminada');
                         exit;
                         break;
                         
                     case 'agregar_a_inventario':
                         $this->inventarioModel->agregarFlorAInventario($_POST['id_flor']);
                         $this->mensaje_exito = 'Flor agregada al inventario exitosamente. Puedes actualizar el stock y precio desde la gestión de inventario.';
-                        header('Location: ?ctrl=Cinventario&success=agregada_inventario');
+                        header('Location: ?ctrl=cinventario&success=agregada_inventario');
                         exit;
                         break;
                         
                     case 'nuevo_proveedor':
                         $this->inventarioModel->crearProveedor($_POST);
                         $this->mensaje_exito = 'Proveedor agregado exitosamente';
-                        header('Location: ?ctrl=Cinventario&success=proveedor_agregado');
+                        header('Location: ?ctrl=cinventario&success=proveedor_agregado');
                         exit;
                         break;
                         
@@ -199,54 +226,44 @@ class Cinventario {
                         $resultado = $this->inventarioModel->eliminarProveedor($_POST['proveedor_id']);
                         if ($resultado['success']) {
                             $this->mensaje_exito = 'Proveedor eliminado exitosamente';
-                            header('Location: ?ctrl=Cinventario&success=proveedor_eliminado');
+                            header('Location: ?ctrl=cinventario&success=proveedor_eliminado');
                         } else {
                             $this->mensaje_error = $resultado['message'];
-                            header('Location: ?ctrl=Cinventario&error=proveedor_eliminar_fallido');
+                            header('Location: ?ctrl=cinventario&error=proveedor_eliminar_fallido');
                         }
                         exit;
                         break;
                         
                     case 'editar_producto':
-                        // Evitar que Warnings o Notices de PHP en el hosting arruinen el JSON
-                        ini_set('display_errors', 0);
-                        ob_start();
                         try {
                             // Validación de precios
                             $precio_compra = floatval($_POST['precio_compra'] ?? 0);
                             $precio_venta = floatval($_POST['precio'] ?? 0);
                             
+                            header('Content-Type: application/json');
+                            
                             if ($precio_compra <= 0) {
-                                ob_clean();
-                                header('Content-Type: application/json');
                                 echo json_encode(['success' => false, 'message' => 'El precio de compra debe ser mayor a cero']);
                                 exit;
                             }
                             
                             if ($precio_venta <= 0) {
-                                ob_clean();
-                                header('Content-Type: application/json');
                                 echo json_encode(['success' => false, 'message' => 'El precio de venta debe ser mayor a cero']);
                                 exit;
                             }
                             
                             if ($precio_compra >= $precio_venta) {
-                                ob_clean();
-                                header('Content-Type: application/json');
                                 echo json_encode(['success' => false, 'message' => 'El precio de venta debe ser mayor al precio de compra']);
                                 exit;
                             }
                             
                             $resultado = $this->inventarioModel->editarProducto($_POST);
-                            ob_clean();
-                            header('Content-Type: application/json');
                             if ($resultado['success']) {
                                 echo json_encode(['success' => true, 'message' => 'Producto actualizado correctamente']);
                             } else {
                                 echo json_encode(['success' => false, 'message' => $resultado['message']]);
                             }
                         } catch (Exception $e) {
-                            ob_clean();
                             header('Content-Type: application/json');
                             echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
                         }
@@ -299,7 +316,7 @@ class Cinventario {
                                 echo json_encode(['success' => false, 'message' => 'ID de producto requerido']);
                                 exit;
                             }
-                            header('Location: ?ctrl=Cinventario&error=' . urlencode('ID de producto requerido'));
+                            header('Location: ?ctrl=cinventario&error=' . urlencode('ID de producto requerido'));
                             exit;
                         }
                         
@@ -318,9 +335,9 @@ class Cinventario {
                             
                             // Redirect para formularios POST tradicionales
                             if ($resultado['success']) {
-                                header('Location: ?ctrl=Cinventario&success=producto_eliminado');
+                                header('Location: ?ctrl=cinventario&success=producto_eliminado');
                             } else {
-                                header('Location: ?ctrl=Cinventario&error=' . urlencode($resultado['message']));
+                                header('Location: ?ctrl=cinventario&error=' . urlencode($resultado['message']));
                             }
                         } catch (Exception $e) {
                             // Respuesta JSON para peticiones AJAX
@@ -328,7 +345,7 @@ class Cinventario {
                                 echo json_encode(['success' => false, 'message' => $e->getMessage()]);
                                 exit;
                             }
-                            header('Location: ?ctrl=Cinventario&error=' . urlencode($e->getMessage()));
+                            header('Location: ?ctrl=cinventario&error=' . urlencode($e->getMessage()));
                         }
                         exit;
                         break;
@@ -437,6 +454,19 @@ class Cinventario {
                     $this->valor_total = $estadisticas['valor_total'] ?? 0;
                 }
             }
+
+            // Próximos a caducar (basado en lotes activos con fecha_caducidad cercana)
+            $this->proximos_caducar = 0;
+            try {
+                require_once 'models/Mlotes.php';
+                $lotesModel = new Mlotes();
+                $lotes = $lotesModel->getLotesProximosCaducar(7);
+                $this->proximos_caducar = is_array($lotes) ? count($lotes) : 0;
+            } catch (Exception $eLotes) {
+                // Si no existe la tabla/estructura de lotes, no romper el dashboard
+                error_log("Error al obtener próximos a caducar: " . $eLotes->getMessage());
+                $this->proximos_caducar = 0;
+            }
         } catch (Exception $e) {
             error_log("Error al obtener estadísticas: " . $e->getMessage());
             // Las variables ya están inicializadas con 0 en el constructor
@@ -506,6 +536,7 @@ class Cinventario {
             'stock_bajo' => $this->stock_bajo,
             'stock_critico' => $this->stock_critico,
             'sin_stock' => $this->sin_stock,
+            'proximos_caducar' => $this->proximos_caducar,
             'valor_total' => $this->valor_total,
             'inventario' => $this->inventario,
             'inventario_perecederos' => $this->inventario_perecederos,
@@ -546,6 +577,7 @@ class Cinventario {
         $stock_bajo = $this->stock_bajo;
         $stock_critico = $this->stock_critico;
         $sin_stock = $this->sin_stock;
+        $proximos_caducar = $this->proximos_caducar;
         $valor_total = $this->valor_total;
         $inventario = $this->inventario;
         $inventario_perecederos = $this->inventario_perecederos;
@@ -659,7 +691,7 @@ class Cinventario {
             
         } catch (Exception $e) {
             // En caso de error, redirigir con mensaje
-            header('Location: ?ctrl=Cinventario&error=export_failed');
+            header('Location: ?ctrl=cinventario&error=export_failed');
             exit;
         }
     }
@@ -874,7 +906,7 @@ class Cinventario {
             
         } catch (Exception $e) {
             error_log('Error al exportar PDF: ' . $e->getMessage());
-            header('Location: ?ctrl=Cinventario&error=export_pdf_failed');
+            header('Location: ?ctrl=cinventario&error=export_pdf_failed');
             exit;
         }
     }

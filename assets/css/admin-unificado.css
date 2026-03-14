@@ -79,7 +79,6 @@ p {
     top: 0;
     left: 0;
     right: 0;
-
     z-index: 1030;
     flex-wrap: wrap;
 }
@@ -96,8 +95,6 @@ p {
         min-height: 60px;
         padding: 0 0.75rem;
     }
-
-    z-index: 1060;
 }
 
 .topbar .brand {
@@ -187,7 +184,6 @@ p {
 }
 
 .topbar .btn-logout {
-
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: #fff;
@@ -198,30 +194,13 @@ p {
     border-radius: 8px;
     transition: all 0.2s;
     flex-shrink: 0;
-
-    background: rgba(255, 255, 255, 0.1) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: #fff !important;
-    min-width: 90px !important;
-    height: 36px !important;
-    padding: 0 12px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 8px !important;
-    border-radius: 8px !important;
-    transition: all 0.2s !important;
-    flex-shrink: 0 !important;
-    box-shadow: none !important;
-    text-decoration: none !important;
-
 }
 
 .topbar .btn-logout:hover {
-    background: #ef4444 !important;
-    border-color: #ef4444 !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+    background: #ef4444;
+    border-color: #ef4444;
+    transform: none;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .sidebar-toggle {
@@ -422,7 +401,6 @@ p {
     flex-direction: column;
     overflow-y: auto;
     border: 1px solid var(--border);
-
     z-index: 1040;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -452,9 +430,6 @@ p {
         border-radius: 0;
         padding: 16px;
     }
-
-    z-index: 1050;
-
 }
 
 .sidebar.collapsed {
@@ -474,7 +449,7 @@ p {
     bottom: 0;
     background: rgba(15, 23, 42, 0.4);
     backdrop-filter: blur(4px);
-    z-index: 1055;
+    z-index: 1035;
     display: none;
     opacity: 0;
     transition: opacity 0.3s ease;

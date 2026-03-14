@@ -1,5 +1,5 @@
 <?php
-if (!isset($_SESSION['user']) || $_SESSION['user']['tpusu_idtpusu'] != 5) {
+if (!isset($_SESSION['user']) || !in_array((int)($_SESSION['user']['tpusu_idtpusu'] ?? 0), [2, 3], true)) {
     header('Location: index.php?ctrl=login&action=index');
     exit();
 }
@@ -13,26 +13,6 @@ $tipo_mensaje = '';
 $conn = new conexion();
 $db = $conn->get_conexion();
 
-// Obtener datos del cliente (avatar en DB: avatar_data/avatar_tipo, o legacy avatar path)
-$idcli = null;
-$cli_avatar_url = null;
-try {
-    $stmt = $db->prepare("SELECT idcli, nombre, telefono, direccion, avatar, avatar_data, avatar_tipo FROM cli WHERE email = ? LIMIT 1");
-    $stmt->execute([$usuario['email']]);
-    $datos_cli = $stmt->fetch(PDO::FETCH_ASSOC);
-    if ($datos_cli) {
-        $idcli = (int)$datos_cli['idcli'];
-        if (!empty($datos_cli['avatar_data'])) {
-            $cli_avatar_url = 'avatar.php?tipo=cli&id=' . $idcli;
-        } elseif (!empty($datos_cli['avatar']) && file_exists(__DIR__ . '/../../' . $datos_cli['avatar'])) {
-            $cli_avatar_url = $datos_cli['avatar'];
-        }
-    }
-} catch (PDOException $e) {
-    $datos_cli = [];
-}
-
-// Obtener datos del usuario (usu)
 try {
     $stmt = $db->prepare("SELECT * FROM usu WHERE idusu = ?");
     $stmt->execute([$usuario['idusu']]);
@@ -41,7 +21,14 @@ try {
     $datos_usuario = $usuario;
 }
 
-// Procesar actualización del perfil (POST)
+// URL del avatar: desde DB (avatar_data) o legacy path
+$avatar_actual_url = null;
+if (!empty($datos_usuario['avatar_data'])) {
+    $avatar_actual_url = 'avatar.php?tipo=usu&id=' . $usuario['idusu'];
+} elseif (!empty($datos_usuario['avatar']) && file_exists(__DIR__ . '/../../' . $datos_usuario['avatar'])) {
+    $avatar_actual_url = $datos_usuario['avatar'];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $nombre_completo = trim($_POST['nombre_completo'] ?? '');
@@ -66,9 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Avatar: guardar en base de datos (avatar_data, avatar_tipo), no en archivos
         $avatar_data = null;
         $avatar_tipo = null;
-        if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK && $idcli) {
+        if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
             $file = $_FILES['avatar'];
-            $maxSize = 2 * 1024 * 1024; // 2MB
+            $maxSize = 2 * 1024 * 1024;
             if ($file['size'] > $maxSize) {
                 throw new Exception('La foto no debe exceder 2MB');
             }
@@ -83,29 +70,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $avatar_tipo = $mimeType;
         }
 
-        // Actualizar usu
+        $params = [$nombre_completo, $telefono, $naturaleza];
+        $sets = "nombre_completo = ?, telefono = ?, naturaleza = ?";
         if (!empty($nueva_clave)) {
-            $clave_hash = password_hash($nueva_clave, PASSWORD_DEFAULT);
-            $stmt = $db->prepare("UPDATE usu SET nombre_completo = ?, telefono = ?, naturaleza = ?, clave = ? WHERE idusu = ?");
-            $stmt->execute([$nombre_completo, $telefono, $naturaleza, $clave_hash, $usuario['idusu']]);
-        } else {
-            $stmt = $db->prepare("UPDATE usu SET nombre_completo = ?, telefono = ?, naturaleza = ? WHERE idusu = ?");
-            $stmt->execute([$nombre_completo, $telefono, $naturaleza, $usuario['idusu']]);
+            $sets .= ", clave = ?";
+            $params[] = password_hash($nueva_clave, PASSWORD_DEFAULT);
         }
-
-        // Actualizar cli: datos personales y avatar en DB; avatar path se deja NULL
         if ($avatar_data !== null) {
-            $stmt = $db->prepare("UPDATE cli SET nombre = ?, telefono = ?, direccion = ?, avatar_data = ?, avatar_tipo = ?, avatar = NULL WHERE email = ?");
-            $stmt->execute([$nombre_completo, $telefono, $naturaleza, $avatar_data, $avatar_tipo, $usuario['email']]);
-            $cli_avatar_url = 'avatar.php?tipo=cli&id=' . $idcli;
-        } else {
-            $stmt = $db->prepare("UPDATE cli SET nombre = ?, telefono = ?, direccion = ? WHERE email = ?");
-            $stmt->execute([$nombre_completo, $telefono, $naturaleza, $usuario['email']]);
+            $sets .= ", avatar_data = ?, avatar_tipo = ?, avatar = NULL";
+            $params[] = $avatar_data;
+            $params[] = $avatar_tipo;
         }
+        $params[] = $usuario['idusu'];
+        $stmt = $db->prepare("UPDATE usu SET $sets WHERE idusu = ?");
+        $stmt->execute($params);
 
         $_SESSION['user']['nombre_completo'] = $nombre_completo;
         $_SESSION['user']['telefono'] = $telefono;
         $_SESSION['user']['naturaleza'] = $naturaleza;
+
+        $datos_usuario['nombre_completo'] = $nombre_completo;
+        $datos_usuario['telefono'] = $telefono;
+        $datos_usuario['naturaleza'] = $naturaleza;
+        if ($avatar_data !== null) {
+            $avatar_actual_url = 'avatar.php?tipo=usu&id=' . $usuario['idusu'];
+            $datos_usuario['avatar_data'] = true;
+        }
 
         $mensaje = 'Perfil actualizado correctamente';
         $tipo_mensaje = 'success';
@@ -114,6 +104,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tipo_mensaje = 'danger';
     }
 }
+
+$navbar_volver_url = 'index.php?ctrl=empleado&action=dashboard';
+$navbar_volver_text = 'Volver al Dashboard';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -122,79 +115,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configuración - FloralTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/dashboard-cliente.css">
+    <link rel="stylesheet" href="assets/css/dashboard-empleado.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .config-page { --cfg-purple: #667eea; --cfg-radius: 16px; --cfg-shadow: 0 4px 20px rgba(102, 126, 234, 0.08); }
+        .config-page { --cfg-accent: #0d9488; --cfg-radius: 16px; --cfg-shadow: 0 4px 20px rgba(13, 148, 136, 0.08); }
         .config-page .page-title-card {
-            background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
-            border: 1px solid var(--cli-border);
+            background: linear-gradient(135deg, #fff 0%, #f0fdfa 100%);
+            border: 1px solid rgba(13, 148, 136, 0.2);
             border-radius: var(--cfg-radius);
             box-shadow: var(--cfg-shadow);
             padding: 1.25rem 1.5rem;
             margin-bottom: 1.5rem;
-            border-left: 4px solid var(--cfg-purple);
+            border-left: 4px solid var(--cfg-accent);
         }
-        .config-page .page-title-card h1 { font-size: 1.35rem; font-weight: 700; color: var(--cli-text); margin: 0 0 0.25rem 0; }
-        .config-page .page-title-card p { margin: 0; color: var(--cli-text-muted); font-size: 0.9rem; }
+        .config-page .page-title-card h1 { font-size: 1.35rem; font-weight: 700; color: #134e4a; margin: 0 0 0.25rem 0; }
+        .config-page .page-title-card p { margin: 0; color: #5eead4; font-size: 0.9rem; }
         .config-page .config-card {
             background: #fff;
-            border: 1px solid var(--cli-border);
+            border: 1px solid rgba(13, 148, 136, 0.15);
             border-radius: var(--cfg-radius);
             box-shadow: var(--cfg-shadow);
             margin-bottom: 1.5rem;
             overflow: hidden;
         }
         .config-page .config-card .card-header {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            border-bottom: 1px solid var(--cli-border);
+            background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
+            border-bottom: 1px solid rgba(13, 148, 136, 0.15);
             padding: 1rem 1.25rem;
             font-weight: 700;
-            color: var(--cli-text);
+            color: #134e4a;
             font-size: 1rem;
         }
-        .config-page .config-card .card-header i { color: var(--cfg-purple); margin-right: 0.5rem; }
+        .config-page .config-card .card-header i { color: var(--cfg-accent); margin-right: 0.5rem; }
         .config-page .config-card .card-body { padding: 1.25rem 1.5rem; }
-        .config-page .avatar-wrap {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            overflow: hidden;
-            border: 3px solid var(--cfg-purple);
-            margin: 0 auto 1rem;
-            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .config-page .avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
-        .config-page .avatar-wrap .avatar-placeholder { font-size: 3rem; color: var(--cfg-purple); opacity: 0.6; }
-        .config-page .form-label { font-weight: 600; color: var(--cli-text); }
-        .config-page .form-control { border-radius: 10px; border: 1px solid var(--cli-border); }
-        .config-page .form-control:focus { border-color: var(--cfg-purple); box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15); }
+        .config-page .form-label { font-weight: 600; color: #134e4a; }
+        .config-page .form-control { border-radius: 10px; border: 1px solid rgba(13, 148, 136, 0.25); }
+        .config-page .form-control:focus { border-color: var(--cfg-accent); box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15); }
         .config-page .btn-guardar {
-            background: linear-gradient(135deg, var(--cfg-purple) 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
             color: #fff;
             border: none;
             padding: 0.75rem 1.5rem;
             font-weight: 600;
             border-radius: 12px;
-            box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
+            box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
         }
-        .config-page .btn-guardar:hover { color: #fff; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4); }
+        .config-page .btn-guardar:hover { color: #fff; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4); }
         .config-page .config-center { width: 100%; max-width: 100%; }
+        .config-page .avatar-wrap {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid var(--cfg-accent);
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .config-page .avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .config-page .avatar-wrap .avatar-placeholder { font-size: 3rem; color: var(--cfg-accent); opacity: 0.6; }
     </style>
 </head>
-<body class="cliente-theme">
+<body class="empleado-theme">
     <div class="dashboard-container config-page">
-        <?php $navbar_volver_url = 'index.php?ctrl=cliente&action=dashboard'; include __DIR__ . '/partials/navbar_cliente.php'; ?>
+        <?php include __DIR__ . '/partials/navbar_empleado.php'; ?>
 
         <div class="main-content">
             <div class="config-center w-100">
                 <div class="page-title-card">
-                    <h1><i class="fas fa-user-cog me-2" style="color: var(--cfg-purple);"></i> Configuración de Cuenta</h1>
-                    <p>Actualiza tu información personal y tu foto de perfil</p>
+                    <h1><i class="fas fa-cog me-2" style="color: var(--cfg-accent);"></i> Configuración de Cuenta</h1>
+                    <p>Actualiza tu información personal</p>
                 </div>
 
                 <?php if ($mensaje): ?>
@@ -206,15 +198,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <form method="POST" action="" id="configForm" enctype="multipart/form-data">
-                    <!-- Foto de perfil -->
                     <div class="config-card">
                         <div class="card-header">
                             <i class="fas fa-camera"></i> Foto de perfil
                         </div>
                         <div class="card-body text-center">
                             <div class="avatar-wrap">
-                                <?php if (!empty($cli_avatar_url)): ?>
-                                    <img src="<?= htmlspecialchars($cli_avatar_url) ?>?v=<?= time() ?>" alt="Mi foto">
+                                <?php if (!empty($avatar_actual_url)): ?>
+                                    <img src="<?= htmlspecialchars($avatar_actual_url) ?>?v=<?= time() ?>" alt="Mi foto">
                                 <?php else: ?>
                                     <span class="avatar-placeholder"><i class="fas fa-user"></i></span>
                                 <?php endif; ?>
@@ -224,7 +215,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
 
-                    <!-- Información personal -->
                     <div class="config-card">
                         <div class="card-header">
                             <i class="fas fa-user-edit"></i> Información Personal
@@ -250,14 +240,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <small class="text-muted">No se puede modificar</small>
                                 </div>
                                 <div class="col-12">
-                                    <label for="naturaleza" class="form-label"><i class="fas fa-map-marker-alt me-1 text-muted"></i> Dirección</label>
-                                    <textarea class="form-control" id="naturaleza" name="naturaleza" rows="2" placeholder="Tu dirección completa"><?= htmlspecialchars($datos_usuario['naturaleza'] ?? '') ?></textarea>
+                                    <label for="naturaleza" class="form-label"><i class="fas fa-map-marker-alt me-1 text-muted"></i> Dirección / Notas</label>
+                                    <textarea class="form-control" id="naturaleza" name="naturaleza" rows="2" placeholder="Dirección o notas"><?= htmlspecialchars($datos_usuario['naturaleza'] ?? '') ?></textarea>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Cambiar contraseña -->
                     <div class="config-card">
                         <div class="card-header">
                             <i class="fas fa-lock"></i> Cambiar contraseña
@@ -278,7 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="d-flex gap-2 justify-content-end flex-wrap">
-                        <a href="index.php?ctrl=cliente&action=dashboard" class="btn btn-outline-secondary">Cancelar</a>
+                        <a href="index.php?ctrl=empleado&action=dashboard" class="btn btn-outline-secondary">Cancelar</a>
                         <button type="submit" class="btn btn-guardar">
                             <i class="fas fa-save me-2"></i> Guardar cambios
                         </button>

@@ -1,25 +1,37 @@
 <?php
-// Obtener mensajes de sesión si existen
+$navbar_volver_url = 'index.php?ctrl=empleado&action=dashboard';
+$navbar_volver_text = 'Volver al Dashboard';
 $mensaje = isset($_SESSION['mensaje']) ? $_SESSION['mensaje'] : '';
 $tipo_mensaje = isset($_SESSION['tipo_mensaje']) ? $_SESSION['tipo_mensaje'] : '';
-// Limpiar los mensajes después de mostrarlos
 unset($_SESSION['mensaje']);
 unset($_SESSION['tipo_mensaje']);
 
-// Configuración de paginación
-$productos_por_pagina = 5;
-$pagina_actual = isset($_GET['pagina']) ? (int)$_GET['pagina'] : 1;
-$total_productos = count($productos ?? []);
-$total_paginas = ceil($total_productos / $productos_por_pagina);
-$offset = ($pagina_actual - 1) * $productos_por_pagina;
+$stats = $stats ?? [];
+$inventario_perecederos = $inventario_perecederos ?? [];
+$inventario_no_perecederos = $inventario_no_perecederos ?? [];
+$proveedores = $proveedores ?? [];
+$total_elementos_perecederos = (int)($total_elementos_perecederos ?? 0);
+$total_elementos_no_perecederos = (int)($total_elementos_no_perecederos ?? 0);
+$total_elementos_proveedores = (int)($total_elementos_proveedores ?? 0);
+$pagina_actual_perecederos = (int)($pagina_actual_perecederos ?? 1);
+$pagina_actual_no_perecederos = (int)($pagina_actual_no_perecederos ?? 1);
+$pagina_actual_proveedores = (int)($pagina_actual_proveedores ?? 1);
+$total_paginas_perecederos = (int)($total_paginas_perecederos ?? 1);
+$total_paginas_no_perecederos = (int)($total_paginas_no_perecederos ?? 1);
+$total_paginas_proveedores = (int)($total_paginas_proveedores ?? 1);
+$offset_perecederos = (int)($offset_perecederos ?? 0);
+$offset_no_perecederos = (int)($offset_no_perecederos ?? 0);
+$offset_proveedores = (int)($offset_proveedores ?? 0);
+$elementos_por_pagina = (int)($elementos_por_pagina ?? 10);
+$categorias = $categorias ?? [];
+$filter_buscar = isset($_GET['buscar']) ? htmlspecialchars((string)$_GET['buscar'], ENT_QUOTES, 'UTF-8') : '';
+$filter_categoria = isset($_GET['categoria']) ? (string)$_GET['categoria'] : '';
+$filter_estado = isset($_GET['estado_stock']) ? (string)$_GET['estado_stock'] : '';
 
-// Productos para la página actual
-$productos_paginados = isset($productos) ? array_slice($productos, $offset, $productos_por_pagina) : [];
-
-// Función para construir URL de paginación
-function construirUrlPaginacion($pagina) {
-    $params = $_GET;
-    $params['pagina'] = $pagina;
+function urlPaginaEmpleado($param, $pagina) {
+    $params = array_merge($_GET, [$param => $pagina]);
+    $params['ctrl'] = 'empleado';
+    $params['action'] = 'inventario';
     return 'index.php?' . http_build_query($params);
 }
 ?>
@@ -30,397 +42,14 @@ function construirUrlPaginacion($pagina) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventario - FloralTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/inventario.css">
-    <link rel="stylesheet" href="assets/css/dashboard-general.css">
+    <link rel="stylesheet" href="assets/css/dashboard-empleado.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --empleado-primary: #28a745;
-            --empleado-secondary: #20c997;
-            --empleado-accent: #17a2b8;
-            --bg-light: #f8f9fa;
-            --border-radius: 12px;
-            --shadow: 0 2px 8px rgba(0,0,0,0.1);
-            --transition: all 0.3s ease;
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-        }
-
-        .dashboard-container {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            max-width: 100vw;
-            overflow-x: hidden;
-        }
-
-        .navbar {
-            background: linear-gradient(135deg, var(--empleado-primary), var(--empleado-secondary)) !important;
-            padding: 0.5rem 1rem;
-            box-shadow: var(--shadow);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .navbar-brand {
-            color: white !important;
-            font-weight: 600;
-            font-size: 1.2rem;
-        }
-
-        .navbar-user {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 1rem;
-            max-width: 100%;
-            box-sizing: border-box;
-        }
-
-        .content-wrapper {
-            max-width: 100%;
-            margin: 0;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: var(--border-radius);
-            padding: 1rem;
-            display: flex;
-            align-items: center;
-            box-shadow: var(--shadow);
-            border-left: 4px solid #dee2e6;
-            transition: var(--transition);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .stat-card.success { border-left-color: var(--empleado-primary); }
-        .stat-card.warning { border-left-color: #ffc107; }
-        .stat-card.danger { border-left-color: #dc3545; }
-        .stat-card.info { border-left-color: var(--empleado-accent); }
-
-        .stat-icon {
-            background: var(--bg-light);
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 0.75rem;
-            font-size: 1.2rem;
-        }
-
-        .stat-card.success .stat-icon { color: var(--empleado-primary); }
-        .stat-card.warning .stat-icon { color: #ffc107; }
-        .stat-card.danger .stat-icon { color: #dc3545; }
-        .stat-card.info .stat-icon { color: var(--empleado-accent); }
-
-        .stat-info h3 {
-            margin: 0;
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #343a40;
-        }
-
-        .stat-info p {
-            margin: 0.2rem 0 0 0;
-            color: #6c757d;
-            font-size: 0.85rem;
-        }
-
-        .search-filters {
-            background: white;
-            border-radius: var(--border-radius);
-            padding: 1rem;
-            margin-bottom: 1rem;
-            box-shadow: var(--shadow);
-            border: 1px solid #e9ecef;
-        }
-
-        .content-card {
-            background: white;
-            border: 1px solid #e9ecef;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            margin-bottom: 1rem;
-        }
-
-        .card-header {
-            background: linear-gradient(135deg, var(--empleado-primary), var(--empleado-secondary));
-            color: white;
-            border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
-            padding: 0.75rem 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-weight: 600;
-            border-bottom: none;
-        }
-
-        .card-header h5 {
-            margin: 0;
-            font-size: 1rem;
-        }
-
-        .card-header small {
-            color: rgba(255,255,255,0.8);
-            font-size: 0.8rem;
-        }
-
-        .table {
-            margin: 0;
-            font-size: 0.9rem;
-        }
-
-        .table th {
-            background: var(--bg-light);
-            border-top: none;
-            padding: 0.75rem 0.5rem;
-            font-weight: 600;
-            color: #495057;
-            font-size: 0.85rem;
-        }
-
-        .table td {
-            padding: 0.75rem 0.5rem;
-            vertical-align: middle;
-            border-top: 1px solid #dee2e6;
-        }
-
-        .table-hover tbody tr:hover {
-            background-color: #f8f9fa;
-        }
-
-        .form-control, .form-select {
-            border-radius: 6px;
-            border: 1px solid #ced4da;
-            padding: 0.5rem 0.75rem;
-            font-size: 0.85rem;
-            transition: var(--transition);
-        }
-
-        .form-control:focus, .form-select:focus {
-            border-color: var(--empleado-primary);
-            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
-        }
-
-        .form-label {
-            font-weight: 500;
-            margin-bottom: 0.25rem;
-            font-size: 0.85rem;
-            color: #495057;
-        }
-
-        .btn {
-            border-radius: 6px;
-            font-size: 0.85rem;
-            padding: 0.4rem 0.8rem;
-            transition: var(--transition);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--empleado-primary), var(--empleado-secondary));
-            border: none;
-        }
-
-        .btn-primary:hover {
-            background: var(--empleado-primary);
-            transform: translateY(-1px);
-        }
-
-        .btn-outline-light {
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-        }
-
-        .btn-outline-light:hover {
-            background: rgba(255,255,255,0.2);
-            color: white;
-        }
-
-        .badge-stock {
-            font-size: 0.75rem;
-            padding: 0.35rem 0.6rem;
-            border-radius: 6px;
-        }
-
-        .stock-alto { background-color: #d1e7dd; color: #0f5132; }
-        .stock-medio { background-color: #fff3cd; color: #664d03; }
-        .stock-bajo { background-color: #f8d7da; color: #721c24; }
-        .stock-sin { background-color: #e2e3e5; color: #41464b; }
-
-        .alert {
-            border-radius: 6px;
-            padding: 0.75rem 1rem;
-            margin-bottom: 1rem;
-            border: none;
-            font-size: 0.9rem;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 2rem 1rem;
-            color: #6c757d;
-        }
-
-        .empty-state i {
-            font-size: 2.5rem;
-            margin-bottom: 0.75rem;
-            opacity: 0.5;
-            color: var(--empleado-primary);
-        }
-
-        .empty-state h4 {
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-            color: #495057;
-            font-weight: 600;
-        }
-
-        /* Estilos para paginación */
-        .pagination .page-link {
-            color: var(--empleado-primary);
-            border-color: #dee2e6;
-            border-radius: 6px;
-            margin: 0 2px;
-            transition: var(--transition);
-        }
-
-        .pagination .page-link:hover {
-            color: white;
-            background-color: var(--empleado-primary);
-            border-color: var(--empleado-primary);
-        }
-
-        .pagination .page-item.active .page-link {
-            background-color: var(--empleado-primary);
-            border-color: var(--empleado-primary);
-        }
-
-        .pagination .page-item.disabled .page-link {
-            color: #6c757d;
-            background-color: white;
-            border-color: #dee2e6;
-        }
-
-        .card-footer {
-            border-top: 1px solid #dee2e6;
-            padding: 1rem;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .main-content {
-                padding: 0.75rem;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 0.75rem;
-            }
-            
-            .stat-card {
-                padding: 0.75rem;
-                flex-direction: column;
-                text-align: center;
-            }
-            
-            .stat-icon {
-                width: 44px;
-                height: 44px;
-                font-size: 1.1rem;
-                margin-right: 0;
-                margin-bottom: 0.5rem;
-            }
-            
-            .stat-info h3 {
-                font-size: 1.2rem;
-            }
-            
-            .search-filters {
-                padding: 1rem;
-            }
-
-            .search-filters .row > div {
-                margin-bottom: 0.5rem;
-            }
-            
-            .table-responsive {
-                border: 0;
-            }
-            
-            .table th, .table td {
-                white-space: nowrap;
-            }
-
-            .navbar-user .btn span {
-                display: none;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .card-header {
-                flex-direction: column;
-                gap: 0.25rem;
-                text-align: center;
-            }
-            
-            .table th, .table td {
-                padding: 0.5rem 0.25rem;
-                font-size: 0.8rem;
-            }
-        }
-    </style>
 </head>
-<body>
+<body class="empleado-theme">
     <div class="dashboard-container">
-        <!-- Navbar compacta -->
-        <nav class="navbar">
-            <div class="container-fluid">
-                <div class="navbar-brand">
-                    <i class="fas fa-seedling me-2"></i>FloralTech - Inventario
-                </div>
-                <div class="navbar-user">
-                    <a href="index.php?ctrl=empleado&action=dashboard" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-arrow-left me-md-1"></i><span class="d-none d-md-inline">Volver</span>
-                    </a>
-                    <a href="index.php?ctrl=login&action=logout" class="btn btn-outline-light btn-sm ms-2">
-                        <i class="fas fa-sign-out-alt me-md-1"></i><span class="d-none d-md-inline">Salir</span>
-                    </a>
-                </div>
-            </div>
-        </nav>
-
+        <?php include __DIR__ . '/partials/navbar_empleado.php'; ?>
         <div class="main-content">
-            <div class="content-wrapper">
+            <div class="content-wrapper inv-page">
                 <?php if ($mensaje): ?>
                     <div class="alert alert-<?= $tipo_mensaje ?> alert-dismissible fade show" role="alert">
                         <i class="fas fa-<?= $tipo_mensaje === 'success' ? 'check-circle' : ($tipo_mensaje === 'warning' ? 'exclamation-triangle' : 'info-circle') ?> me-2"></i>
@@ -428,258 +57,282 @@ function construirUrlPaginacion($pagina) {
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 <?php endif; ?>
-                
                 <?php if (isset($_SESSION['error_seguridad'])): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <i class="fas fa-shield-alt me-2"></i>
-                        <strong>ALERTA DE SEGURIDAD:</strong> <?= htmlspecialchars($_SESSION['error_seguridad']) ?>
+                        <strong>ALERTA:</strong> <?= htmlspecialchars($_SESSION['error_seguridad']) ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                     <?php unset($_SESSION['error_seguridad']); ?>
                 <?php endif; ?>
 
-                <!-- Estadísticas del Inventario -->
-                <div class="stats-grid">
-                    <div class="stat-card success">
-                        <div class="stat-icon">
-                            <i class="fas fa-box"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3><?= number_format($stats['total_productos'] ?? 0) ?></h3>
-                            <p>Total Productos</p>
-                        </div>
+                <!-- Cabecera compacta: título + resumen en un solo bloque -->
+                <div class="inv-top-block">
+                    <div class="inv-top-row">
+                        <h1 class="inv-hero-title"><i class="fas fa-boxes-stacked me-2"></i>Inventario</h1>
+                        <p class="inv-hero-desc">Productos por tipo y proveedores. Mismos datos que en admin.</p>
                     </div>
-
-                    <div class="stat-card warning">
-                        <div class="stat-icon">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3><?= number_format($stats['stock_bajo'] ?? 0) ?></h3>
-                            <p>Stock Bajo</p>
-                        </div>
-                    </div>
-
-                    <div class="stat-card danger">
-                        <div class="stat-icon">
-                            <i class="fas fa-times-circle"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3><?= number_format($stats['sin_stock'] ?? 0) ?></h3>
-                            <p>Sin Stock</p>
-                        </div>
-                    </div>
-
-                    <div class="stat-card info">
-                        <div class="stat-icon">
-                            <i class="fas fa-dollar-sign"></i>
-                        </div>
-                        <div class="stat-info">
-                            <h3>$<?= number_format($stats['valor_total'] ?? 0, 2) ?></h3>
-                            <p>Valor Total</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Filtros de Búsqueda compactos -->
-                <div class="search-filters">
-                    <form method="GET" action="" class="row g-2">
-                        <input type="hidden" name="ctrl" value="empleado">
-                        <input type="hidden" name="action" value="inventario">
-                        
-                        <div class="col-md-4">
-                            <label for="buscar" class="form-label">Buscar Producto</label>
-                            <input type="text" class="form-control" id="buscar" name="buscar" value="<?= htmlspecialchars($_GET['buscar'] ?? '') ?>" placeholder="Nombre del producto...">
-                        </div>
-                        
-                        <div class="col-md-3">
-                            <label for="categoria" class="form-label">Naturaleza</label>
-                            <select class="form-select" id="categoria" name="categoria">
-                                <option value="">Todas las naturalezas</option>
-                                <option value="Natural" <?= ($_GET['categoria'] ?? '') === 'Natural' ? 'selected' : '' ?>>Natural</option>
-                                <option value="Artificial" <?= ($_GET['categoria'] ?? '') === 'Artificial' ? 'selected' : '' ?>>Artificial</option>
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-3">
-                            <label for="stock_estado" class="form-label">Estado de Stock</label>
-                            <select class="form-select" id="stock_estado" name="stock_estado">
-                                <option value="">Todos los estados</option>
-                                <option value="alto" <?= ($_GET['stock_estado'] ?? '') === 'alto' ? 'selected' : '' ?>>Stock Alto (>20)</option>
-                                <option value="medio" <?= ($_GET['stock_estado'] ?? '') === 'medio' ? 'selected' : '' ?>>Stock Medio (5-20)</option>
-                                <option value="bajo" <?= ($_GET['stock_estado'] ?? '') === 'bajo' ? 'selected' : '' ?>>Stock Bajo (1-4)</option>
-                                <option value="sin_stock" <?= ($_GET['stock_estado'] ?? '') === 'sin_stock' ? 'selected' : '' ?>>Sin Stock</option>
-                            </select>
-                        </div>
-                        
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-search me-1"></i>Filtrar
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Tabla de Inventario con Paginación -->
-                <div class="content-card">
-                    <div class="card-header">
-                        <h5><i class="fas fa-boxes me-2"></i>Inventario de Productos</h5>
-                        <small>
-                            Página <?= $pagina_actual ?> de <?= $total_paginas ?> 
-                            (<?= $total_productos ?> productos total, mostrando <?= count($productos_paginados) ?>)
-                        </small>
-                    </div>
-                    <div class="card-body p-0">
-                        <?php if (empty($productos_paginados)): ?>
-                            <div class="empty-state">
-                                <i class="fas fa-box-open"></i>
-                                <h4>No hay productos en inventario</h4>
-                                <p>No se encontraron productos que coincidan con los filtros aplicados</p>
+                    <p class="inv-resumen-label">Resumen</p>
+                    <div class="inv-resumen-cards">
+                        <div class="inv-stat-card inv-stat-total">
+                            <span class="inv-stat-icon"><i class="fas fa-boxes"></i></span>
+                            <div class="inv-stat-body">
+                                <span class="inv-stat-value"><?= number_format($stats['total_productos'] ?? 0) ?></span>
+                                <span class="inv-stat-label">Total productos</span>
                             </div>
-                        <?php else: ?>
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead>
+                        </div>
+                        <div class="inv-stat-card inv-stat-bajo">
+                            <span class="inv-stat-icon"><i class="fas fa-exclamation-triangle"></i></span>
+                            <div class="inv-stat-body">
+                                <span class="inv-stat-value"><?= number_format($stats['stock_bajo'] ?? 0) ?></span>
+                                <span class="inv-stat-label">Stock bajo</span>
+                                <span class="inv-stat-hint">10-19 uds</span>
+                            </div>
+                        </div>
+                        <div class="inv-stat-card inv-stat-critico">
+                            <span class="inv-stat-icon"><i class="fas fa-exclamation-circle"></i></span>
+                            <div class="inv-stat-body">
+                                <span class="inv-stat-value"><?= number_format($stats['stock_critico'] ?? 0) ?></span>
+                                <span class="inv-stat-label">Stock crítico</span>
+                                <span class="inv-stat-hint">1-9 uds</span>
+                            </div>
+                        </div>
+                        <div class="inv-stat-card inv-stat-sin">
+                            <span class="inv-stat-icon"><i class="fas fa-times-circle"></i></span>
+                            <div class="inv-stat-body">
+                                <span class="inv-stat-value"><?= number_format($stats['sin_stock'] ?? 0) ?></span>
+                                <span class="inv-stat-label">Sin stock</span>
+                            </div>
+                        </div>
+                        <div class="inv-stat-card inv-stat-valor">
+                            <span class="inv-stat-icon"><i class="fas fa-dollar-sign"></i></span>
+                            <div class="inv-stat-body">
+                                <span class="inv-stat-value">$<?= number_format($stats['valor_total'] ?? 0, 2) ?></span>
+                                <span class="inv-stat-label">Valor total</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navegación rápida entre secciones -->
+                <nav class="inv-nav-bar" aria-label="Ir a sección">
+                    <a href="#perecederos" class="inv-nav-link inv-nav-perecederos"><i class="fas fa-seedling me-1"></i>Perecederos</a>
+                    <a href="#no-perecederos" class="inv-nav-link inv-nav-no-perecederos"><i class="fas fa-box me-1"></i>No perecederos</a>
+                    <a href="#proveedores" class="inv-nav-link inv-nav-proveedores"><i class="fas fa-truck me-1"></i>Proveedores</a>
+                </nav>
+
+                <!-- Filtros (aplican a Perecederos y No perecederos) -->
+                <div class="inv-filters-card content-card">
+                    <div class="card-header inv-filters-header">
+                        <h3 class="inv-filters-title"><i class="fas fa-filter me-2"></i>Filtros</h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="get" action="index.php" class="inv-filters-form row g-2 align-items-end">
+                            <input type="hidden" name="ctrl" value="empleado">
+                            <input type="hidden" name="action" value="inventario">
+                            <div class="col-12 col-md-4 col-lg-3">
+                                <label for="inv-buscar" class="form-label small mb-0">Buscar</label>
+                                <input type="text" class="form-control form-control-sm" id="inv-buscar" name="buscar" value="<?= $filter_buscar ?>" placeholder="Nombre o producto...">
+                            </div>
+                            <div class="col-12 col-md-4 col-lg-3">
+                                <label for="inv-categoria" class="form-label small mb-0">Naturaleza / Categoría</label>
+                                <select class="form-select form-select-sm" id="inv-categoria" name="categoria">
+                                    <option value="">Todas</option>
+                                    <?php foreach ($categorias as $cat): ?>
+                                    <option value="<?= htmlspecialchars($cat['tipo'] ?? '', ENT_QUOTES) ?>" <?= ($filter_categoria === ($cat['tipo'] ?? '')) ? 'selected' : '' ?>><?= htmlspecialchars($cat['tipo'] ?? '') ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-4 col-lg-3">
+                                <label for="inv-estado" class="form-label small mb-0">Estado de stock</label>
+                                <select class="form-select form-select-sm" id="inv-estado" name="estado_stock">
+                                    <option value="">Todos</option>
+                                    <option value="normal" <?= $filter_estado === 'normal' ? 'selected' : '' ?>>Normal</option>
+                                    <option value="bajo" <?= $filter_estado === 'bajo' ? 'selected' : '' ?>>Bajo</option>
+                                    <option value="critico" <?= $filter_estado === 'critico' ? 'selected' : '' ?>>Crítico</option>
+                                    <option value="sin_stock" <?= $filter_estado === 'sin_stock' ? 'selected' : '' ?>>Sin stock</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-12 col-lg-3 d-flex gap-2 flex-wrap">
+                                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i>Aplicar</button>
+                                <a href="index.php?ctrl=empleado&action=inventario" class="btn btn-outline-secondary btn-sm">Limpiar</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Sección: Productos Perecederos (como admin) -->
+                <section id="perecederos" class="inv-section">
+                    <div class="content-card inv-card">
+                        <div class="card-header inv-card-header inv-card-perecederos">
+                            <h2 class="inv-card-title"><i class="fas fa-seedling me-2"></i>Productos Perecederos (Flores Naturales)</h2>
+                            <span class="badge inv-card-badge"><?= $total_elementos_perecederos ?> producto<?= $total_elementos_perecederos !== 1 ? 's' : '' ?></span>
+                        </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Naturaleza</th>
+                                        <th>Stock</th>
+                                        <th>P. Venta</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (!empty($inventario_perecederos)): ?>
+                                        <?php foreach ($inventario_perecederos as $item): ?>
                                         <tr>
-                                            <th>ID</th>
-                                            <th>Producto</th>
-                                            <th class="d-none d-sm-table-cell">Naturaleza</th>
-                                            <th>Stock</th>
-                                            <th>Precio</th>
-                                            <th class="d-none d-md-table-cell">Estado</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($productos_paginados as $producto): ?>
-                                        <tr>
-                                            <td><strong class="text-primary"><?= htmlspecialchars($producto['idtflor']) ?></strong></td>
-                                            <td>
-                                                <?= htmlspecialchars($producto['nombre']) ?>
-                                                <div class="d-sm-none small text-muted"><?= htmlspecialchars($producto['naturaleza']) ?></div>
-                                            </td>
-                                            <td class="d-none d-sm-table-cell">
-                                                <span class="badge bg-secondary">
-                                                    <?= htmlspecialchars($producto['naturaleza']) ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <strong class="text-<?= ($producto['cantidad_disponible'] <= 4) ? 'danger' : 'dark' ?>">
-                                                    <?= number_format($producto['cantidad_disponible']) ?>
-                                                </strong>
-                                            </td>
-                                            <td><strong class="text-success">$<?= number_format($producto['precio'], 2) ?></strong></td>
-                                            <td class="d-none d-md-table-cell">
-                                                <?php
-                                                $stock = $producto['cantidad_disponible'];
-                                                if ($stock == 0): ?>
-                                                    <span class="badge stock-sin">Sin Stock</span>
-                                                <?php elseif ($stock <= 4): ?>
-                                                    <span class="badge stock-bajo">Stock Bajo</span>
-                                                <?php elseif ($stock <= 20): ?>
-                                                    <span class="badge stock-medio">Stock Medio</span>
-                                                <?php else: ?>
-                                                    <span class="badge stock-alto">Stock Alto</span>
-                                                <?php endif; ?>
-                                            </td>
+                                            <td class="fw-bold"><?= htmlspecialchars($item['producto'] ?? '') ?></td>
+                                            <td><span class="badge bg-success"><?= htmlspecialchars($item['naturaleza'] ?? '') ?></span></td>
+                                            <td><strong class="text-<?= ($item['stock'] ?? 0) < 10 ? 'danger' : 'dark' ?>"><?= (int)($item['stock'] ?? 0) ?></strong></td>
+                                            <td class="text-success">$<?= number_format((float)($item['precio'] ?? 0), 2) ?></td>
+                                            <td><span class="badge <?= ($item['estado_stock'] ?? '') === 'Sin Stock' ? 'stock-sin' : (($item['estado_stock'] ?? '') === 'Critico' ? 'stock-bajo' : (($item['estado_stock'] ?? '') === 'Bajo' ? 'stock-medio' : 'stock-alto')) ?>"><?= htmlspecialchars($item['estado_stock'] ?? '') ?></span></td>
                                         </tr>
                                         <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <!-- Paginación Bootstrap -->
-                            <?php if ($total_paginas > 1): ?>
-                            <div class="card-footer bg-light">
-                                <nav aria-label="Paginación de productos">
-                                    <ul class="pagination pagination-sm justify-content-center mb-0">
-                                        <!-- Botón Anterior -->
-                                        <?php if ($pagina_actual > 1): ?>
-                                            <li class="page-item">
-                                                <a class="page-link" href="<?= construirUrlPaginacion($pagina_actual - 1) ?>" aria-label="Anterior">
-                                                    <span aria-hidden="true">&laquo;</span>
-                                                </a>
-                                            </li>
-                                        <?php else: ?>
-                                            <li class="page-item disabled">
-                                                <span class="page-link">&laquo;</span>
-                                            </li>
-                                        <?php endif; ?>
-
-                                        <!-- Números de página -->
-                                        <?php
-                                        $inicio = max(1, $pagina_actual - 2);
-                                        $fin = min($total_paginas, $pagina_actual + 2);
-                                        
-                                        // Mostrar primera página si no está en el rango
-                                        if ($inicio > 1): ?>
-                                            <li class="page-item">
-                                                <a class="page-link" href="<?= construirUrlPaginacion(1) ?>">1</a>
-                                            </li>
-                                            <?php if ($inicio > 2): ?>
-                                                <li class="page-item disabled">
-                                                    <span class="page-link">...</span>
-                                                </li>
-                                            <?php endif;
-                                        endif;
-
-                                        // Páginas en el rango
-                                        for ($i = $inicio; $i <= $fin; $i++): ?>
-                                            <li class="page-item <?= $i == $pagina_actual ? 'active' : '' ?>">
-                                                <a class="page-link" href="<?= construirUrlPaginacion($i) ?>"><?= $i ?></a>
-                                            </li>
-                                        <?php endfor;
-
-                                        // Mostrar última página si no está en el rango
-                                        if ($fin < $total_paginas): ?>
-                                            <?php if ($fin < $total_paginas - 1): ?>
-                                                <li class="page-item disabled">
-                                                    <span class="page-link">...</span>
-                                                </li>
-                                            <?php endif; ?>
-                                            <li class="page-item">
-                                                <a class="page-link" href="<?= construirUrlPaginacion($total_paginas) ?>"><?= $total_paginas ?></a>
-                                            </li>
-                                        <?php endif; ?>
-
-                                        <!-- Botón Siguiente -->
-                                        <?php if ($pagina_actual < $total_paginas): ?>
-                                            <li class="page-item">
-                                                <a class="page-link" href="<?= construirUrlPaginacion($pagina_actual + 1) ?>" aria-label="Siguiente">
-                                                    <span aria-hidden="true">&raquo;</span>
-                                                </a>
-                                            </li>
-                                        <?php else: ?>
-                                            <li class="page-item disabled">
-                                                <span class="page-link">&raquo;</span>
-                                            </li>
-                                        <?php endif; ?>
-                                    </ul>
-                                </nav>
-                                
-                                <!-- Información adicional de paginación -->
-                                <div class="text-center mt-2">
-                                    <small class="text-muted">
-                                        Mostrando productos <?= $offset + 1 ?>-<?= min($offset + $productos_por_pagina, $total_productos) ?> 
-                                        de <?= $total_productos ?> total
-                                    </small>
-                                </div>
-                            </div>
-                            <?php endif; ?>
-                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-seedling me-1"></i>No hay productos perecederos</td></tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="card-footer inv-pagination-footer bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <small class="text-muted">Mostrando <?= $total_elementos_perecederos ? $offset_perecederos + 1 : 0 ?>-<?= min($offset_perecederos + count($inventario_perecederos), $total_elementos_perecederos) ?> de <?= $total_elementos_perecederos ?></small>
+                            <nav aria-label="Paginación Perecederos">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item <?= $pagina_actual_perecederos <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="<?= $pagina_actual_perecederos <= 1 ? '#' : urlPaginaEmpleado('pagina_perecederos', $pagina_actual_perecederos - 1) ?>">&laquo;</a></li>
+                                    <?php for ($i = max(1, $pagina_actual_perecederos - 1); $i <= min($total_paginas_perecederos, $pagina_actual_perecederos + 1); $i++): ?>
+                                    <li class="page-item <?= $i === $pagina_actual_perecederos ? 'active' : '' ?>"><a class="page-link" href="<?= urlPaginaEmpleado('pagina_perecederos', $i) ?>"><?= $i ?></a></li>
+                                    <?php endfor; ?>
+                                    <li class="page-item <?= $pagina_actual_perecederos >= $total_paginas_perecederos ? 'disabled' : '' ?>"><a class="page-link" href="<?= $pagina_actual_perecederos >= $total_paginas_perecederos ? '#' : urlPaginaEmpleado('pagina_perecederos', $pagina_actual_perecederos + 1) ?>">&raquo;</a></li>
+                                </ul>
+                            </nav>
+                        </div>
                     </div>
-                </div>
+                    </div>
+                </section>
+
+                <!-- Sección: Productos No Perecederos (como admin) -->
+                <section id="no-perecederos" class="inv-section">
+                    <div class="content-card inv-card">
+                        <div class="card-header inv-card-header inv-card-no-perecederos">
+                            <h2 class="inv-card-title"><i class="fas fa-box me-2"></i>Productos No Perecederos (Duraderos)</h2>
+                            <span class="badge inv-card-badge"><?= $total_elementos_no_perecederos ?> producto<?= $total_elementos_no_perecederos !== 1 ? 's' : '' ?></span>
+                        </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Naturaleza</th>
+                                        <th>Stock</th>
+                                        <th>P. Venta</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (!empty($inventario_no_perecederos)): ?>
+                                        <?php foreach ($inventario_no_perecederos as $item): ?>
+                                        <tr>
+                                            <td class="fw-bold"><?= htmlspecialchars($item['producto'] ?? '') ?></td>
+                                            <td><span class="badge bg-secondary"><?= htmlspecialchars($item['naturaleza'] ?? '') ?></span></td>
+                                            <td><strong class="text-<?= ($item['stock'] ?? 0) < 10 ? 'danger' : 'dark' ?>"><?= (int)($item['stock'] ?? 0) ?></strong></td>
+                                            <td class="text-success">$<?= number_format((float)($item['precio'] ?? 0), 2) ?></td>
+                                            <td><span class="badge <?= ($item['estado_stock'] ?? '') === 'Sin Stock' ? 'stock-sin' : (($item['estado_stock'] ?? '') === 'Critico' ? 'stock-bajo' : (($item['estado_stock'] ?? '') === 'Bajo' ? 'stock-medio' : 'stock-alto')) ?>"><?= htmlspecialchars($item['estado_stock'] ?? '') ?></span></td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-box me-1"></i>No hay productos no perecederos</td></tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="card-footer inv-pagination-footer bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <small class="text-muted">Mostrando <?= $total_elementos_no_perecederos ? $offset_no_perecederos + 1 : 0 ?>-<?= min($offset_no_perecederos + count($inventario_no_perecederos), $total_elementos_no_perecederos) ?> de <?= $total_elementos_no_perecederos ?></small>
+                            <nav aria-label="Paginación No perecederos">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item <?= $pagina_actual_no_perecederos <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="<?= $pagina_actual_no_perecederos <= 1 ? '#' : urlPaginaEmpleado('pagina_no_perecederos', $pagina_actual_no_perecederos - 1) ?>">&laquo;</a></li>
+                                    <?php for ($i = max(1, $pagina_actual_no_perecederos - 1); $i <= min($total_paginas_no_perecederos, $pagina_actual_no_perecederos + 1); $i++): ?>
+                                    <li class="page-item <?= $i === $pagina_actual_no_perecederos ? 'active' : '' ?>"><a class="page-link" href="<?= urlPaginaEmpleado('pagina_no_perecederos', $i) ?>"><?= $i ?></a></li>
+                                    <?php endfor; ?>
+                                    <li class="page-item <?= $pagina_actual_no_perecederos >= $total_paginas_no_perecederos ? 'disabled' : '' ?>"><a class="page-link" href="<?= $pagina_actual_no_perecederos >= $total_paginas_no_perecederos ? '#' : urlPaginaEmpleado('pagina_no_perecederos', $pagina_actual_no_perecederos + 1) ?>">&raquo;</a></li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                    </div>
+                </section>
+
+                <!-- Sección: Proveedores (como admin) -->
+                <section id="proveedores" class="inv-section">
+                    <div class="content-card inv-card">
+                        <div class="card-header inv-card-header inv-card-proveedores">
+                            <h2 class="inv-card-title"><i class="fas fa-truck me-2"></i>Proveedores Registrados</h2>
+                            <span class="badge inv-card-badge"><?= $total_elementos_proveedores ?> proveedor<?= $total_elementos_proveedores !== 1 ? 'es' : '' ?></span>
+                        </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Categoría</th>
+                                        <th class="d-none d-md-table-cell">Teléfono</th>
+                                        <th class="d-none d-lg-table-cell">Email</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (!empty($proveedores)): ?>
+                                        <?php foreach ($proveedores as $prov): ?>
+                                        <tr>
+                                            <td class="fw-bold"><?= htmlspecialchars($prov['nombre'] ?? '') ?></td>
+                                            <td><span class="badge bg-info"><?= htmlspecialchars($prov['categoria'] ?? '') ?></span></td>
+                                            <td class="d-none d-md-table-cell"><?= htmlspecialchars($prov['telefono'] ?? '') ?></td>
+                                            <td class="d-none d-lg-table-cell small"><?= htmlspecialchars($prov['email'] ?? '') ?></td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <tr><td colspan="4" class="text-center text-muted py-4"><i class="fas fa-truck me-1"></i>No hay proveedores registrados</td></tr>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="card-footer inv-pagination-footer bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <small class="text-muted">Mostrando <?= $total_elementos_proveedores ? $offset_proveedores + 1 : 0 ?>-<?= min($offset_proveedores + count($proveedores), $total_elementos_proveedores) ?> de <?= $total_elementos_proveedores ?></small>
+                            <nav aria-label="Paginación Proveedores">
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item <?= $pagina_actual_proveedores <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="<?= $pagina_actual_proveedores <= 1 ? '#' : urlPaginaEmpleado('pagina_proveedores', $pagina_actual_proveedores - 1) ?>">&laquo;</a></li>
+                                    <?php for ($i = max(1, $pagina_actual_proveedores - 1); $i <= min($total_paginas_proveedores, $pagina_actual_proveedores + 1); $i++): ?>
+                                    <li class="page-item <?= $i === $pagina_actual_proveedores ? 'active' : '' ?>"><a class="page-link" href="<?= urlPaginaEmpleado('pagina_proveedores', $i) ?>"><?= $i ?></a></li>
+                                    <?php endfor; ?>
+                                    <li class="page-item <?= $pagina_actual_proveedores >= $total_paginas_proveedores ? 'disabled' : '' ?>"><a class="page-link" href="<?= $pagina_actual_proveedores >= $total_paginas_proveedores ? '#' : urlPaginaEmpleado('pagina_proveedores', $pagina_actual_proveedores + 1) ?>">&raquo;</a></li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                    </div>
+                </section>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Auto-dismiss alerts
+        document.querySelectorAll('.inv-nav-link').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                var id = this.getAttribute('href').slice(1);
+                var el = document.getElementById(id);
+                if (el) {
+                    e.preventDefault();
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
         setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                const bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
+            document.querySelectorAll('.alert').forEach(function(alert) {
+                try { new bootstrap.Alert(alert).close(); } catch (_) {}
             });
         }, 5000);
     </script>

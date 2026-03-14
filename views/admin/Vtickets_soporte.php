@@ -134,9 +134,8 @@ try {
 }
 
 ?>
-
 <div class="container-fluid py-4" style="background:#fff; min-height: 100vh;">
-    <div class="p-4 mb-4 rounded-4 shadow-sm" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: #fff;">
+    <div class="px-4 py-3 mb-4 rounded-4 shadow-sm" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: #fff;">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
                 <p class="mb-1 text-white-50 small">Administración</p>

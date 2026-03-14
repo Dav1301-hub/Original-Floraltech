@@ -328,13 +328,17 @@ class Cpedido {
             throw new Exception('El nombre del cliente es obligatorio');
         }
 
-        // Validar duplicados por email
+        // No duplicar email ni en cli ni en usu
         if ($email) {
             $chk = $this->db->prepare("SELECT idcli FROM cli WHERE email = :email LIMIT 1");
             $chk->execute([':email' => $email]);
-            $row = $chk->fetch(PDO::FETCH_ASSOC);
-            if ($row && isset($row['idcli'])) {
+            if ($chk->fetch(PDO::FETCH_ASSOC)) {
                 throw new Exception('Ya existe un cliente con ese email');
+            }
+            $chk = $this->db->prepare("SELECT idusu FROM usu WHERE email = :email LIMIT 1");
+            $chk->execute([':email' => $email]);
+            if ($chk->fetch(PDO::FETCH_ASSOC)) {
+                throw new Exception('Ese correo ya está registrado como usuario. Use ese cliente en la lista.');
             }
         }
         // Validar duplicados por telefono
@@ -440,14 +444,21 @@ class Cpedido {
             return;
         }
         foreach ($items as $it) {
-            // Obtener stock actual del producto
-            $inv = $this->db->prepare("SELECT stock FROM inv WHERE tflor_idtflor = ? LIMIT 1");
+            if ((int)$it['cantidad'] <= 0) {
+                $nom = $this->db->prepare("SELECT nombre FROM tflor WHERE idtflor = ?");
+                $nom->execute([$it['id']]);
+                $nombre = $nom->fetchColumn() ?: 'Producto';
+                throw new Exception('La cantidad de "' . $nombre . '" debe ser mayor a 0.');
+            }
+            $inv = $this->db->prepare("SELECT COALESCE(stock, cantidad_disponible, 0) as disp FROM inv WHERE tflor_idtflor = ? LIMIT 1");
             $inv->execute([$it['id']]);
             $invRow = $inv->fetch(PDO::FETCH_ASSOC);
-            
-            // Validar stock
-            if (!$invRow || (isset($invRow['stock']) && $invRow['stock'] < $it['cantidad'])) {
-                throw new Exception('Stock insuficiente para el producto ' . $it['id'] . '.');
+            $stockActual = (int)($invRow['disp'] ?? 0);
+            if ($it['cantidad'] > $stockActual) {
+                $nom = $this->db->prepare("SELECT nombre FROM tflor WHERE idtflor = ?");
+                $nom->execute([$it['id']]);
+                $nombre = $nom->fetchColumn() ?: 'Producto';
+                throw new Exception('La cantidad de "' . $nombre . '" no puede ser mayor al stock disponible (' . $stockActual . ').');
             }
 
             // Insertar detalle del pedido
@@ -462,7 +473,6 @@ class Cpedido {
                 $it['precio_unitario']
             ]);
 
-            // Restar stock en inventario
             $upd = $this->db->prepare("UPDATE inv SET stock = stock - ? WHERE tflor_idtflor = ? AND stock >= ?");
             $upd->execute([$it['cantidad'], $it['id'], $it['cantidad']]);
             if ($upd->rowCount() === 0) {
@@ -552,8 +562,18 @@ class Cpedido {
     public function rollbackTx() { if ($this->db->inTransaction()) $this->db->rollBack(); }
 }
 
-// Endpoint sencillo para peticiones AJAX directas desde la vista de gestion de pedidos
+// Endpoint sencillo para peticiones AJAX directas desde la vista de gestion de pedidos (admin y empleado)
 if (php_sapi_name() !== 'cli' && basename(__FILE__) === basename($_SERVER['SCRIPT_FILENAME'])) {
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $user = $_SESSION['user'] ?? null;
+    $rol = $user['tpusu_idtpusu'] ?? 0;
+    if (!$user || !in_array((int)$rol, [1, 2, 3, 4], true)) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'mensaje' => 'No autorizado']);
+        exit;
+    }
     header('Content-Type: application/json');
     $action = $_REQUEST['action'] ?? '';
 

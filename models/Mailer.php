@@ -135,5 +135,54 @@ class Mailer {
         
         return $this->sendEmail($to, $subject, $html, true);
     }
-}
 
+    /**
+     * Envía correo de bienvenida cuando se crea un nuevo cliente (registro o alta por empleado).
+     */
+    public function sendWelcomeEmailCliente($email, $nombre) {
+        $nombre = trim($nombre) ?: 'Cliente';
+        $subject = 'Bienvenido a FloralTech';
+        $loginUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') . '/index.php?ctrl=login&action=index' : '#';
+        if ($loginUrl === '#' && isset($_SERVER['HTTP_HOST'], $_SERVER['SCRIPT_NAME'])) {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $loginUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])) . '/index.php?ctrl=login&action=index';
+        }
+        $html = "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset='UTF-8'>
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; margin: 0; }
+                .container { max-width: 560px; margin: 0 auto; padding: 24px; }
+                .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 12px 12px 0 0; text-align: center; }
+                .header h1 { margin: 0; font-size: 1.5rem; }
+                .body { background: #f8fafc; padding: 24px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; }
+                .body p { margin: 0 0 1rem 0; line-height: 1.6; }
+                .cta { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white !important; padding: 12px 24px; text-decoration: none; border-radius: 10px; font-weight: 600; margin-top: 8px; }
+                .footer { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; text-align: center; }
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <div class='header'>
+                    <h1>¡Bienvenido a FloralTech!</h1>
+                    <p style='margin: 8px 0 0 0; opacity: 0.95;'>Tu cuenta de cliente ha sido creada</p>
+                </div>
+                <div class='body'>
+                    <p>Hola <strong>" . htmlspecialchars($nombre) . "</strong>,</p>
+                    <p>Gracias por registrarte. Ya puedes acceder a tu panel de cliente para realizar pedidos, ver tu historial y gestionar tu perfil.</p>
+                    <p><a href='" . htmlspecialchars($loginUrl) . "' class='cta'>Iniciar sesión</a></p>
+                    <p>Si tienes dudas, responde a este correo o contacta con nosotros.</p>
+                </div>
+                <div class='footer'>
+                    Este es un mensaje automático. © " . date('Y') . " FloralTech.
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+        return $this->sendEmail($email, $subject, $html, true);
+    }
+}
+?>

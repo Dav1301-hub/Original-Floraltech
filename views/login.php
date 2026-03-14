@@ -38,28 +38,29 @@ unset($_SESSION['forgot_success']);
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar sesión - FloralTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body style="background: #f8f9fa url('assets/images/composicion-de-flores-y-conos-de-waffle.jpg') no-repeat center center fixed; background-size: cover;">
-<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center" style="padding: 40px 0;">
-    <div class="row w-75 shadow-lg rounded overflow-hidden">
+<div class="container min-vh-100 d-flex align-items-center justify-content-center py-4 py-md-5">
+    <div class="row w-100 shadow-lg rounded overflow-hidden mx-auto" style="max-width: 950px;">
         <!-- Sección del Logo -->
-        <div class="col-md-6 d-flex flex-column align-items-center justify-content-center" style="background:rgba(181,180,180,0.65); padding: 40px 0;">
+        <div class="col-md-6 d-flex flex-column align-items-center justify-content-center p-4 p-md-5" style="background:rgba(181,180,180,0.65);">
             <?php if (!empty($logo_empresa) && file_exists(__DIR__ . '/../' . $logo_empresa)): ?>
-                <img src="<?= htmlspecialchars($logo_empresa) ?>?v=<?= time() ?>" alt="Logo <?= htmlspecialchars($nombre_empresa) ?>" class="mb-4" style="max-width:320px; max-height:200px; width: auto; height: auto; object-fit: contain;">
+                <img src="<?= htmlspecialchars($logo_empresa) ?>?v=<?= time() ?>" alt="Logo <?= htmlspecialchars($nombre_empresa) ?>" class="mb-4 img-fluid" style="max-height:200px; object-fit: contain;">
                 <h2 class="text-center fw-bold mb-3" style="color: #333; font-size: 2rem;"><?= htmlspecialchars($nombre_empresa) ?></h2>
             <?php else: ?>
-                <img src="assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:320px;">
+                <img src="assets/images/logoepymes.png" alt="Logo" class="mb-4 img-fluid">
             <?php endif; ?>
-            <p class="text-center px-3" style="font-size:1.2rem; color: #333;">"Gestiona tu floristería con facilidad, ¡deja que la tecnología florezca contigo!"</p>
+            <p class="text-center px-2" style="font-size:1.1rem; color: #333;">"Gestiona tu floristería con facilidad, ¡deja que la tecnología florezca contigo!"</p>
         </div>
 
         <!-- Sección de Inicio de Sesión -->
-        <div class="col-md-6 bg-white d-flex flex-column justify-content-center align-items-center" style="padding: 40px 0;">
-            <div class="shadow rounded p-4" style="width:100%; max-width:400px; background:#fff;">
-                <h2 class="mb-1 text-center fw-bold" style="font-size:2rem;">Inicia tu Sesión</h2>
+        <div class="col-md-6 bg-white d-flex flex-column justify-content-center align-items-center p-4 p-md-5">
+            <div class="w-100" style="max-width: 400px;">
+                <h2 class="mb-4 text-center fw-bold" style="font-size:2rem;">Inicia tu Sesión</h2>
 
                 <?php if (!empty($error)): ?>
                     <div class="alert alert-danger text-center"><?= htmlspecialchars($error) ?></div>

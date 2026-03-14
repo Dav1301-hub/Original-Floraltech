@@ -70,19 +70,87 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
-// Global event listener to clean up orphaned modal backdrops
-document.addEventListener('hidden.bs.modal', function () {
-    // Si no hay ningún modal abierto, asegurarnos de limpiar los backdrops y la clase del body
-    if (document.querySelectorAll('.modal.show').length === 0) {
-        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
-    }
-}); window.abrirproducto = function () {
+// Envío AJAX para "Nuevo producto" (evita fallos en navegación AJAX)
+document.addEventListener('DOMContentLoaded', function () {
+    const formNuevoProducto = document.getElementById('form-nuevo-producto');
+    if (!formNuevoProducto) return;
+
+    formNuevoProducto.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(formNuevoProducto);
+
+        fetch(formNuevoProducto.getAttribute('action') || '?ctrl=cinventario', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(async (response) => {
+                const contentType = response.headers.get("content-type") || '';
+                if (contentType.includes("application/json")) return response.json();
+                const text = await response.text();
+                throw new Error(text || 'Respuesta no JSON del servidor');
+            })
+            .then((data) => {
+                if (data && data.success) {
+                    if (typeof mostrarMensajeExito === 'function') {
+                        mostrarMensajeExito(data.message || '✅ Producto agregado correctamente');
+                    }
+
+                    // Cerrar modal
+                    const modalElement = document.getElementById('modal-nuevo-producto');
+                    if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                        modal.hide();
+                    }
+
+                    setTimeout(() => location.reload(), 1200);
+                    return;
+                }
+
+                // Producto duplicado: mostrar modal de confirmación si existe
+                if (data && data.tipo === 'producto_duplicado' && data.data) {
+                    const dup = data.data;
+                    const idEl = document.getElementById('duplicado-producto-id');
+                    const nomEl = document.getElementById('duplicado-producto-nombre');
+                    const msgEl = document.getElementById('duplicado-mensaje');
+                    const stockEl = document.getElementById('duplicado-stock');
+
+                    if (idEl) idEl.value = dup.producto_id || '';
+                    if (nomEl) nomEl.value = dup.producto_nombre || '';
+                    if (msgEl) msgEl.textContent = dup.mensaje || 'Ya existe un producto con este nombre.';
+                    if (stockEl) stockEl.textContent = dup.stock_actual ?? '0';
+
+                    const modalDuplicadoEl = document.getElementById('modal-producto-duplicado');
+                    if (modalDuplicadoEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const modalDup = new bootstrap.Modal(modalDuplicadoEl);
+                        modalDup.show();
+                        return;
+                    }
+                }
+
+                if (typeof mostrarMensajeError === 'function') {
+                    mostrarMensajeError('❌ ' + (data && data.message ? data.message : 'No se pudo agregar el producto'));
+                } else {
+                    alert((data && data.message) ? data.message : 'No se pudo agregar el producto');
+                }
+            })
+            .catch((error) => {
+                console.error('Error agregando producto:', error);
+                if (typeof mostrarMensajeError === 'function') {
+                    mostrarMensajeError('❌ Error de conexión al servidor');
+                } else {
+                    alert('Error de conexión al servidor');
+                }
+            });
+    });
+});
+
+
+window.abrirproducto = function () {
     const modalElement = document.getElementById('modal-nuevo-producto');
     if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        const modal = new bootstrap.Modal(modalElement);
         modal.show();
     } else if (modalElement) {
         modalElement.style.display = 'block';
@@ -95,10 +163,22 @@ function cerrarproducto() {
     document.getElementById('modal-backdrop').classList.remove('show');
 }
 
+// Limpieza forzada de backdrop y clase modal-open al cerrar cualquier modal de inventario
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.modal').forEach(function(modalEl) {
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        });
+    });
+});
+
 window.abrirproveedor = function () {
     const modalElement = document.getElementById('modal-proveedores');
     if (modalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        const modal = new bootstrap.Modal(modalElement);
         modal.show();
     } else if (modalElement) {
         modalElement.style.display = 'block';
@@ -140,7 +220,7 @@ window.abrirModalEditar = function (productoData) {
     // Abrir el modal
     const modalElement = document.getElementById('modal-editar-producto');
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        const modal = new bootstrap.Modal(modalElement);
         modal.show();
     } else if (typeof $ !== 'undefined') {
         $(modalElement).modal('show');
@@ -166,7 +246,7 @@ window.abrirModalAgregarStock = function (productoData) {
     // Abrir el modal
     const modalElement = document.getElementById('modal-agregar-stock');
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        const modal = new bootstrap.Modal(modalElement);
         modal.show();
     } else if (typeof $ !== 'undefined') {
         $(modalElement).modal('show');
@@ -194,7 +274,7 @@ window.abrirModalEliminar = function (productoData) {
 
     const modalElement = document.getElementById('modal-eliminar-producto');
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        const modal = new bootstrap.Modal(modalElement);
         modal.show();
     } else if (typeof $ !== 'undefined') {
         $(modalElement).modal('show');
@@ -256,7 +336,7 @@ function eliminarFlor(id) {
     let modal;
 
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        modal = new bootstrap.Modal(modalElement);
         modal.show();
     } else if (typeof $ !== 'undefined') {
         $(modalElement).modal('show');
@@ -354,7 +434,7 @@ function agregarAInventario(id) {
                 // Mostrar el modal
                 const modalElement = document.getElementById('modal-agregar-stock');
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                    const modal = new bootstrap.Modal(modalElement);
                     modal.show();
                 } else if (typeof $ !== 'undefined') {
                     $(modalElement).modal('show');
@@ -440,7 +520,7 @@ function crearModalAgregarStockGenerico(id) {
     let modal;
 
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        modal = new bootstrap.Modal(modalElement);
         modal.show();
     } else if (typeof $ !== 'undefined') {
         $(modalElement).modal('show');
@@ -600,7 +680,7 @@ function mostrarModalTemporal(modalHTML, modalId, autoCloseTime = 0) {
     let modal;
 
     if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-        modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        modal = new bootstrap.Modal(modalElement);
         modal.show();
     } else if (typeof $ !== 'undefined') {
         $(modalElement).modal('show');
@@ -621,15 +701,22 @@ function mostrarModalTemporal(modalHTML, modalId, autoCloseTime = 0) {
                 modalElement.classList.remove('show');
             }
 
-            // No forzamos remove() aquí, dejamos que el evento hidden.bs.modal se encargue
+            // Limpiar modal después de animación
+            setTimeout(() => {
+                if (modalElement) {
+                    modalElement.remove();
+                }
+            }, 500);
         }, autoCloseTime);
     }
 
     // Event listener para limpiar modal al cerrar
     modalElement.addEventListener('hidden.bs.modal', function () {
-        if (modalElement) {
-            modalElement.remove();
-        }
+        setTimeout(() => {
+            if (modalElement) {
+                modalElement.remove();
+            }
+        }, 100);
     });
 }
 
@@ -661,13 +748,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .then(data => {
                     if (data.success) {
-                        // Ocultar modal de edición
-                        const modalElement = document.getElementById('modal-editar-producto');
-                        if (modalElement && typeof bootstrap !== 'undefined') {
-                            const existingModal = bootstrap.Modal.getInstance(modalElement);
-                            if (existingModal) existingModal.hide();
-                        }
-
                         mostrarMensajeExito('✅ Producto actualizado correctamente');
                         setTimeout(() => {
                             location.reload();
