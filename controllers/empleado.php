@@ -295,9 +295,10 @@ class empleado {
             $pago = $this->obtenerPagoPorPedido($idPedido);
             $detalles = $this->obtenerDetallesItemsPedidoFactura($idPedido);
 
-            require_once __DIR__ . '/../libs/fpdf/fpdf.php';
-            require_once __DIR__ . '/../controllers/cliente.php';
-
+            if (!function_exists('cliente_cargarFacturaPDF')) {
+                require_once __DIR__ . '/../controllers/cliente.php';
+            }
+            cliente_cargarFacturaPDF();
             $pdf = new FacturaPDF();
             $pdf->AliasNbPages();
             $pdf->SetMargins(10, 30, 10);
@@ -409,8 +410,10 @@ class empleado {
      */
     private function generarFacturaPdfEnMemoria($pedido, $pago, $detalles) {
         try {
-            require_once __DIR__ . '/../libs/fpdf/fpdf.php';
-            require_once __DIR__ . '/../controllers/cliente.php';
+            if (!function_exists('cliente_cargarFacturaPDF')) {
+                require_once __DIR__ . '/../controllers/cliente.php';
+            }
+            cliente_cargarFacturaPDF();
             $pdf = new FacturaPDF();
             $pdf->AliasNbPages();
             $pdf->SetMargins(10, 30, 10);
@@ -753,7 +756,8 @@ class empleado {
                     p.numped,
                     COALESCE(c.nombre, 'Sin nombre') as cliente_nombre,
                     COALESCE(pg.transaccion_id, '') as referencia,
-                    COALESCE(pg.comprobante_transferencia, '') as comprobante
+                    COALESCE(pg.comprobante_transferencia, '') as comprobante,
+                    (pg.comprobante_imagen IS NOT NULL OR (pg.comprobante_transferencia IS NOT NULL AND TRIM(COALESCE(pg.comprobante_transferencia,'')) != '')) as tiene_comprobante
                 FROM pagos pg
                 INNER JOIN ped p ON pg.ped_idped = p.idped
                 LEFT JOIN cli c ON p.cli_idcli = c.idcli
@@ -812,7 +816,8 @@ class empleado {
                     COALESCE(c.nombre, 'Sin nombre') as cliente_nombre,
                     u.nombre_completo as verificado_por_nombre,
                     COALESCE(pg.transaccion_id, '') as referencia,
-                    COALESCE(pg.comprobante_transferencia, '') as comprobante
+                    COALESCE(pg.comprobante_transferencia, '') as comprobante,
+                    (pg.comprobante_imagen IS NOT NULL OR (pg.comprobante_transferencia IS NOT NULL AND TRIM(COALESCE(pg.comprobante_transferencia,'')) != '')) as tiene_comprobante
                 FROM pagos pg
                 INNER JOIN ped p ON pg.ped_idped = p.idped
                 LEFT JOIN cli c ON p.cli_idcli = c.idcli
@@ -1427,7 +1432,7 @@ class empleado {
             $fecha_entrega = trim($_POST['fecha_entrega'] ?? '') ?: null;
             $notas = trim($_POST['notas'] ?? '') ?: null;
             $monto_total = floatval($_POST['monto_total'] ?? 0);
-            $metodo_pago = in_array($_POST['metodo_pago'] ?? '', ['efectivo','tarjeta','transferencia','otro'], true) ? $_POST['metodo_pago'] : 'efectivo';
+            $metodo_pago = in_array($_POST['metodo_pago'] ?? '', ['efectivo','tarjeta','transferencia','nequi','otro'], true) ? $_POST['metodo_pago'] : 'efectivo';
             $estado_pago = in_array($_POST['estado_pago'] ?? '', ['Pendiente','Completado'], true) ? $_POST['estado_pago'] : 'Pendiente';
 
             $numped = 'PED-' . date('YmdHis') . '-' . $cli_id;

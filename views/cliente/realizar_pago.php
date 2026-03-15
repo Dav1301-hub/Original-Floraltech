@@ -255,5 +255,6 @@ $navbar_volver_url = 'index.php?ctrl=cliente&action=historial';
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
+    <?php include __DIR__ . '/../partials/footer_empresa.php'; ?>
 </body>
 </html>

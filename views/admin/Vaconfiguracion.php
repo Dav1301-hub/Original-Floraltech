@@ -40,12 +40,24 @@ try {
     ];
 }
 
-// Cargar configuración de la empresa
+// Cargar configuración de la empresa (sin BLOB nequi_qr_imagen para no sobrecargar)
 try {
-    $stmt_empresa = $conexion->prepare("SELECT * FROM empresa LIMIT 1");
-    $stmt_empresa->execute();
-    $empresa = $stmt_empresa->fetch(PDO::FETCH_ASSOC);
-    
+    try {
+        $stmt_empresa = $conexion->prepare("SELECT id, nombre, direccion, telefono, email_contacto, horarios_apertura, logo, facebook, instagram, whatsapp, moneda, iva_porcentaje, zona_horaria, formato_fecha, footer_activo, nequi_qr, nequi_numero, (nequi_qr_imagen IS NOT NULL) as nequi_qr_en_bd FROM empresa LIMIT 1");
+        $stmt_empresa->execute();
+        $empresa = $stmt_empresa->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        $stmt_empresa = $conexion->query("SELECT * FROM empresa LIMIT 1");
+        $empresa = $stmt_empresa ? $stmt_empresa->fetch(PDO::FETCH_ASSOC) : null;
+        if ($empresa) {
+            $empresa['nequi_qr_en_bd'] = isset($empresa['nequi_qr_imagen']) ? !empty($empresa['nequi_qr_imagen']) : false;
+            if (isset($empresa['nequi_qr_imagen'])) unset($empresa['nequi_qr_imagen'], $empresa['nequi_qr_tipo']);
+        }
+    }
+    if ($empresa && !isset($empresa['nequi_qr_en_bd'])) {
+        $empresa['nequi_qr_en_bd'] = false;
+    }
+
     if (!$empresa) {
         $empresa = [
             'nombre' => 'FloralTech',
@@ -60,7 +72,10 @@ try {
             'moneda' => 'COP',
             'iva_porcentaje' => 19.00,
             'zona_horaria' => 'America/Bogota',
-            'formato_fecha' => 'd/m/Y'
+            'formato_fecha' => 'd/m/Y',
+            'footer_activo' => 1,
+            'nequi_qr' => null,
+            'nequi_numero' => ''
         ];
     }
 } catch (Exception $e) {
@@ -77,8 +92,20 @@ try {
         'moneda' => 'COP',
         'iva_porcentaje' => 19.00,
         'zona_horaria' => 'America/Bogota',
-        'formato_fecha' => 'd/m/Y'
+        'formato_fecha' => 'd/m/Y',
+        'footer_activo' => 1,
+        'nequi_qr' => null,
+        'nequi_numero' => ''
     ];
+}
+if (!isset($empresa['footer_activo'])) {
+    $empresa['footer_activo'] = 1;
+}
+if (!isset($empresa['nequi_qr'])) {
+    $empresa['nequi_qr'] = null;
+}
+if (!isset($empresa['nequi_numero'])) {
+    $empresa['nequi_numero'] = '';
 }
 
 // Procesar formularios
@@ -172,6 +199,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $iva = floatval($_POST['iva_porcentaje'] ?? 13.00);
             $zona_horaria = trim($_POST['zona_horaria'] ?? 'America/Costa_Rica');
             $formato_fecha = trim($_POST['formato_fecha'] ?? 'd/m/Y');
+            $footer_activo = isset($_POST['footer_activo']) ? 1 : 0;
+            $nequi_numero = trim($_POST['nequi_numero'] ?? '');
             
             if (empty($nombre_emp)) {
                 throw new Exception('El nombre de la empresa es requerido');
@@ -214,52 +243,241 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             
+            // Procesar QR Nequi si se subió (guardar en BD, no en archivos)
+            $nequi_qr_imagen = null;
+            $nequi_qr_tipo = null;
+            $nequi_qr_path = $empresa['nequi_qr'] ?? null; // sin subida nueva: mantener valor actual
+            if (isset($_FILES['nequi_qr']) && $_FILES['nequi_qr']['error'] === UPLOAD_ERR_OK) {
+                $file = $_FILES['nequi_qr'];
+                $maxSize = 2 * 1024 * 1024; // 2MB
+                if ($file['size'] > $maxSize) {
+                    throw new Exception('La imagen del QR Nequi no debe exceder 2MB');
+                }
+                require_once __DIR__ . '/../../libs/validar_imagen_qr.php';
+                $validacion = validar_imagen_es_qr($file['tmp_name']);
+                if (!$validacion['valido']) {
+                    throw new Exception($validacion['mensaje']);
+                }
+                $finfo = new finfo(FILEINFO_MIME_TYPE);
+                $mimeType = $finfo->file($file['tmp_name']) ?: ($file['type'] ?? 'image/png');
+                if (!in_array($mimeType, ['image/jpeg', 'image/png', 'image/jpg'], true)) {
+                    $mimeType = 'image/png';
+                }
+                $nequi_qr_imagen = file_get_contents($file['tmp_name']);
+                if ($nequi_qr_imagen !== false) {
+                    $nequi_qr_tipo = $mimeType;
+                    $nequi_qr_path = null; // limpiar ruta legacy al guardar en BD
+                } else {
+                    $nequi_qr_imagen = null;
+                    $nequi_qr_tipo = null;
+                }
+            }
+
             // Verificar si existe registro
             $stmt_check = $conexion->query("SELECT COUNT(*) FROM empresa");
             $existe = $stmt_check->fetchColumn() > 0;
             
             if ($existe) {
-                $stmt_update = $conexion->prepare("UPDATE empresa SET nombre=:n, direccion=:d, telefono=:t, email_contacto=:e, horarios_apertura=:h, logo=:l, facebook=:f, instagram=:i, whatsapp=:w, moneda=:m, iva_porcentaje=:iva, zona_horaria=:zh, formato_fecha=:ff WHERE id=(SELECT MIN(id) FROM empresa)");
-                $stmt_update->execute([
-                    ':n' => $nombre_emp,
-                    ':d' => $direccion,
-                    ':t' => $telefono_emp,
-                    ':e' => $email_emp,
-                    ':h' => $horario,
-                    ':l' => $logo_path,
-                    ':f' => $facebook,
-                    ':i' => $instagram,
-                    ':w' => $whatsapp,
-                    ':m' => $moneda,
-                    ':iva' => $iva,
-                    ':zh' => $zona_horaria,
-                    ':ff' => $formato_fecha
-                ]);
+                try {
+                    if ($nequi_qr_imagen !== null) {
+                        $stmt_update = $conexion->prepare("UPDATE empresa SET nombre=:n, direccion=:d, telefono=:t, email_contacto=:e, horarios_apertura=:h, logo=:l, facebook=:f, instagram=:i, whatsapp=:w, moneda=:m, iva_porcentaje=:iva, zona_horaria=:zh, formato_fecha=:ff, footer_activo=:fa, nequi_qr_imagen=:nqi, nequi_qr_tipo=:nqt, nequi_qr=:nq, nequi_numero=:nn WHERE id=(SELECT MIN(id) FROM empresa)");
+                        $stmt_update->execute([
+                            ':n' => $nombre_emp,
+                            ':d' => $direccion,
+                            ':t' => $telefono_emp,
+                            ':e' => $email_emp,
+                            ':h' => $horario,
+                            ':l' => $logo_path,
+                            ':f' => $facebook,
+                            ':i' => $instagram,
+                            ':w' => $whatsapp,
+                            ':m' => $moneda,
+                            ':iva' => $iva,
+                            ':zh' => $zona_horaria,
+                            ':ff' => $formato_fecha,
+                            ':fa' => $footer_activo,
+                            ':nqi' => $nequi_qr_imagen,
+                            ':nqt' => $nequi_qr_tipo,
+                            ':nq' => $nequi_qr_path,
+                            ':nn' => $nequi_numero
+                        ]);
+                    } else {
+                        $stmt_update = $conexion->prepare("UPDATE empresa SET nombre=:n, direccion=:d, telefono=:t, email_contacto=:e, horarios_apertura=:h, logo=:l, facebook=:f, instagram=:i, whatsapp=:w, moneda=:m, iva_porcentaje=:iva, zona_horaria=:zh, formato_fecha=:ff, footer_activo=:fa, nequi_qr=:nq, nequi_numero=:nn WHERE id=(SELECT MIN(id) FROM empresa)");
+                        $stmt_update->execute([
+                            ':n' => $nombre_emp,
+                            ':d' => $direccion,
+                            ':t' => $telefono_emp,
+                            ':e' => $email_emp,
+                            ':h' => $horario,
+                            ':l' => $logo_path,
+                            ':f' => $facebook,
+                            ':i' => $instagram,
+                            ':w' => $whatsapp,
+                            ':m' => $moneda,
+                            ':iva' => $iva,
+                            ':zh' => $zona_horaria,
+                            ':ff' => $formato_fecha,
+                            ':fa' => $footer_activo,
+                            ':nq' => $nequi_qr_path,
+                            ':nn' => $nequi_numero
+                        ]);
+                    }
+                } catch (PDOException $e) {
+                    try {
+                        $stmt_update = $conexion->prepare("UPDATE empresa SET nombre=:n, direccion=:d, telefono=:t, email_contacto=:e, horarios_apertura=:h, logo=:l, facebook=:f, instagram=:i, whatsapp=:w, moneda=:m, iva_porcentaje=:iva, zona_horaria=:zh, formato_fecha=:ff, footer_activo=:fa, nequi_qr=:nq, nequi_numero=:nn WHERE id=(SELECT MIN(id) FROM empresa)");
+                        $stmt_update->execute([
+                            ':n' => $nombre_emp,
+                            ':d' => $direccion,
+                            ':t' => $telefono_emp,
+                            ':e' => $email_emp,
+                            ':h' => $horario,
+                            ':l' => $logo_path,
+                            ':f' => $facebook,
+                            ':i' => $instagram,
+                            ':w' => $whatsapp,
+                            ':m' => $moneda,
+                            ':iva' => $iva,
+                            ':zh' => $zona_horaria,
+                            ':ff' => $formato_fecha,
+                            ':fa' => $footer_activo,
+                            ':nq' => $nequi_qr_path,
+                            ':nn' => $nequi_numero
+                        ]);
+                    } catch (PDOException $e2) {
+                        $stmt_update = $conexion->prepare("UPDATE empresa SET nombre=:n, direccion=:d, telefono=:t, email_contacto=:e, horarios_apertura=:h, logo=:l, facebook=:f, instagram=:i, whatsapp=:w, moneda=:m, iva_porcentaje=:iva, zona_horaria=:zh, formato_fecha=:ff WHERE id=(SELECT MIN(id) FROM empresa)");
+                        $stmt_update->execute([
+                            ':n' => $nombre_emp,
+                            ':d' => $direccion,
+                            ':t' => $telefono_emp,
+                            ':e' => $email_emp,
+                            ':h' => $horario,
+                            ':l' => $logo_path,
+                            ':f' => $facebook,
+                            ':i' => $instagram,
+                            ':w' => $whatsapp,
+                            ':m' => $moneda,
+                            ':iva' => $iva,
+                            ':zh' => $zona_horaria,
+                            ':ff' => $formato_fecha
+                        ]);
+                    }
+                }
+                // Asegurar que nequi_numero y nequi_qr se guarden aunque el UPDATE anterior falle por columnas blob
+                try {
+                    $stmt_nequi = $conexion->prepare("UPDATE empresa SET nequi_numero=:nn, nequi_qr=:nq WHERE id=(SELECT MIN(id) FROM empresa)");
+                    $stmt_nequi->execute([':nn' => $nequi_numero, ':nq' => $nequi_qr_path]);
+                } catch (PDOException $e) {}
+                if ($nequi_qr_imagen !== null) {
+                    try {
+                        $stmt_blob = $conexion->prepare("UPDATE empresa SET nequi_qr_imagen=:nqi, nequi_qr_tipo=:nqt WHERE id=(SELECT MIN(id) FROM empresa)");
+                        $stmt_blob->execute([':nqi' => $nequi_qr_imagen, ':nqt' => $nequi_qr_tipo]);
+                    } catch (PDOException $e) {}
+                }
             } else {
-                $stmt_insert = $conexion->prepare("INSERT INTO empresa (nombre, direccion, telefono, email_contacto, horarios_apertura, logo, facebook, instagram, whatsapp, moneda, iva_porcentaje, zona_horaria, formato_fecha) VALUES (:n, :d, :t, :e, :h, :l, :f, :i, :w, :m, :iva, :zh, :ff)");
-                $stmt_insert->execute([
-                    ':n' => $nombre_emp,
-                    ':d' => $direccion,
-                    ':t' => $telefono_emp,
-                    ':e' => $email_emp,
-                    ':h' => $horario,
-                    ':l' => $logo_path,
-                    ':f' => $facebook,
-                    ':i' => $instagram,
-                    ':w' => $whatsapp,
-                    ':m' => $moneda,
-                    ':iva' => $iva,
-                    ':zh' => $zona_horaria,
-                    ':ff' => $formato_fecha
-                ]);
+                try {
+                    if ($nequi_qr_imagen !== null) {
+                        $stmt_insert = $conexion->prepare("INSERT INTO empresa (nombre, direccion, telefono, email_contacto, horarios_apertura, logo, facebook, instagram, whatsapp, moneda, iva_porcentaje, zona_horaria, formato_fecha, footer_activo, nequi_qr_imagen, nequi_qr_tipo, nequi_qr, nequi_numero) VALUES (:n, :d, :t, :e, :h, :l, :f, :i, :w, :m, :iva, :zh, :ff, :fa, :nqi, :nqt, :nq, :nn)");
+                        $stmt_insert->execute([
+                            ':n' => $nombre_emp,
+                            ':d' => $direccion,
+                            ':t' => $telefono_emp,
+                            ':e' => $email_emp,
+                            ':h' => $horario,
+                            ':l' => $logo_path,
+                            ':f' => $facebook,
+                            ':i' => $instagram,
+                            ':w' => $whatsapp,
+                            ':m' => $moneda,
+                            ':iva' => $iva,
+                            ':zh' => $zona_horaria,
+                            ':ff' => $formato_fecha,
+                            ':fa' => $footer_activo,
+                            ':nqi' => $nequi_qr_imagen,
+                            ':nqt' => $nequi_qr_tipo,
+                            ':nq' => $nequi_qr_path,
+                            ':nn' => $nequi_numero
+                        ]);
+                    } else {
+                        $stmt_insert = $conexion->prepare("INSERT INTO empresa (nombre, direccion, telefono, email_contacto, horarios_apertura, logo, facebook, instagram, whatsapp, moneda, iva_porcentaje, zona_horaria, formato_fecha, footer_activo, nequi_qr, nequi_numero) VALUES (:n, :d, :t, :e, :h, :l, :f, :i, :w, :m, :iva, :zh, :ff, :fa, :nq, :nn)");
+                        $stmt_insert->execute([
+                            ':n' => $nombre_emp,
+                            ':d' => $direccion,
+                            ':t' => $telefono_emp,
+                            ':e' => $email_emp,
+                            ':h' => $horario,
+                            ':l' => $logo_path,
+                            ':f' => $facebook,
+                            ':i' => $instagram,
+                            ':w' => $whatsapp,
+                            ':m' => $moneda,
+                            ':iva' => $iva,
+                            ':zh' => $zona_horaria,
+                            ':ff' => $formato_fecha,
+                            ':fa' => $footer_activo,
+                            ':nq' => $nequi_qr_path,
+                            ':nn' => $nequi_numero
+                        ]);
+                    }
+                } catch (PDOException $e) {
+                    try {
+                        $stmt_insert = $conexion->prepare("INSERT INTO empresa (nombre, direccion, telefono, email_contacto, horarios_apertura, logo, facebook, instagram, whatsapp, moneda, iva_porcentaje, zona_horaria, formato_fecha, footer_activo, nequi_qr, nequi_numero) VALUES (:n, :d, :t, :e, :h, :l, :f, :i, :w, :m, :iva, :zh, :ff, :fa, :nq, :nn)");
+                        $stmt_insert->execute([
+                            ':n' => $nombre_emp,
+                            ':d' => $direccion,
+                            ':t' => $telefono_emp,
+                            ':e' => $email_emp,
+                            ':h' => $horario,
+                            ':l' => $logo_path,
+                            ':f' => $facebook,
+                            ':i' => $instagram,
+                            ':w' => $whatsapp,
+                            ':m' => $moneda,
+                            ':iva' => $iva,
+                            ':zh' => $zona_horaria,
+                            ':ff' => $formato_fecha,
+                            ':fa' => $footer_activo,
+                            ':nq' => $nequi_qr_path,
+                            ':nn' => $nequi_numero
+                        ]);
+                    } catch (PDOException $e2) {
+                        $stmt_insert = $conexion->prepare("INSERT INTO empresa (nombre, direccion, telefono, email_contacto, horarios_apertura, logo, facebook, instagram, whatsapp, moneda, iva_porcentaje, zona_horaria, formato_fecha) VALUES (:n, :d, :t, :e, :h, :l, :f, :i, :w, :m, :iva, :zh, :ff)");
+                        $stmt_insert->execute([
+                            ':n' => $nombre_emp,
+                            ':d' => $direccion,
+                            ':t' => $telefono_emp,
+                            ':e' => $email_emp,
+                            ':h' => $horario,
+                            ':l' => $logo_path,
+                            ':f' => $facebook,
+                            ':i' => $instagram,
+                            ':w' => $whatsapp,
+                            ':m' => $moneda,
+                            ':iva' => $iva,
+                            ':zh' => $zona_horaria,
+                            ':ff' => $formato_fecha
+                        ]);
+                    }
+                }
             }
             
             $mensaje_exito = 'Configuración de la empresa actualizada';
             
-            // Recargar configuración de empresa
-            $stmt_empresa = $conexion->prepare("SELECT * FROM empresa LIMIT 1");
-            $stmt_empresa->execute();
-            $empresa = $stmt_empresa->fetch(PDO::FETCH_ASSOC);
+            // Recargar configuración de empresa (sin BLOB)
+            try {
+                $stmt_empresa = $conexion->prepare("SELECT id, nombre, direccion, telefono, email_contacto, horarios_apertura, logo, facebook, instagram, whatsapp, moneda, iva_porcentaje, zona_horaria, formato_fecha, footer_activo, nequi_qr, nequi_numero, (nequi_qr_imagen IS NOT NULL) as nequi_qr_en_bd FROM empresa LIMIT 1");
+                $stmt_empresa->execute();
+                $empresa = $stmt_empresa->fetch(PDO::FETCH_ASSOC);
+            } catch (PDOException $e) {
+                $stmt_empresa = $conexion->query("SELECT * FROM empresa LIMIT 1");
+                $empresa = $stmt_empresa ? $stmt_empresa->fetch(PDO::FETCH_ASSOC) : null;
+                if ($empresa && isset($empresa['nequi_qr_imagen'])) {
+                    $empresa['nequi_qr_en_bd'] = !empty($empresa['nequi_qr_imagen']);
+                    unset($empresa['nequi_qr_imagen'], $empresa['nequi_qr_tipo']);
+                }
+            }
+            if ($empresa && !isset($empresa['nequi_qr_en_bd'])) {
+                $empresa['nequi_qr_en_bd'] = false;
+            }
         }
 
     } catch (Exception $e) {
@@ -306,18 +524,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Configuración Personal -->
     <div class="mb-4">
         <h5 class="mb-3 text-muted"><i class="fas fa-user-circle me-2"></i>Configuración Personal</h5>
-        <form class="mx-auto px-3 w-100" method="POST" enctype="multipart/form-data">
-            <div class="row g-4">
-                <div class="col-12 col-lg-6 d-flex">
-                    <div class="card h-100 flex-fill border-0 shadow-sm rounded-4">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="avatar bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width:44px;height:44px;">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <h5 class="mb-0">Información personal</h5>
+        <div class="row g-4">
+            <!-- Formulario solo datos personales (sin contraseña) -->
+            <div class="col-12 col-lg-6 d-flex">
+                <div class="card h-100 flex-fill border-0 shadow-sm rounded-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="avatar bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width:44px;height:44px;">
+                                <i class="fas fa-user"></i>
                             </div>
-                            
+                            <h5 class="mb-0">Información personal</h5>
+                        </div>
+                        <form method="POST" enctype="multipart/form-data">
                             <!-- Avatar -->
                             <div class="mb-3 text-center">
                                 <label class="form-label fw-600">Foto de perfil</label>
@@ -333,7 +551,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input type="file" class="form-control" name="avatar" accept="image/jpeg,image/png,image/jpg">
                                 <small class="text-muted">JPG o PNG, máx. 2MB</small>
                             </div>
-                            
                             <div class="mb-3">
                                 <label class="form-label">Nombre completo</label>
                                 <input type="text" class="form-control" name="nombre_completo" value="<?= htmlspecialchars($admin['nombre_completo']) ?>" required>
@@ -351,8 +568,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <label class="form-label">Teléfono</label>
                                 <input type="text" class="form-control" name="telefono" value="<?= htmlspecialchars($admin['telefono']) ?>">
                             </div>
-                            
-                            <!-- Notificaciones -->
                             <div class="mb-3">
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox" name="notificaciones_email" id="notifEmail" <?= !empty($admin['notificaciones_email']) ? 'checked' : '' ?>>
@@ -362,36 +577,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                                 <small class="text-muted">Recibe alertas de pedidos, pagos y actividad del sistema</small>
                             </div>
-                            
-                            <button class="btn btn-primary w-100 mt-2" name="actualizar_personal"><i class="fas fa-save me-2"></i>Guardar cambios</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 col-lg-6 d-flex">
-                    <div class="card h-100 flex-fill border-0 shadow-sm rounded-4">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="avatar bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center me-2" style="width:44px;height:44px;">
-                                    <i class="fas fa-lock"></i>
-                                </div>
-                                <h5 class="mb-0">Contraseña</h5>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Nueva contraseña</label>
-                                <input type="password" class="form-control" name="nueva_contrasena" placeholder="Minimo 6 caracteres">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Confirmar contraseña</label>
-                                <input type="password" class="form-control" name="confirmar_contrasena" placeholder="Repetir contraseña">
-                            </div>
-                            <div class="small text-muted mb-2">Deja los campos vacíos para mantener la actual.</div>
-                            <button class="btn btn-warning w-100 mt-2 text-dark" name="actualizar_contrasena"><i class="fas fa-save me-2"></i>Actualizar contraseña</button>
-                        </div>
+                            <button type="submit" class="btn btn-primary w-100 mt-2" name="actualizar_personal"><i class="fas fa-save me-2"></i>Guardar cambios</button>
+                        </form>
                     </div>
                 </div>
             </div>
-        </form>
+
+            <!-- Formulario solo contraseña -->
+            <div class="col-12 col-lg-6 d-flex">
+                <div class="card h-100 flex-fill border-0 shadow-sm rounded-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="avatar bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center me-2" style="width:44px;height:44px;">
+                                <i class="fas fa-lock"></i>
+                            </div>
+                            <h5 class="mb-0">Contraseña</h5>
+                        </div>
+                        <form method="POST" id="formContrasena">
+                            <div class="mb-3">
+                                <label class="form-label">Nueva contraseña</label>
+                                <input type="password" class="form-control" name="nueva_contrasena" id="nuevaContrasena" placeholder="Mínimo 6 caracteres">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Confirmar contraseña</label>
+                                <input type="password" class="form-control" name="confirmar_contrasena" id="confirmarContrasena" placeholder="Repetir contraseña">
+                            </div>
+                            <div class="small text-muted mb-2">Solo rellena si quieres cambiar la contraseña.</div>
+                            <button type="submit" class="btn btn-warning w-100 mt-2 text-dark" name="actualizar_contrasena"><i class="fas fa-save me-2"></i>Actualizar contraseña</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Configuración de la Empresa -->
@@ -483,6 +700,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <label class="form-label fw-600"><i class="fab fa-whatsapp text-success me-1"></i>WhatsApp</label>
                                 <input type="text" class="form-control" name="whatsapp" value="<?= htmlspecialchars($empresa['whatsapp'] ?? '') ?>" placeholder="+506 1234-5678">
                                 <small class="text-muted">Formato: +506 1234-5678</small>
+                            </div>
+
+                            <div class="mb-0 pt-2 border-top">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="footer_activo" id="footer_activo" value="1" <?= !empty($empresa['footer_activo']) ? 'checked' : '' ?>>
+                                    <label class="form-check-label fw-600" for="footer_activo">
+                                        <i class="fas fa-layer-group me-1 text-muted"></i> Mostrar footer en zona cliente
+                                    </label>
+                                </div>
+                                <small class="text-muted">El pie de página con datos de contacto y redes solo se muestra en el panel de clientes. Desactívalo para ocultarlo.</small>
+                            </div>
+
+                            <div class="mb-0 pt-3 mt-3 border-top">
+                                <h6 class="fw-600 mb-2"><i class="fas fa-mobile-alt text-primary me-1"></i> Nequi (pago por QR)</h6>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-600">Imagen del código QR Nequi</label>
+                                    <?php if (!empty($empresa['nequi_qr_en_bd'])): ?>
+                                        <div class="mb-2"><img src="ver_qr_empresa.php?v=<?= time() ?>" alt="QR Nequi" class="rounded border" style="width:120px;height:120px;object-fit:contain;background:#fff;"></div>
+                                    <?php elseif (!empty($empresa['nequi_qr']) && file_exists(__DIR__ . '/../../' . $empresa['nequi_qr'])): ?>
+                                        <div class="mb-2"><img src="<?= htmlspecialchars($empresa['nequi_qr']) ?>?v=<?= time() ?>" alt="QR Nequi" class="rounded border" style="width:120px;height:120px;object-fit:contain;background:#fff;"></div>
+                                    <?php endif; ?>
+                                    <input type="file" class="form-control form-control-sm" name="nequi_qr" accept="image/jpeg,image/png,image/jpg">
+                                    <small class="text-muted">Sube la imagen del QR que aparece en la app Nequi. Debe ser un código QR válido (JPG/PNG, máx. 2MB).</small>
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label small fw-600">Número Nequi</label>
+                                    <input type="text" class="form-control form-control-sm" name="nequi_numero" value="<?= htmlspecialchars($empresa['nequi_numero'] ?? '') ?>" placeholder="Ej: 300 123 4567">
+                                    <small class="text-muted">Se muestra debajo del QR en cliente y empleado cuando eligen pago Nequi.</small>
+                                </div>
                             </div>
                         </div>
                     </div>

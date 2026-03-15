@@ -5,6 +5,53 @@ $navbar_volver_text = 'Volver a Pedidos';
 $user = $user ?? $_SESSION['user'] ?? [];
 $clientes = $clientes ?? [];
 $flores = $flores ?? [];
+$nequi_qr_url = '';
+$nequi_numero = '';
+try {
+    require_once __DIR__ . '/../../models/conexion.php';
+    $conn_emp = new conexion();
+    $db_emp = $conn_emp->get_conexion();
+    $emp = null;
+    $st = @$db_emp->query("SELECT nequi_qr, nequi_numero, (nequi_qr_imagen IS NOT NULL) as nequi_qr_en_bd FROM empresa LIMIT 1");
+    if ($st) {
+        $emp = $st->fetch(PDO::FETCH_ASSOC);
+    }
+    if (!$emp) {
+        $st = $db_emp->query("SELECT nequi_qr, nequi_numero FROM empresa LIMIT 1");
+        if ($st) {
+            $emp = $st->fetch(PDO::FETCH_ASSOC);
+        }
+    }
+    if ($emp) {
+        if (!empty($emp['nequi_qr_en_bd'])) {
+            $nequi_qr_url = 'ver_qr_empresa.php';
+        } elseif (!empty($emp['nequi_qr']) && file_exists(__DIR__ . '/../../' . $emp['nequi_qr'])) {
+            $nequi_qr_url = $emp['nequi_qr'];
+        }
+        if (!empty(trim($emp['nequi_numero'] ?? ''))) {
+            $nequi_numero = trim($emp['nequi_numero']);
+        }
+    }
+} catch (Exception $e) {
+    try {
+        $st = $db_emp->query("SELECT nequi_qr, nequi_numero FROM empresa LIMIT 1");
+        if ($st && ($emp = $st->fetch(PDO::FETCH_ASSOC))) {
+            if (!empty($emp['nequi_qr']) && file_exists(__DIR__ . '/../../' . $emp['nequi_qr'])) {
+                $nequi_qr_url = $emp['nequi_qr'];
+            }
+            if (!empty(trim($emp['nequi_numero'] ?? ''))) {
+                $nequi_numero = trim($emp['nequi_numero']);
+            }
+        }
+    } catch (Exception $e2) {}
+}
+if ($nequi_qr_url === '' && file_exists(__DIR__ . '/../../assets/images/qr/qr_transferencia.png')) {
+    $nequi_qr_url = 'assets/images/qr/qr_transferencia.png';
+}
+$nequi_qr_base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
+if ($nequi_qr_base !== '' && isset($nequi_qr_url) && strpos($nequi_qr_url, 'ver_qr_empresa.php') !== false) {
+    $nequi_qr_url = $nequi_qr_base . '/ver_qr_empresa.php';
+}
 if (!$isModal):
     $tipo_empleado = '';
     if (!empty($user['tpusu_idtpusu'])) {
@@ -48,6 +95,7 @@ if (!$isModal):
             box-shadow: var(--emp-shadow);
         }
         .badge-stock { font-size: 0.75rem; padding: 0.35rem 0.6rem; }
+        .nequi-qr-img { width: 200px; height: 200px; object-fit: contain; display: block; margin-left: auto; margin-right: auto; }
     </style>
 </head>
 <body class="empleado-theme">
@@ -130,12 +178,24 @@ if (!$isModal):
                             </div>
                             <div class="mb-3">
                                 <label for="metodo_pago" class="form-label small fw-bold">Método de pago</label>
-                                <select class="form-select form-select-sm" id="metodo_pago" name="metodo_pago" form="pedidoForm">
+                                <select class="form-select form-select-sm" id="metodo_pago" name="metodo_pago" form="pedidoForm" onchange="toggleNequiQrEmp(this.value)">
                                     <option value="efectivo">Efectivo</option>
                                     <option value="tarjeta">Tarjeta</option>
                                     <option value="transferencia">Transferencia</option>
+                                    <option value="nequi">Nequi</option>
                                     <option value="otro">Otro</option>
                                 </select>
+                            </div>
+                            <div id="nequiQrContainerEmp" class="mb-3 text-center border rounded p-3 bg-light" style="display: none;">
+                                <h6 class="fw-bold mb-2"><i class="fas fa-qrcode me-2"></i>QR Nequi</h6>
+                                <?php if ($nequi_qr_url): ?>
+                                    <img src="<?= htmlspecialchars($nequi_qr_url) ?>?v=<?= time() ?>" alt="QR Nequi" class="nequi-qr-img rounded mb-2">
+                                <?php else: ?>
+                                    <p class="text-muted small mb-0">Configura el QR en Admin → Configuración.</p>
+                                <?php endif; ?>
+                                <?php if (isset($nequi_numero) && $nequi_numero !== ''): ?>
+                                    <p class="small fw-semibold text-dark mb-0">Número Nequi: <span class="text-primary"><?= htmlspecialchars($nequi_numero) ?></span></p>
+                                <?php endif; ?>
                             </div>
                             <div class="mb-3">
                                 <label for="estado_pago" class="form-label small fw-bold">Estado del pago</label>
@@ -172,6 +232,10 @@ if (!$isModal):
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function toggleNequiQrEmp(val) {
+            var el = document.getElementById('nequiQrContainerEmp');
+            if (el) el.style.display = (val === 'nequi') ? 'block' : 'none';
+        }
         function filterFlowers() {
             var term = document.getElementById('flowerSearch').value.toLowerCase();
             document.querySelectorAll('.flower-card').forEach(function(el) {

@@ -3,15 +3,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once($_SERVER['DOCUMENT_ROOT'] . '/Original-Floraltech/views/config/database.php');
-
+// Usar la misma conexión que el resto de la app (models/conexion.php + data.php)
+require_once __DIR__ . '/../../models/conexion.php';
 try {
-    $database = new Database();
-    $conn = $database->getConnection();
-
-    if (!$conn) {
-        throw new Exception('No se pudo conectar a la base de datos');
-    }
+    $conexion = new conexion();
+    $conn = $conexion->get_conexion();
 } catch (Exception $e) {
     die('Error de conexion: ' . $e->getMessage());
 }
@@ -434,6 +430,15 @@ try {
                                             <?php endif; ?>
                                             <button type="button" class="btn btn-outline-info text-info" onclick="editarPago(<?= (int)$pedido['idped'] ?>)" title="Gestionar pago">
                                                 <i class="fas fa-credit-card"></i>
+                                            </button>
+                                            <a href="index.php?ctrl=dashboard&action=generar_factura&idpedido=<?= (int)$pedido['idped'] ?>" class="btn btn-outline-success" title="Descargar factura PDF" target="_blank">
+                                                <i class="fas fa-file-pdf"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-enviar-factura-admin" title="Enviar factura por email"
+                                                data-idpedido="<?= (int)$pedido['idped'] ?>"
+                                                data-email="<?= htmlspecialchars($pedido['cliente_email'] ?? '') ?>"
+                                                data-numped="<?= htmlspecialchars($pedido['numped']) ?>">
+                                                <i class="fas fa-envelope"></i>
                                             </button>
                                             <?php if ($pedido['estado'] === 'Pendiente'): ?>
                                                 <button type="button" class="btn btn-outline-primary" onclick="cambiarEstado(<?= (int)$pedido['idped'] ?>, 'En proceso')" title="Procesar pedido">
@@ -899,6 +904,38 @@ function guardarNuevoPedido(event) {
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('formPagoPedido')?.addEventListener('submit', guardarPago);
     document.getElementById('formNuevoPedido')?.addEventListener('submit', guardarNuevoPedido);
+
+    // Enviar factura por email (admin)
+    document.querySelectorAll('.btn-enviar-factura-admin').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var idPedido = this.getAttribute('data-idpedido');
+            var numPed = this.getAttribute('data-numped') || idPedido;
+            var email = (this.getAttribute('data-email') || '').trim();
+            if (!email) {
+                email = prompt('Este cliente no tiene email. Indique el correo al que desea enviar la factura:');
+                if (!email) return;
+            }
+            if (!confirm('¿Enviar la factura del pedido #' + numPed + ' a ' + email + '?')) return;
+            var icon = this.innerHTML;
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            fetch('index.php?ctrl=dashboard&action=enviar_factura_email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new URLSearchParams({ idpedido: idPedido, email: email })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                alert(data.message || (data.success ? 'Factura enviada.' : 'Error al enviar.'));
+                if (data.success) { /* opcional: recargar o mostrar éxito */ }
+            })
+            .catch(function() { alert('Error de conexión.'); })
+            .finally(function() {
+                btn.disabled = false;
+                btn.innerHTML = icon;
+            });
+        });
+    });
 
     document.getElementById('btnAgregarProducto')?.addEventListener('click', agregarFilaProducto);
     if (document.querySelector('#tablaProductosNuevo tbody') && !document.querySelector('#tablaProductosNuevo tbody tr')) {

@@ -511,6 +511,38 @@ p {
     min-width: 0;
 }
 
+/* Footer admin: ancho completo de la pantalla, encima del sidebar (z-index), contenido con padding para no quedar bajo el menú */
+.admin-footer-wrap {
+    width: 100%;
+    position: relative;
+    z-index: 1050;
+    margin-top: 1.5rem;
+    left: 0;
+    right: 0;
+}
+.admin-footer-wrap .footer-empresa {
+    margin-top: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+.admin-footer-wrap .footer-empresa .container {
+    max-width: none;
+    width: 100%;
+    padding-left: calc(260px + 1.5rem);
+    padding-right: 1.5rem;
+    margin-left: 0;
+    margin-right: 0;
+}
+@media (max-width: 1024px) {
+    .admin-footer-wrap .footer-empresa .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+.layout.sidebar-collapsed .admin-footer-wrap .footer-empresa .container {
+    padding-left: 1.5rem;
+}
+
 .dash-card {
     background: #ffffff;
     border-radius: 1rem;

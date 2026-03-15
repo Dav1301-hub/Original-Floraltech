@@ -28,6 +28,55 @@ if (!isset($flores_disponibles)) {
         error_log("Error obteniendo flores: " . $e->getMessage());
     }
 }
+if (!isset($db)) {
+    require_once __DIR__ . '/../../models/conexion.php';
+    $conn = new conexion();
+    $db = $conn->get_conexion();
+}
+$nequi_qr_url = '';
+$nequi_numero = '';
+try {
+    $emp = null;
+    $st = @$db->query("SELECT nequi_qr, nequi_numero, (nequi_qr_imagen IS NOT NULL) as nequi_qr_en_bd FROM empresa LIMIT 1");
+    if ($st) {
+        $emp = $st->fetch(PDO::FETCH_ASSOC);
+    }
+    if (!$emp) {
+        $st = $db->query("SELECT nequi_qr, nequi_numero FROM empresa LIMIT 1");
+        if ($st) {
+            $emp = $st->fetch(PDO::FETCH_ASSOC);
+        }
+    }
+    if ($emp) {
+        if (!empty($emp['nequi_qr_en_bd'])) {
+            $nequi_qr_url = 'ver_qr_empresa.php';
+        } elseif (!empty($emp['nequi_qr']) && file_exists(__DIR__ . '/../../' . $emp['nequi_qr'])) {
+            $nequi_qr_url = $emp['nequi_qr'];
+        }
+        if (!empty(trim($emp['nequi_numero'] ?? ''))) {
+            $nequi_numero = trim($emp['nequi_numero']);
+        }
+    }
+} catch (Exception $e) {
+    try {
+        $st = $db->query("SELECT nequi_qr, nequi_numero FROM empresa LIMIT 1");
+        if ($st && ($emp = $st->fetch(PDO::FETCH_ASSOC))) {
+            if (!empty($emp['nequi_qr']) && file_exists(__DIR__ . '/../../' . $emp['nequi_qr'])) {
+                $nequi_qr_url = $emp['nequi_qr'];
+            }
+            if (!empty(trim($emp['nequi_numero'] ?? ''))) {
+                $nequi_numero = trim($emp['nequi_numero']);
+            }
+        }
+    } catch (Exception $e2) {}
+}
+if ($nequi_qr_url === '' && file_exists(__DIR__ . '/../../assets/images/qr/qr_transferencia.png')) {
+    $nequi_qr_url = 'assets/images/qr/qr_transferencia.png';
+}
+$nequi_qr_base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
+if ($nequi_qr_base !== '' && strpos($nequi_qr_url, 'ver_qr_empresa.php') !== false) {
+    $nequi_qr_url = $nequi_qr_base . '/ver_qr_empresa.php';
+}
 
 $isFragment = isset($_GET['fragment']) && $_GET['fragment'] == '1';
 ?>
@@ -77,6 +126,7 @@ $isFragment = isset($_GET['fragment']) && $_GET['fragment'] == '1';
         .nuevo-pedido-page .payment-method:hover { border-color: var(--np-purple); background: #f8fafc; }
         .nuevo-pedido-page .payment-method.active, .nuevo-pedido-page .payment-method.selected { border-color: var(--np-purple); background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); }
         .nuevo-pedido-page .qr-container { text-align: center; padding: 1.5rem; border: 2px dashed var(--np-purple); border-radius: 12px; margin-top: 1rem; background: #faf5ff; }
+        .nequi-qr-img { width: 200px; height: 200px; object-fit: contain; display: block; margin-left: auto; margin-right: auto; }
         .nuevo-pedido-page .total-summary { background: #fff; border: 1px solid #e2e8f0; border-radius: var(--np-radius); padding: 1.5rem; position: sticky; top: 1.25rem; box-shadow: var(--np-shadow); }
         .nuevo-pedido-page .total-summary h5 { font-size: 1.05rem; margin-bottom: 1rem; color: #0f172a; }
         .nuevo-pedido-page .total-summary .total-row { background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border-radius: 10px; padding: 1rem 1.25rem; margin: 1rem 0; border: 1px solid rgba(102, 126, 234, 0.2); }
@@ -222,7 +272,14 @@ $isFragment = isset($_GET['fragment']) && $_GET['fragment'] == '1';
 
                                         <div id="qrContainer" class="qr-container" style="display: none;">
                                             <h6 class="fw-bold"><i class="fas fa-qrcode me-2"></i> Escanea para pagar</h6>
-                                            <img src="assets/images/qr/qr_transferencia.png" alt="Nequi QR" class="img-fluid rounded mb-2" style="max-height: 180px;">
+                                            <?php if ($nequi_qr_url): ?>
+                                                <img src="<?= htmlspecialchars($nequi_qr_url) ?>?v=<?= time() ?>" alt="Nequi QR" class="nequi-qr-img rounded mb-2">
+                                            <?php else: ?>
+                                                <p class="text-muted small mb-0">Configura el QR en Admin → Configuración.</p>
+                                            <?php endif; ?>
+                                            <?php if (isset($nequi_numero) && $nequi_numero !== ''): ?>
+                                                <p class="small fw-semibold text-dark mb-1">Número Nequi: <span class="text-primary"><?= htmlspecialchars($nequi_numero) ?></span></p>
+                                            <?php endif; ?>
                                             <p class="x-small text-muted mb-0">Envía el comprobante por WhatsApp al finalizar.</p>
                                         </div>
 
@@ -404,6 +461,7 @@ $isFragment = isset($_GET['fragment']) && $_GET['fragment'] == '1';
             document.getElementById('fecha_entrega').min = today.toISOString().split('T')[0];
         });
     </script>
+    <?php include __DIR__ . '/../partials/footer_empresa.php'; ?>
 </body>
 </html>
 <?php endif; ?>

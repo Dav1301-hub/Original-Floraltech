@@ -17,9 +17,55 @@ if (isset($_SESSION['mensaje_error'])) {
 }
 
 // Conectar a la base de datos
-require_once 'models/conexion.php';
+require_once __DIR__ . '/../../models/conexion.php';
 $conn = new conexion();
 $db = $conn->get_conexion();
+
+// Datos Nequi (QR y número) desde configuración empresa
+$nequi_qr_url = '';
+$nequi_numero = '';
+try {
+    $emp = null;
+    $st = @$db->query("SELECT nequi_qr, nequi_numero, (nequi_qr_imagen IS NOT NULL) as nequi_qr_en_bd FROM empresa LIMIT 1");
+    if ($st) {
+        $emp = $st->fetch(PDO::FETCH_ASSOC);
+    }
+    if (!$emp) {
+        $st = $db->query("SELECT nequi_qr, nequi_numero FROM empresa LIMIT 1");
+        if ($st) {
+            $emp = $st->fetch(PDO::FETCH_ASSOC);
+        }
+    }
+    if ($emp) {
+        if (!empty($emp['nequi_qr_en_bd'])) {
+            $nequi_qr_url = 'ver_qr_empresa.php';
+        } elseif (!empty($emp['nequi_qr']) && file_exists(__DIR__ . '/../../' . $emp['nequi_qr'])) {
+            $nequi_qr_url = $emp['nequi_qr'];
+        }
+        if (!empty(trim($emp['nequi_numero'] ?? ''))) {
+            $nequi_numero = trim($emp['nequi_numero']);
+        }
+    }
+} catch (Exception $e) {
+    try {
+        $st = $db->query("SELECT nequi_qr, nequi_numero FROM empresa LIMIT 1");
+        if ($st && ($emp = $st->fetch(PDO::FETCH_ASSOC))) {
+            if (!empty($emp['nequi_qr']) && file_exists(__DIR__ . '/../../' . $emp['nequi_qr'])) {
+                $nequi_qr_url = $emp['nequi_qr'];
+            }
+            if (!empty(trim($emp['nequi_numero'] ?? ''))) {
+                $nequi_numero = trim($emp['nequi_numero']);
+            }
+        }
+    } catch (Exception $e2) {}
+}
+if ($nequi_qr_url === '' && file_exists(__DIR__ . '/../../assets/images/qr/qr_transferencia.png')) {
+    $nequi_qr_url = 'assets/images/qr/qr_transferencia.png';
+}
+$nequi_qr_base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
+if ($nequi_qr_base !== '' && isset($nequi_qr_url) && strpos($nequi_qr_url, 'ver_qr_empresa.php') !== false) {
+    $nequi_qr_url = $nequi_qr_base . '/ver_qr_empresa.php';
+}
 
 // Obtener ID del cliente
 $usuario = $_SESSION['user'];
@@ -39,6 +85,9 @@ $stmt = $db->prepare("
         pg.metodo_pago,
         pg.fecha_pago,
         pg.idpago,
+        pg.transaccion_id,
+        pg.comprobante_transferencia,
+        (pg.comprobante_imagen IS NOT NULL) AS tiene_comprobante_bd,
         COUNT(dp.iddetped) as total_items,
         GROUP_CONCAT(DISTINCT CONCAT(tf.nombre, ' (', dp.cantidad, ')') SEPARATOR ', ') as items_detalle
     FROM ped p 
@@ -116,6 +165,13 @@ $stmt = $db->prepare("
                                     $notas_pedido = !empty(trim($pedido['notas'] ?? '')) ? $pedido['notas'] : null;
                                     $fecha_ent = !empty($pedido['fecha_entrega_solicitada']) ? date('d/m/Y', strtotime($pedido['fecha_entrega_solicitada'])) : null;
                                     $productos = !empty(trim($pedido['items_detalle'] ?? '')) ? $pedido['items_detalle'] : null;
+                                    $ref_pago = !empty(trim($pedido['transaccion_id'] ?? '')) ? trim($pedido['transaccion_id']) : null;
+                                    $tiene_comprobante_bd = !empty($pedido['tiene_comprobante_bd']);
+                                    $comprobante_legacy = !empty(trim($pedido['comprobante_transferencia'] ?? '')) ? trim($pedido['comprobante_transferencia']) : null;
+                                    $comprobante_legacy_existe = $comprobante_legacy && file_exists(__DIR__ . '/../../assets/comprobantes/' . $comprobante_legacy);
+                                    $tiene_evidencia = $tiene_comprobante_bd || $comprobante_legacy_existe;
+                                    $url_comprobante = 'ver_comprobante.php?idpago=' . (int)$pedido['idpago'];
+                                    $fecha_pago_fmt = !empty($pedido['fecha_pago']) ? date('d/m/Y H:i', strtotime($pedido['fecha_pago'])) : null;
                                     ?>
                                     <tr class="pedido-main-row" role="button" tabindex="0">
                                         <td>
@@ -167,6 +223,29 @@ $stmt = $db->prepare("
                                                     <div class="pedido-detail-item"><strong>Dirección de entrega:</strong> <?= htmlspecialchars($dir_entrega) ?></div>
                                                 <?php endif; ?>
                                                 <div class="pedido-detail-item"><strong>Comentario:</strong> <?= $notas_pedido ? nl2br(htmlspecialchars($notas_pedido)) : '<span class="text-muted">Ninguno</span>' ?></div>
+                                                <hr class="my-2">
+                                                <h6 class="mb-2 mt-2"><i class="fas fa-file-invoice-dollar me-1 text-primary"></i> Detalles del pago</h6>
+                                                <div class="pedido-detail-item"><strong>Estado:</strong> <span class="badge-pedido <?= $pago_badge_class ?>"><?= htmlspecialchars($estado_pago) ?></span></div>
+                                                <div class="pedido-detail-item"><strong>Método:</strong> <?= $pedido['metodo_pago'] ? htmlspecialchars($pedido['metodo_pago']) : '<span class="text-muted">—</span>' ?></div>
+                                                <?php if ($fecha_pago_fmt): ?>
+                                                    <div class="pedido-detail-item"><strong>Fecha pago:</strong> <?= htmlspecialchars($fecha_pago_fmt) ?></div>
+                                                <?php endif; ?>
+                                                <?php if ($ref_pago): ?>
+                                                    <div class="pedido-detail-item"><strong>Referencia:</strong> <?= htmlspecialchars($ref_pago) ?></div>
+                                                <?php endif; ?>
+                                                <?php if ($tiene_evidencia): ?>
+                                                    <div class="pedido-detail-item mt-2">
+                                                        <strong>Evidencia de pago:</strong>
+                                                        <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                                                            <a href="<?= htmlspecialchars($url_comprobante) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
+                                                                <i class="fas fa-external-link-alt me-1"></i> Ver comprobante
+                                                            </a>
+                                                            <a href="<?= htmlspecialchars($url_comprobante) ?>" target="_blank" rel="noopener" class="d-inline-block">
+                                                                <img src="<?= htmlspecialchars($url_comprobante) ?>" alt="Comprobante" class="rounded border" style="max-width:80px;max-height:80px;object-fit:contain;background:#f8f9fa;">
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
@@ -216,18 +295,12 @@ $stmt = $db->prepare("
                         <i class="fas fa-shopping-bag fa-4x text-muted mb-3"></i>
                         <h4 class="text-muted">No tienes pedidos aún</h4>
                         <p class="text-muted">¿Por qué no crear tu primer pedido?</p>
-                        <a href="index.php?ctrl=cliente&action=realizar_pago" class="btn btn-primary">
+                        <a href="index.php?ctrl=cliente&action=nuevo_pedido" class="btn btn-primary">
                             <i class="fas fa-plus"></i> Crear Primer Pedido
                         </a>
                     </div>
                 <?php endif; ?>
             </div>
-        </div>
-        
-        <div class="mt-3 text-center">
-            <a href="index.php?ctrl=cliente&action=nuevo_pedido" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Nuevo Pedido
-            </a>
         </div>
         </div>
     </div>
@@ -270,19 +343,25 @@ $stmt = $db->prepare("
                         </div>
                     </div>
 
-                    <!-- Contenedor QR QR (Oculto por defecto) -->
+                    <!-- Contenedor QR Nequi (Oculto por defecto) -->
                     <div id="qrContainer" class="text-center border rounded p-4 bg-light" style="display: none;">
                         <h6 class="text-primary mb-3">
                             <i class="fas fa-qrcode me-2"></i>Código QR Nequi
                         </h6>
-                        <img src="assets/images/qr/qr_transferencia.png" alt="QR Nequi" class="img-fluid bg-white p-2 rounded shadow-sm mb-3" style="max-width: 180px;">
+                        <?php if ($nequi_qr_url): ?>
+                            <img src="<?= htmlspecialchars($nequi_qr_url) ?>?v=<?= time() ?>" alt="QR Nequi" class="nequi-qr-img bg-white p-2 rounded shadow-sm mb-2">
+                        <?php else: ?>
+                            <p class="text-muted small mb-0">Configura el QR Nequi en Admin → Configuración.</p>
+                        <?php endif; ?>
+                        <?php if (isset($nequi_numero) && $nequi_numero !== ''): ?>
+                            <p class="mb-2 small fw-semibold text-dark">Número Nequi: <span class="text-primary"><?= htmlspecialchars($nequi_numero) ?></span></p>
+                        <?php endif; ?>
                         <div class="text-start small text-muted">
                             <p class="mb-1"><strong>Instrucciones:</strong></p>
                             <ol class="ps-3 mb-0">
                                 <li>Abre tu app Nequi</li>
                                 <li>Escanea este código QR</li>
                                 <li>Confirma el pago por el monto indicado</li>
-                                <li>Envía el comprobante por WhatsApp al +57 300 000 0000</li>
                             </ol>
                         </div>
                     </div>
@@ -313,6 +392,7 @@ $stmt = $db->prepare("
             background-color: #e9ecef;
             box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
         }
+        .nequi-qr-img { width: 200px; height: 200px; object-fit: contain; display: block; margin-left: auto; margin-right: auto; }
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
@@ -484,5 +564,6 @@ $stmt = $db->prepare("
         }
     });
     </script>
+    <?php include __DIR__ . '/../partials/footer_empresa.php'; ?>
 </body>
 </html>

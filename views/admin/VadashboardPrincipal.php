@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 if (!isset($totalUsuarios)) {
     $totalUsuarios = 0;
 }

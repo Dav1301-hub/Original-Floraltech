@@ -134,9 +134,9 @@ $filtro_fecha_hasta = $filtro_completados['fecha_hasta'] ?? '';
                                                 Ref: <?= htmlspecialchars($pago['referencia']) ?>
                                             </div>
                                         <?php endif; ?>
-                                        <?php if (!empty($pago['comprobante'])): ?>
+                                        <?php if (!empty($pago['tiene_comprobante']) || !empty($pago['comprobante'])): ?>
                                             <div class="mt-2">
-                                                <a href="assets/comprobantes/<?= htmlspecialchars($pago['comprobante']) ?>" target="_blank" class="btn-pago btn-approve py-1 px-2" style="font-size: 0.75rem; background: var(--emp-info);">
+                                                <a href="ver_comprobante.php?idpago=<?= (int)$pago['idpago'] ?>" target="_blank" class="btn-pago btn-approve py-1 px-2" style="font-size: 0.75rem; background: var(--emp-info);">
                                                     <i class="fas fa-image"></i> Ver comprobante
                                                 </a>
                                             </div>
