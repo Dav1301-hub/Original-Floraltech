@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 if (!isset($_SESSION['user']) || $_SESSION['user']['tpusu_idtpusu'] != 1) {
     header('Location: index.php?ctrl=login&action=index');
     exit();
@@ -7,6 +7,7 @@ if (!isset($_SESSION['user']) || $_SESSION['user']['tpusu_idtpusu'] != 1) {
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <link rel="icon" href="favicon.php">
     <meta charset="UTF-8">
     <title>Editar Flor - FloralTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">

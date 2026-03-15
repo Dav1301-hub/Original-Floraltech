@@ -45,6 +45,8 @@ try {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $nombre_completo = trim($_POST['nombre_completo'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $username = trim($_POST['username'] ?? '');
         $telefono = trim($_POST['telefono'] ?? '');
         $naturaleza = trim($_POST['naturaleza'] ?? '');
         $nueva_clave = $_POST['nueva_clave'] ?? '';
@@ -52,6 +54,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($nombre_completo)) {
             throw new Exception('El nombre completo es requerido');
+        }
+        if (empty($username)) {
+            throw new Exception('El usuario es requerido');
+        }
+        if (empty($email)) {
+            throw new Exception('El correo es requerido');
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception('El correo no tiene un formato válido');
+        }
+        // Usuario no usado por otro en usu (excluir al actual)
+        $stmtCheck = $db->prepare("SELECT idusu FROM usu WHERE username = ? AND idusu != ?");
+        $stmtCheck->execute([$username, $usuario['idusu']]);
+        if ($stmtCheck->fetch()) {
+            throw new Exception('Ese nombre de usuario ya está en uso');
+        }
+        // Email no usado por otro en usu
+        $stmtCheck = $db->prepare("SELECT idusu FROM usu WHERE email = ? AND idusu != ?");
+        $stmtCheck->execute([$email, $usuario['idusu']]);
+        if ($stmtCheck->fetch()) {
+            throw new Exception('Ese correo ya está registrado por otro usuario');
+        }
+        // Si hay registro en cli, email no debe estar en otro cliente (otro idcli)
+        if ($idcli !== null) {
+            $stmtCheck = $db->prepare("SELECT idcli FROM cli WHERE email = ? AND idcli != ?");
+            $stmtCheck->execute([$email, $idcli]);
+            if ($stmtCheck->fetch()) {
+                throw new Exception('Ese correo ya está registrado por otro cliente');
+            }
         }
 
         if (!empty($nueva_clave)) {
@@ -83,29 +114,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $avatar_tipo = $mimeType;
         }
 
-        // Actualizar usu
+        // Actualizar usu (incluye email y username)
         if (!empty($nueva_clave)) {
             $clave_hash = password_hash($nueva_clave, PASSWORD_DEFAULT);
-            $stmt = $db->prepare("UPDATE usu SET nombre_completo = ?, telefono = ?, naturaleza = ?, clave = ? WHERE idusu = ?");
-            $stmt->execute([$nombre_completo, $telefono, $naturaleza, $clave_hash, $usuario['idusu']]);
+            $stmt = $db->prepare("UPDATE usu SET nombre_completo = ?, email = ?, username = ?, telefono = ?, naturaleza = ?, clave = ? WHERE idusu = ?");
+            $stmt->execute([$nombre_completo, $email, $username, $telefono, $naturaleza, $clave_hash, $usuario['idusu']]);
         } else {
-            $stmt = $db->prepare("UPDATE usu SET nombre_completo = ?, telefono = ?, naturaleza = ? WHERE idusu = ?");
-            $stmt->execute([$nombre_completo, $telefono, $naturaleza, $usuario['idusu']]);
+            $stmt = $db->prepare("UPDATE usu SET nombre_completo = ?, email = ?, username = ?, telefono = ?, naturaleza = ? WHERE idusu = ?");
+            $stmt->execute([$nombre_completo, $email, $username, $telefono, $naturaleza, $usuario['idusu']]);
         }
 
-        // Actualizar cli: datos personales y avatar en DB; avatar path se deja NULL
-        if ($avatar_data !== null) {
-            $stmt = $db->prepare("UPDATE cli SET nombre = ?, telefono = ?, direccion = ?, avatar_data = ?, avatar_tipo = ?, avatar = NULL WHERE email = ?");
-            $stmt->execute([$nombre_completo, $telefono, $naturaleza, $avatar_data, $avatar_tipo, $usuario['email']]);
-            $cli_avatar_url = 'avatar.php?tipo=cli&id=' . $idcli;
-        } else {
-            $stmt = $db->prepare("UPDATE cli SET nombre = ?, telefono = ?, direccion = ? WHERE email = ?");
-            $stmt->execute([$nombre_completo, $telefono, $naturaleza, $usuario['email']]);
+        // Actualizar cli: nombre, telefono, direccion, email (por idcli para no depender del email anterior)
+        if ($idcli !== null) {
+            if ($avatar_data !== null) {
+                $stmt = $db->prepare("UPDATE cli SET nombre = ?, telefono = ?, direccion = ?, email = ?, avatar_data = ?, avatar_tipo = ?, avatar = NULL WHERE idcli = ?");
+                $stmt->execute([$nombre_completo, $telefono, $naturaleza, $email, $avatar_data, $avatar_tipo, $idcli]);
+                $cli_avatar_url = 'avatar.php?tipo=cli&id=' . $idcli;
+            } else {
+                $stmt = $db->prepare("UPDATE cli SET nombre = ?, telefono = ?, direccion = ?, email = ? WHERE idcli = ?");
+                $stmt->execute([$nombre_completo, $telefono, $naturaleza, $email, $idcli]);
+            }
         }
 
         $_SESSION['user']['nombre_completo'] = $nombre_completo;
+        $_SESSION['user']['email'] = $email;
+        $_SESSION['user']['username'] = $username;
         $_SESSION['user']['telefono'] = $telefono;
         $_SESSION['user']['naturaleza'] = $naturaleza;
+
+        $datos_usuario['nombre_completo'] = $nombre_completo;
+        $datos_usuario['email'] = $email;
+        $datos_usuario['username'] = $username;
+        $datos_usuario['telefono'] = $telefono;
+        $datos_usuario['naturaleza'] = $naturaleza;
 
         $mensaje = 'Perfil actualizado correctamente';
         $tipo_mensaje = 'success';
@@ -118,6 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <link rel="icon" href="favicon.php">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configuración - FloralTech</title>
@@ -237,8 +279,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                                 <div class="col-md-6">
                                     <label for="email" class="form-label"><i class="fas fa-envelope me-1 text-muted"></i> Email</label>
-                                    <input type="email" class="form-control" id="email" value="<?= htmlspecialchars($datos_usuario['email'] ?? '') ?>" disabled>
-                                    <small class="text-muted">No se puede modificar</small>
+                                    <input type="email" class="form-control" id="email" name="email" value="<?= htmlspecialchars($datos_usuario['email'] ?? '') ?>" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="telefono" class="form-label"><i class="fas fa-phone me-1 text-muted"></i> Teléfono</label>
@@ -246,8 +287,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                                 <div class="col-md-6">
                                     <label for="username" class="form-label"><i class="fas fa-at me-1 text-muted"></i> Usuario</label>
-                                    <input type="text" class="form-control" id="username" value="<?= htmlspecialchars($datos_usuario['username'] ?? '') ?>" disabled>
-                                    <small class="text-muted">No se puede modificar</small>
+                                    <input type="text" class="form-control" id="username" name="username" value="<?= htmlspecialchars($datos_usuario['username'] ?? '') ?>" required>
                                 </div>
                                 <div class="col-12">
                                     <label for="naturaleza" class="form-label"><i class="fas fa-map-marker-alt me-1 text-muted"></i> Dirección</label>

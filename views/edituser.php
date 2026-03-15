@@ -59,6 +59,7 @@ $roles = $db->query("SELECT * FROM tipousuario")->fetchAll(PDO::FETCH_ASSOC);
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <link rel="icon" href="favicon.php">
     <meta charset="UTF-8">
     <title>Editar Usuario</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">

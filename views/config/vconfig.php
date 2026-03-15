@@ -47,6 +47,7 @@ $config = $stmt->fetch(PDO::FETCH_ASSOC);
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <link rel="icon" href="favicon.php">
     <meta charset="UTF-8">
     <title>Configuración General - Administrador</title>
     <link rel="stylesheet" href="../../assets/styles.css">
