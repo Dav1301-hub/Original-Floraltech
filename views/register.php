@@ -10,6 +10,7 @@ unset($_SESSION['register_success']);
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <link rel="icon" href="favicon.php">
     <meta charset="UTF-8">
     <title>Registro de Nuevo Usuario - FloralTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">

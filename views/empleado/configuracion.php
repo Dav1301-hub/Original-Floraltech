@@ -32,6 +32,8 @@ if (!empty($datos_usuario['avatar_data'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $nombre_completo = trim($_POST['nombre_completo'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $username = trim($_POST['username'] ?? '');
         $telefono = trim($_POST['telefono'] ?? '');
         $naturaleza = trim($_POST['naturaleza'] ?? '');
         $nueva_clave = $_POST['nueva_clave'] ?? '';
@@ -39,6 +41,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($nombre_completo)) {
             throw new Exception('El nombre completo es requerido');
+        }
+        if (empty($username)) {
+            throw new Exception('El usuario es requerido');
+        }
+        if (empty($email)) {
+            throw new Exception('El correo es requerido');
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception('El correo no tiene un formato válido');
+        }
+        // Comprobar que username no esté en uso por otro usuario (excluyendo al actual)
+        $stmtCheck = $db->prepare("SELECT idusu FROM usu WHERE username = ? AND idusu != ?");
+        $stmtCheck->execute([$username, $usuario['idusu']]);
+        if ($stmtCheck->fetch()) {
+            throw new Exception('Ese nombre de usuario ya está en uso');
+        }
+        // Comprobar que email no esté en uso por otro usuario (excluyendo al actual)
+        $stmtCheck = $db->prepare("SELECT idusu FROM usu WHERE email = ? AND idusu != ?");
+        $stmtCheck->execute([$email, $usuario['idusu']]);
+        if ($stmtCheck->fetch()) {
+            throw new Exception('Ese correo ya está registrado por otro usuario');
         }
 
         if (!empty($nueva_clave)) {
@@ -70,8 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $avatar_tipo = $mimeType;
         }
 
-        $params = [$nombre_completo, $telefono, $naturaleza];
-        $sets = "nombre_completo = ?, telefono = ?, naturaleza = ?";
+        $params = [$nombre_completo, $email, $username, $telefono, $naturaleza];
+        $sets = "nombre_completo = ?, email = ?, username = ?, telefono = ?, naturaleza = ?";
         if (!empty($nueva_clave)) {
             $sets .= ", clave = ?";
             $params[] = password_hash($nueva_clave, PASSWORD_DEFAULT);
@@ -86,10 +109,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute($params);
 
         $_SESSION['user']['nombre_completo'] = $nombre_completo;
+        $_SESSION['user']['email'] = $email;
+        $_SESSION['user']['username'] = $username;
         $_SESSION['user']['telefono'] = $telefono;
         $_SESSION['user']['naturaleza'] = $naturaleza;
 
         $datos_usuario['nombre_completo'] = $nombre_completo;
+        $datos_usuario['email'] = $email;
+        $datos_usuario['username'] = $username;
         $datos_usuario['telefono'] = $telefono;
         $datos_usuario['naturaleza'] = $naturaleza;
         if ($avatar_data !== null) {
@@ -111,6 +138,7 @@ $navbar_volver_text = 'Volver al Dashboard';
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <link rel="icon" href="favicon.php">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configuración - FloralTech</title>
@@ -227,8 +255,7 @@ $navbar_volver_text = 'Volver al Dashboard';
                                 </div>
                                 <div class="col-md-6">
                                     <label for="email" class="form-label"><i class="fas fa-envelope me-1 text-muted"></i> Email</label>
-                                    <input type="email" class="form-control" id="email" value="<?= htmlspecialchars($datos_usuario['email'] ?? '') ?>" disabled>
-                                    <small class="text-muted">No se puede modificar</small>
+                                    <input type="email" class="form-control" id="email" name="email" value="<?= htmlspecialchars($datos_usuario['email'] ?? '') ?>" required>
                                 </div>
                                 <div class="col-md-6">
                                     <label for="telefono" class="form-label"><i class="fas fa-phone me-1 text-muted"></i> Teléfono</label>
@@ -236,8 +263,7 @@ $navbar_volver_text = 'Volver al Dashboard';
                                 </div>
                                 <div class="col-md-6">
                                     <label for="username" class="form-label"><i class="fas fa-at me-1 text-muted"></i> Usuario</label>
-                                    <input type="text" class="form-control" id="username" value="<?= htmlspecialchars($datos_usuario['username'] ?? '') ?>" disabled>
-                                    <small class="text-muted">No se puede modificar</small>
+                                    <input type="text" class="form-control" id="username" name="username" value="<?= htmlspecialchars($datos_usuario['username'] ?? '') ?>" required>
                                 </div>
                                 <div class="col-12">
                                     <label for="naturaleza" class="form-label"><i class="fas fa-map-marker-alt me-1 text-muted"></i> Dirección / Notas</label>
