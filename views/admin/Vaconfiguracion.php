@@ -43,7 +43,7 @@ try {
 // Cargar configuración de la empresa (sin BLOB nequi_qr_imagen para no sobrecargar)
 try {
     try {
-        $stmt_empresa = $conexion->prepare("SELECT id, nombre, direccion, telefono, email_contacto, horarios_apertura, logo, facebook, instagram, whatsapp, moneda, iva_porcentaje, zona_horaria, formato_fecha, footer_activo, nequi_qr, nequi_numero, (nequi_qr_imagen IS NOT NULL) as nequi_qr_en_bd FROM empresa LIMIT 1");
+        $stmt_empresa = $conexion->prepare("SELECT id, nombre, direccion, telefono, email_contacto, horarios_apertura, logo, facebook, instagram, whatsapp, moneda, iva_porcentaje, zona_horaria, formato_fecha, footer_activo, nequi_qr, nequi_numero, (nequi_qr_imagen IS NOT NULL) as nequi_qr_en_bd, COALESCE(cobrar_envio, 0) as cobrar_envio, COALESCE(precio_envio, 0) as precio_envio FROM empresa LIMIT 1");
         $stmt_empresa->execute();
         $empresa = $stmt_empresa->fetch(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
@@ -75,28 +75,36 @@ try {
             'formato_fecha' => 'd/m/Y',
             'footer_activo' => 1,
             'nequi_qr' => null,
-            'nequi_numero' => ''
+            'nequi_numero' => '',
+            'cobrar_envio' => 0,
+            'precio_envio' => 0
         ];
     }
 } catch (Exception $e) {
-    $empresa = [
-        'nombre' => 'FloralTech',
-        'direccion' => '',
-        'telefono' => '',
-        'email_contacto' => '',
-        'horarios_apertura' => '',
-        'logo' => null,
-        'facebook' => '',
-        'instagram' => '',
-        'whatsapp' => '',
-        'moneda' => 'COP',
-        'iva_porcentaje' => 19.00,
-        'zona_horaria' => 'America/Bogota',
-        'formato_fecha' => 'd/m/Y',
-        'footer_activo' => 1,
-        'nequi_qr' => null,
-        'nequi_numero' => ''
-    ];
+    $stmt_empresa = $conexion->query("SELECT * FROM empresa LIMIT 1");
+    $empresa = $stmt_empresa ? $stmt_empresa->fetch(PDO::FETCH_ASSOC) : null;
+    if (!$empresa) {
+        $empresa = [
+            'nombre' => 'FloralTech',
+            'direccion' => '',
+            'telefono' => '',
+            'email_contacto' => '',
+            'horarios_apertura' => '',
+            'logo' => null,
+            'facebook' => '',
+            'instagram' => '',
+            'whatsapp' => '',
+            'moneda' => 'COP',
+            'iva_porcentaje' => 19.00,
+            'zona_horaria' => 'America/Bogota',
+            'formato_fecha' => 'd/m/Y',
+            'footer_activo' => 1,
+            'nequi_qr' => null,
+            'nequi_numero' => '',
+            'cobrar_envio' => 0,
+            'precio_envio' => 0
+        ];
+    }
 }
 if (!isset($empresa['footer_activo'])) {
     $empresa['footer_activo'] = 1;
@@ -106,6 +114,12 @@ if (!isset($empresa['nequi_qr'])) {
 }
 if (!isset($empresa['nequi_numero'])) {
     $empresa['nequi_numero'] = '';
+}
+if (!isset($empresa['cobrar_envio'])) {
+    $empresa['cobrar_envio'] = 0;
+}
+if (!isset($empresa['precio_envio'])) {
+    $empresa['precio_envio'] = 0;
 }
 
 // Procesar formularios
@@ -201,6 +215,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $formato_fecha = trim($_POST['formato_fecha'] ?? 'd/m/Y');
             $footer_activo = isset($_POST['footer_activo']) ? 1 : 0;
             $nequi_numero = trim($_POST['nequi_numero'] ?? '');
+            $cobrar_envio = isset($_POST['cobrar_envio']) ? 1 : 0;
+            $precio_envio = floatval($_POST['precio_envio'] ?? 0);
+            if ($precio_envio < 0) $precio_envio = 0;
             
             if (empty($nombre_emp)) {
                 throw new Exception('El nombre de la empresa es requerido');
@@ -459,12 +476,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             }
+            try {
+                $stmt_envio = $conexion->prepare("UPDATE empresa SET cobrar_envio = ?, precio_envio = ? ORDER BY id ASC LIMIT 1");
+                $stmt_envio->execute([$cobrar_envio, $precio_envio]);
+            } catch (PDOException $e) {}
             
             $mensaje_exito = 'Configuración de la empresa actualizada';
             
             // Recargar configuración de empresa (sin BLOB)
             try {
-                $stmt_empresa = $conexion->prepare("SELECT id, nombre, direccion, telefono, email_contacto, horarios_apertura, logo, facebook, instagram, whatsapp, moneda, iva_porcentaje, zona_horaria, formato_fecha, footer_activo, nequi_qr, nequi_numero, (nequi_qr_imagen IS NOT NULL) as nequi_qr_en_bd FROM empresa LIMIT 1");
+                $stmt_empresa = $conexion->prepare("SELECT id, nombre, direccion, telefono, email_contacto, horarios_apertura, logo, facebook, instagram, whatsapp, moneda, iva_porcentaje, zona_horaria, formato_fecha, footer_activo, nequi_qr, nequi_numero, (nequi_qr_imagen IS NOT NULL) as nequi_qr_en_bd, COALESCE(cobrar_envio, 0) as cobrar_envio, COALESCE(precio_envio, 0) as precio_envio FROM empresa LIMIT 1");
                 $stmt_empresa->execute();
                 $empresa = $stmt_empresa->fetch(PDO::FETCH_ASSOC);
             } catch (PDOException $e) {
@@ -615,6 +636,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="mb-4">
         <h5 class="mb-3 text-muted"><i class="fas fa-building me-2"></i>Configuración de la Empresa</h5>
         <form class="mx-auto px-3 w-100" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="moneda" value="<?= htmlspecialchars($empresa['moneda'] ?? 'COP') ?>">
+            <input type="hidden" name="iva_porcentaje" value="<?= htmlspecialchars($empresa['iva_porcentaje'] ?? '19') ?>">
+            <input type="hidden" name="zona_horaria" value="<?= htmlspecialchars($empresa['zona_horaria'] ?? 'America/Bogota') ?>">
+            <input type="hidden" name="formato_fecha" value="<?= htmlspecialchars($empresa['formato_fecha'] ?? 'd/m/Y') ?>">
             <div class="row g-4">
                 <!-- Información General -->
                 <div class="col-12 col-lg-6 d-flex">
@@ -711,81 +736,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </div>
                                 <small class="text-muted">El pie de página con datos de contacto y redes solo se muestra en el panel de clientes. Desactívalo para ocultarlo.</small>
                             </div>
+                        </div>
+                    </div>
+                </div>
 
-                            <div class="mb-0 pt-3 mt-3 border-top">
-                                <h6 class="fw-600 mb-2"><i class="fas fa-mobile-alt text-primary me-1"></i> Nequi (pago por QR)</h6>
-                                <div class="mb-2">
-                                    <label class="form-label small fw-600">Imagen del código QR Nequi</label>
-                                    <?php if (!empty($empresa['nequi_qr_en_bd'])): ?>
-                                        <div class="mb-2"><img src="ver_qr_empresa.php?v=<?= time() ?>" alt="QR Nequi" class="rounded border" style="width:120px;height:120px;object-fit:contain;background:#fff;"></div>
-                                    <?php elseif (!empty($empresa['nequi_qr']) && file_exists(__DIR__ . '/../../' . $empresa['nequi_qr'])): ?>
-                                        <div class="mb-2"><img src="<?= htmlspecialchars($empresa['nequi_qr']) ?>?v=<?= time() ?>" alt="QR Nequi" class="rounded border" style="width:120px;height:120px;object-fit:contain;background:#fff;"></div>
-                                    <?php endif; ?>
-                                    <input type="file" class="form-control form-control-sm" name="nequi_qr" accept="image/jpeg,image/png,image/jpg">
-                                    <small class="text-muted">Sube la imagen del QR que aparece en la app Nequi. Debe ser un código QR válido (JPG/PNG, máx. 2MB).</small>
+                <!-- Nequi y Envío -->
+                <div class="col-12 d-flex">
+                    <div class="card h-100 flex-fill border-0 shadow-sm rounded-4">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="avatar bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;">
+                                    <i class="fas fa-wallet"></i>
                                 </div>
-                                <div class="mb-0">
-                                    <label class="form-label small fw-600">Número Nequi</label>
-                                    <input type="text" class="form-control form-control-sm" name="nequi_numero" value="<?= htmlspecialchars($empresa['nequi_numero'] ?? '') ?>" placeholder="Ej: 300 123 4567">
-                                    <small class="text-muted">Se muestra debajo del QR en cliente y empleado cuando eligen pago Nequi.</small>
-                                </div>
+                                <h5 class="mb-0">Pagos y envíos</h5>
+                            </div>
+                            <h6 class="fw-600 mb-2"><i class="fas fa-mobile-alt text-primary me-1"></i> Nequi (pago por QR)</h6>
+                            <div class="mb-3">
+                                <label class="form-label small fw-600">Imagen del código QR Nequi</label>
+                                <?php if (!empty($empresa['nequi_qr_en_bd'])): ?>
+                                    <div class="mb-2"><img src="ver_qr_empresa.php?v=<?= time() ?>" alt="QR Nequi" class="rounded border" style="width:100px;height:100px;object-fit:contain;background:#fff;"></div>
+                                <?php elseif (!empty($empresa['nequi_qr']) && file_exists(__DIR__ . '/../../' . $empresa['nequi_qr'])): ?>
+                                    <div class="mb-2"><img src="<?= htmlspecialchars($empresa['nequi_qr']) ?>?v=<?= time() ?>" alt="QR Nequi" class="rounded border" style="width:100px;height:100px;object-fit:contain;background:#fff;"></div>
+                                <?php endif; ?>
+                                <input type="file" class="form-control form-control-sm" name="nequi_qr" accept="image/jpeg,image/png,image/jpg">
+                                <small class="text-muted">JPG/PNG, máx. 2MB.</small>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label small fw-600">Número Nequi</label>
+                                <input type="text" class="form-control form-control-sm" name="nequi_numero" value="<?= htmlspecialchars($empresa['nequi_numero'] ?? '') ?>" placeholder="Ej: 300 123 4567">
+                            </div>
+                            <h6 class="fw-600 mb-2 pt-2 border-top"><i class="fas fa-truck text-info me-1"></i> Envío a domicilio</h6>
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" name="cobrar_envio" id="cobrar_envio" value="1" <?= !empty($empresa['cobrar_envio']) ? 'checked' : '' ?>>
+                                <label class="form-check-label fw-600" for="cobrar_envio">Activar cobro de envío</label>
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label small fw-600">Precio del envío</label>
+                                <input type="number" class="form-control form-control-sm" name="precio_envio" id="precio_envio" step="0.01" min="0" value="<?= htmlspecialchars($empresa['precio_envio'] ?? '0') ?>">
+                                <small class="text-muted">Se suma al total en pedidos con envío a domicilio. 0 = gratis.</small>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Configuración Regional y Fiscal -->
-                <div class="col-12 d-flex">
-                    <div class="card h-100 flex-fill border-0 shadow-sm rounded-4">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-4">
-                                <div class="avatar bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center me-3" style="width:50px;height:50px;">
-                                    <i class="fas fa-cog"></i>
-                                </div>
-                                <h5 class="mb-0">Configuración Regional y Fiscal</h5>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label fw-600">Moneda</label>
-                                    <select class="form-select" name="moneda">
-                                        <option value="COP" <?= ($empresa['moneda'] ?? 'COP') === 'COP' ? 'selected' : '' ?>>$ Peso Colombiano (COP)</option>
-                                        <option value="USD" <?= ($empresa['moneda'] ?? '') === 'USD' ? 'selected' : '' ?>>$ Dólar (USD)</option>
-                                        <option value="EUR" <?= ($empresa['moneda'] ?? '') === 'EUR' ? 'selected' : '' ?>>€ Euro (EUR)</option>
-                                    </select>
-                                </div>
-
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label fw-600">IVA (%)</label>
-                                    <input type="number" class="form-control" name="iva_porcentaje" step="0.01" min="0" max="100" value="<?= htmlspecialchars($empresa['iva_porcentaje'] ?? 19.00) ?>">
-                                    <small class="text-muted">Porcentaje de impuesto</small>
-                                </div>
-
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label fw-600">Zona Horaria</label>
-                                    <select class="form-select" name="zona_horaria">
-                                        <option value="America/Bogota" <?= ($empresa['zona_horaria'] ?? 'America/Bogota') === 'America/Bogota' ? 'selected' : '' ?>>Colombia (GMT-5)</option>
-                                        <option value="America/Costa_Rica" <?= ($empresa['zona_horaria'] ?? '') === 'America/Costa_Rica' ? 'selected' : '' ?>>Costa Rica (GMT-6)</option>
-                                        <option value="America/New_York" <?= ($empresa['zona_horaria'] ?? '') === 'America/New_York' ? 'selected' : '' ?>>New York (GMT-5)</option>
-                                        <option value="America/Los_Angeles" <?= ($empresa['zona_horaria'] ?? '') === 'America/Los_Angeles' ? 'selected' : '' ?>>Los Angeles (GMT-8)</option>
-                                    </select>
-                                </div>
-
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label fw-600">Formato Fecha</label>
-                                    <select class="form-select" name="formato_fecha">
-                                        <option value="d/m/Y" <?= ($empresa['formato_fecha'] ?? 'd/m/Y') === 'd/m/Y' ? 'selected' : '' ?>>DD/MM/YYYY</option>
-                                        <option value="m/d/Y" <?= ($empresa['formato_fecha'] ?? '') === 'm/d/Y' ? 'selected' : '' ?>>MM/DD/YYYY</option>
-                                        <option value="Y-m-d" <?= ($empresa['formato_fecha'] ?? '') === 'Y-m-d' ? 'selected' : '' ?>>YYYY-MM-DD</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <button type="submit" name="actualizar_empresa" class="btn btn-success btn-lg w-100 mt-3">
-                                <i class="fas fa-save me-2"></i>Guardar configuración de empresa
-                            </button>
-                        </div>
-                    </div>
+                <div class="col-12">
+                    <button type="submit" name="actualizar_empresa" class="btn btn-success btn-lg">
+                        <i class="fas fa-save me-2"></i>Guardar configuración de empresa
+                    </button>
                 </div>
             </div>
         </form>

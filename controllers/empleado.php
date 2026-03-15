@@ -222,6 +222,8 @@ class empleado {
         $offset_no_perecederos = $offset_np;
         $offset_proveedores = $offset_prov;
         $elementos_por_pagina = $por_pagina;
+        $parametros_inventario = ['stock_minimo' => 20, 'dias_vencimiento' => 7];
+        $todos_proveedores = $invModel->getProveedoresConProductos(500, 0);
         
         include 'views/empleado/inventario.php';
     }
@@ -261,6 +263,88 @@ class empleado {
         
         header('Location: index.php?ctrl=empleado&action=inventario');
         exit();
+    }
+    
+    /**
+     * Obtener un producto del inventario por ID (JSON para modal editar empleado).
+     */
+    public function obtener_producto_inventario() {
+        header('Content-Type: application/json; charset=utf-8');
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : (isset($_POST['id']) ? (int)$_POST['id'] : 0);
+        if (!$id) {
+            echo json_encode(['success' => false, 'message' => 'ID de producto requerido']);
+            return;
+        }
+        require_once __DIR__ . '/../models/minventario.php';
+        $invModel = new Minventario();
+        $producto = $invModel->obtenerProductoPorId($id);
+        if ($producto) {
+            echo json_encode(['success' => true, 'producto' => $producto]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Producto no encontrado']);
+        }
+    }
+    
+    /**
+     * Editar producto del inventario (solo actualizar; empleado no puede crear ni eliminar).
+     */
+    public function editar_producto_inventario() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['success' => false, 'message' => 'Método no permitido']);
+            return;
+        }
+        header('Content-Type: application/json; charset=utf-8');
+        $producto_id = isset($_POST['producto_id']) ? (int)$_POST['producto_id'] : 0;
+        if (!$producto_id) {
+            echo json_encode(['success' => false, 'message' => 'ID de producto requerido']);
+            return;
+        }
+        require_once __DIR__ . '/../models/minventario.php';
+        $invModel = new Minventario();
+        $data = [
+            'producto_id'   => $producto_id,
+            'nombre_producto' => $_POST['nombre_producto'] ?? '',
+            'naturaleza'    => $_POST['naturaleza'] ?? '',
+            'color'         => $_POST['color'] ?? '',
+            'stock'         => isset($_POST['stock']) ? (int)$_POST['stock'] : 0,
+            'precio'        => isset($_POST['precio']) ? (float)$_POST['precio'] : 0,
+            'precio_compra' => isset($_POST['precio_compra']) ? (float)$_POST['precio_compra'] : 0,
+            'tipo_producto' => $_POST['tipo_producto'] ?? 'otro',
+            'estado'        => $_POST['estado'] ?? 'activo',
+        ];
+        $resultado = $invModel->editarProducto($data);
+        if ($resultado['success']) {
+            echo json_encode(['success' => true, 'message' => $resultado['message']]);
+        } else {
+            echo json_encode(['success' => false, 'message' => $resultado['message']]);
+        }
+    }
+    
+    /**
+     * Agregar stock a un producto (no perecederos). Respuesta JSON.
+     */
+    public function agregar_stock() {
+        header('Content-Type: application/json; charset=utf-8');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método no permitido']);
+            return;
+        }
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $cantidad = isset($_POST['cantidad']) ? (int)$_POST['cantidad'] : 0;
+        $motivo = isset($_POST['motivo']) ? trim((string)$_POST['motivo']) : '';
+        if (!$id || $cantidad <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Datos incompletos']);
+            return;
+        }
+        require_once __DIR__ . '/../models/minventario.php';
+        $invModel = new Minventario();
+        $resultado = $invModel->agregarStock($id, $cantidad, $motivo);
+        if ($resultado['success']) {
+            echo json_encode(['success' => true, 'message' => $resultado['message'] ?? 'Stock agregado correctamente']);
+        } else {
+            echo json_encode(['success' => false, 'message' => $resultado['message'] ?? 'Error al agregar stock']);
+        }
     }
     
     public function actualizar_estado_pedido() {
@@ -757,7 +841,7 @@ class empleado {
                     COALESCE(c.nombre, 'Sin nombre') as cliente_nombre,
                     COALESCE(pg.transaccion_id, '') as referencia,
                     COALESCE(pg.comprobante_transferencia, '') as comprobante,
-                    (pg.comprobante_imagen IS NOT NULL OR (pg.comprobante_transferencia IS NOT NULL AND TRIM(COALESCE(pg.comprobante_transferencia,'')) != '')) as tiene_comprobante
+                    (pg.comprobante_imagen IS NOT NULL) as tiene_comprobante_bd
                 FROM pagos pg
                 INNER JOIN ped p ON pg.ped_idped = p.idped
                 LEFT JOIN cli c ON p.cli_idcli = c.idcli
@@ -766,10 +850,15 @@ class empleado {
             ");
             $stmt->execute();
             $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $dirLegacy = __DIR__ . '/../assets/comprobantes';
             foreach ($resultados as &$pago) {
                 $pago['referencia'] = $pago['referencia'] ?? '';
                 $pago['observaciones'] = '';
                 $pago['comprobante'] = $pago['comprobante'] ?? '';
+                $tieneBd = !empty($pago['tiene_comprobante_bd']);
+                $legacy = trim((string)($pago['comprobante'] ?? ''));
+                $legacyExiste = $legacy !== '' && is_dir($dirLegacy) && file_exists($dirLegacy . '/' . $legacy);
+                $pago['tiene_comprobante'] = $tieneBd || $legacyExiste;
             }
             return $resultados;
         } catch (Exception $e) {
@@ -817,7 +906,7 @@ class empleado {
                     u.nombre_completo as verificado_por_nombre,
                     COALESCE(pg.transaccion_id, '') as referencia,
                     COALESCE(pg.comprobante_transferencia, '') as comprobante,
-                    (pg.comprobante_imagen IS NOT NULL OR (pg.comprobante_transferencia IS NOT NULL AND TRIM(COALESCE(pg.comprobante_transferencia,'')) != '')) as tiene_comprobante
+                    (pg.comprobante_imagen IS NOT NULL) as tiene_comprobante_bd
                 FROM pagos pg
                 INNER JOIN ped p ON pg.ped_idped = p.idped
                 LEFT JOIN cli c ON p.cli_idcli = c.idcli
@@ -829,10 +918,15 @@ class empleado {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);
             $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $dirLegacy = __DIR__ . '/../assets/comprobantes';
             foreach ($resultados as &$pago) {
                 $pago['referencia'] = $pago['referencia'] ?? '';
                 $pago['comprobante'] = $pago['comprobante'] ?? '';
                 $pago['verificado_por_nombre'] = $pago['verificado_por_nombre'] ?? '';
+                $tieneBd = !empty($pago['tiene_comprobante_bd']);
+                $legacy = trim((string)($pago['comprobante'] ?? ''));
+                $legacyExiste = $legacy !== '' && is_dir($dirLegacy) && file_exists($dirLegacy . '/' . $legacy);
+                $pago['tiene_comprobante'] = $tieneBd || $legacyExiste;
             }
             return $resultados;
         } catch (Exception $e) {
@@ -992,9 +1086,9 @@ class empleado {
             
             if (isset($_GET['estado_pago']) && !empty($_GET['estado_pago'])) {
                 if ($_GET['estado_pago'] === 'Sin pago') {
-                    $where_conditions[] = "(SELECT estado_pag FROM pagos WHERE ped_idped = p.idped ORDER BY idpago DESC LIMIT 1) IS NULL";
+                    $where_conditions[] = "pg.idpago IS NULL";
                 } else {
-                    $where_conditions[] = "(SELECT estado_pag FROM pagos WHERE ped_idped = p.idped ORDER BY idpago DESC LIMIT 1) = ?";
+                    $where_conditions[] = "pg.estado_pag = ?";
                     $params[] = $_GET['estado_pago'];
                 }
                 error_log("Filtro estado_pago: " . $_GET['estado_pago']);
@@ -1017,7 +1111,7 @@ class empleado {
                 $where_clause = 'WHERE ' . implode(' AND ', $where_conditions);
             }
             
-            // Una fila por pedido: estado_pago del último pago, total_productos
+            // Una fila por pedido: datos del pedido, último pago (para detalle expandible) e items
             $sql = "
                 SELECT 
                     p.idped,
@@ -1026,12 +1120,26 @@ class empleado {
                     p.fecha_entrega_solicitada,
                     p.monto_total,
                     p.estado,
+                    p.direccion_entrega,
+                    p.notas,
                     c.nombre AS cliente_nombre,
                     c.email AS cliente_email,
-                    COALESCE((SELECT pg.estado_pag FROM pagos pg WHERE pg.ped_idped = p.idped ORDER BY pg.idpago DESC LIMIT 1), 'Sin pago') AS estado_pago,
-                    (SELECT COUNT(*) FROM detped d WHERE d.idped = p.idped) AS total_productos
+                    COALESCE(pg.estado_pag, 'Sin pago') AS estado_pago,
+                    (SELECT COUNT(*) FROM detped d WHERE d.idped = p.idped) AS total_productos,
+                    (SELECT GROUP_CONCAT(CONCAT(tf.nombre, ' (', dp.cantidad, ')') SEPARATOR ', ' ) FROM detped dp JOIN tflor tf ON dp.idtflor = tf.idtflor WHERE dp.idped = p.idped) AS items_detalle,
+                    pg.idpago,
+                    pg.metodo_pago,
+                    pg.fecha_pago,
+                    pg.transaccion_id,
+                    pg.comprobante_transferencia,
+                    pg.tiene_comprobante_bd
                 FROM ped p
                 INNER JOIN cli c ON p.cli_idcli = c.idcli
+                LEFT JOIN (
+                    SELECT pago.*, (pago.comprobante_imagen IS NOT NULL) AS tiene_comprobante_bd
+                    FROM pagos pago
+                    INNER JOIN (SELECT ped_idped, MAX(idpago) AS max_id FROM pagos GROUP BY ped_idped) last ON pago.ped_idped = last.ped_idped AND pago.idpago = last.max_id
+                ) pg ON pg.ped_idped = p.idped
                 $where_clause
                 ORDER BY p.fecha_pedido DESC
                 LIMIT 500
@@ -1052,8 +1160,53 @@ class empleado {
             
             return $result;
         } catch (Exception $e) {
-            error_log("Error en obtenerTodosPedidos: " . $e->getMessage());
-            return [];
+            error_log("Error en obtenerTodosPedidos (intentando consulta sin detalle pago): " . $e->getMessage());
+            try {
+                $where_conditions_fb = [];
+                $params_fb = [];
+                if (isset($_GET['estado_pedido']) && $_GET['estado_pedido'] !== '') {
+                    $where_conditions_fb[] = "p.estado = ?";
+                    $params_fb[] = $_GET['estado_pedido'];
+                }
+                if (isset($_GET['estado_pago']) && $_GET['estado_pago'] !== '') {
+                    if ($_GET['estado_pago'] === 'Sin pago') {
+                        $where_conditions_fb[] = "NOT EXISTS (SELECT 1 FROM pagos WHERE ped_idped = p.idped)";
+                    } else {
+                        $where_conditions_fb[] = "(SELECT estado_pag FROM pagos WHERE ped_idped = p.idped ORDER BY idpago DESC LIMIT 1) = ?";
+                        $params_fb[] = $_GET['estado_pago'];
+                    }
+                }
+                if (isset($_GET['fecha_desde']) && $_GET['fecha_desde'] !== '') {
+                    $where_conditions_fb[] = "DATE(p.fecha_pedido) >= ?";
+                    $params_fb[] = $_GET['fecha_desde'];
+                }
+                if (isset($_GET['fecha_hasta']) && $_GET['fecha_hasta'] !== '') {
+                    $where_conditions_fb[] = "DATE(p.fecha_pedido) <= ?";
+                    $params_fb[] = $_GET['fecha_hasta'];
+                }
+                $where_fb = empty($where_conditions_fb) ? '' : 'WHERE ' . implode(' AND ', $where_conditions_fb);
+                $sql_fb = "SELECT p.idped, p.numped, p.fecha_pedido, p.fecha_entrega_solicitada, p.monto_total, p.estado, p.direccion_entrega, p.notas,
+                    c.nombre AS cliente_nombre, c.email AS cliente_email,
+                    COALESCE((SELECT estado_pag FROM pagos WHERE ped_idped = p.idped ORDER BY idpago DESC LIMIT 1), 'Sin pago') AS estado_pago,
+                    (SELECT COUNT(*) FROM detped d WHERE d.idped = p.idped) AS total_productos,
+                    (SELECT GROUP_CONCAT(CONCAT(tf.nombre, ' (', dp.cantidad, ')') SEPARATOR ', ') FROM detped dp JOIN tflor tf ON dp.idtflor = tf.idtflor WHERE dp.idped = p.idped) AS items_detalle
+                    FROM ped p INNER JOIN cli c ON p.cli_idcli = c.idcli $where_fb ORDER BY p.fecha_pedido DESC LIMIT 500";
+                $stmt_fb = $this->db->prepare($sql_fb);
+                $stmt_fb->execute($params_fb);
+                $result = $stmt_fb->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($result as &$row) {
+                    $row['idpago'] = null;
+                    $row['metodo_pago'] = null;
+                    $row['fecha_pago'] = null;
+                    $row['transaccion_id'] = null;
+                    $row['comprobante_transferencia'] = null;
+                    $row['tiene_comprobante_bd'] = null;
+                }
+                return $result;
+            } catch (Exception $e2) {
+                error_log("Error fallback obtenerTodosPedidos: " . $e2->getMessage());
+                return [];
+            }
         }
     }
     
@@ -1428,11 +1581,23 @@ class empleado {
 
             $cli_id = intval($_POST['cli_id']);
             $flores = $_POST['flores'] ?? [];
+            $tipo_entrega = $_POST['tipo_entrega'] ?? 'recoger';
             $direccion_entrega = trim($_POST['direccion_entrega'] ?? '') ?: null;
             $fecha_entrega = trim($_POST['fecha_entrega'] ?? '') ?: null;
             $notas = trim($_POST['notas'] ?? '') ?: null;
             $monto_total = floatval($_POST['monto_total'] ?? 0);
-            $metodo_pago = in_array($_POST['metodo_pago'] ?? '', ['efectivo','tarjeta','transferencia','nequi','otro'], true) ? $_POST['metodo_pago'] : 'efectivo';
+            if ($tipo_entrega === 'domicilio') {
+                if (empty(trim($_POST['direccion_entrega'] ?? ''))) {
+                    throw new Exception("Para envío a domicilio debes indicar la dirección de entrega.");
+                }
+                try {
+                    $st_env = $this->db->query("SELECT COALESCE(cobrar_envio, 0) as cobrar_envio, COALESCE(precio_envio, 0) as precio_envio FROM empresa LIMIT 1");
+                    if ($st_env && ($row_env = $st_env->fetch(PDO::FETCH_ASSOC)) && !empty($row_env['cobrar_envio'])) {
+                        $monto_total += (float)$row_env['precio_envio'];
+                    }
+                } catch (PDOException $e) {}
+            }
+            $metodo_pago = in_array($_POST['metodo_pago'] ?? '', ['efectivo', 'nequi'], true) ? $_POST['metodo_pago'] : 'efectivo';
             $estado_pago = in_array($_POST['estado_pago'] ?? '', ['Pendiente','Completado'], true) ? $_POST['estado_pago'] : 'Pendiente';
 
             $numped = 'PED-' . date('YmdHis') . '-' . $cli_id;
@@ -1465,9 +1630,13 @@ class empleado {
                 $cantidad = (int)($data['cantidad'] ?? 0);
                 $precio = (float)($data['precio'] ?? 0);
                 if ($cantidad <= 0 || $precio <= 0) continue;
-                $stmt_nom = $this->db->prepare("SELECT nombre FROM tflor WHERE idtflor = ?");
+                $stmt_nom = $this->db->prepare("SELECT nombre FROM tflor WHERE idtflor = ? AND COALESCE(activo, 1) = 1");
                 $stmt_nom->execute([$idtflor]);
-                $nombre_flor = $stmt_nom->fetchColumn() ?: 'Producto';
+                $nombre_flor = $stmt_nom->fetchColumn();
+                if (!$nombre_flor) {
+                    throw new Exception("El producto seleccionado ya no está disponible (desactivado). Actualice la página e intente de nuevo.");
+                }
+                $nombre_flor = $nombre_flor ?: 'Producto';
                 $stmt_inv = $this->db->prepare("SELECT COALESCE(stock, cantidad_disponible, 0) as disp FROM inv WHERE tflor_idtflor = ? LIMIT 1");
                 $stmt_inv->execute([$idtflor]);
                 $row_inv = $stmt_inv->fetch(PDO::FETCH_ASSOC);
@@ -1555,7 +1724,7 @@ class empleado {
             $cpedido = new Cpedido();
             $clientes = $cpedido->listarClientes();
 
-            // Solo productos que existen en inventario (inv) — no mostrar tflor sin registro en inv
+            // Solo productos activos que existen en inventario (inv) — no mostrar desactivados ni tflor sin inv
             $stmt = $this->db->prepare("
                 SELECT 
                     tf.idtflor,
@@ -1566,10 +1735,21 @@ class empleado {
                     COALESCE(i.stock, 0) AS stock
                 FROM inv i
                 INNER JOIN tflor tf ON tf.idtflor = i.tflor_idtflor
+                WHERE COALESCE(tf.activo, 1) = 1
                 ORDER BY tf.nombre
             ");
             $stmt->execute();
             $flores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $cobrar_envio = 0;
+            $precio_envio = 0.0;
+            try {
+                $st_env = $this->db->query("SELECT COALESCE(cobrar_envio, 0) as cobrar_envio, COALESCE(precio_envio, 0) as precio_envio FROM empresa LIMIT 1");
+                if ($st_env && ($row_env = $st_env->fetch(PDO::FETCH_ASSOC))) {
+                    $cobrar_envio = (int)$row_env['cobrar_envio'];
+                    $precio_envio = (float)$row_env['precio_envio'];
+                }
+            } catch (PDOException $e) {}
 
             include 'views/empleado/nuevo_pedido.php';
         } catch (Exception $e) {

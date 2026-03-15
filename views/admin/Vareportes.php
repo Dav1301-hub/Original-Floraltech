@@ -93,9 +93,8 @@ function badgeClaseEstado($estado)
                     <div class="card-body text-center p-3">
                         <i class="bi bi-bar-chart-line h4 text-primary"></i>
                         <h6 class="fw-bold mt-2 mb-1">Pedidos</h6>
-                        <div class="small text-muted">Total</div>
-                        <div class="h6 fw-bold text-primary mb-1">$<?= number_format($datos['ventas']['total'] ?? 0, 2) ?></div>
-                        <div class="small text-muted" style="font-size: 0.75rem;">Pedidos: <?= $datos['ventas']['pedidos'] ?? 0 ?></div>
+                        <div class="h6 fw-bold text-primary mb-1"><?= number_format($datos['ventas']['pedidos'] ?? 0) ?></div>
+                        <div class="small text-muted" style="font-size: 0.75rem;">Pendientes: <?= $datos['ventas']['pedidos_pendientes'] ?? $datos['ventas']['pedidos'] ?? 0 ?></div>
                     </div>
                 </div>
             </div>
@@ -241,7 +240,7 @@ function badgeClaseEstado($estado)
                                             <td>$<?= number_format($pedido['monto_total'], 2) ?></td>
                                             <td><?= htmlspecialchars($pedido['cli_idcli']) ?></td>
                                             <td><span class="badge bg-<?= badgeClaseEstado($pedido['estado'] ?? '') ?>"><?= htmlspecialchars($pedido['estado']) ?></span></td>
-                                            <td><?= htmlspecialchars($pedido['empleado_id']) ?></td>
+                                            <td><?= htmlspecialchars($pedido['empleado_nombre'] ?? ('Empleado ' . ($pedido['empleado_id'] ?? ''))) ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
@@ -935,6 +934,16 @@ function badgeClaseEstado($estado)
         
         // Capturar gráfico de Usuarios antes de enviar formulario
         document.getElementById('formPdfUsuarios')?.addEventListener('submit', function(e) {
+            // Llenar ids con los checkboxes seleccionados del modal de usuarios
+            const checkboxes = document.querySelectorAll('#tablaUsuariosModal input.select-row:checked');
+            const ids = Array.from(checkboxes).map(function(cb) { return cb.value; }).filter(Boolean);
+            document.getElementById('pdf_ids_usuarios').value = ids.join(',');
+            if (ids.length === 0) {
+                e.preventDefault();
+                alert('Selecciona al menos un usuario para exportar.');
+                return;
+            }
+
             const inputGrafico = document.getElementById('grafico_usuarios_data');
             
             if (inputGrafico.value) {

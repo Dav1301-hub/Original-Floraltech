@@ -61,6 +61,13 @@ function badgeEstadoPago($estado) {
             .empty-state-pedidos { text-align: center; padding: 2rem 1rem; color: var(--emp-text-muted); }
             .empty-state-pedidos i { font-size: 2.5rem; margin-bottom: 0.75rem; color: var(--emp-text-light); }
             .empty-state-pedidos h4 { font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--emp-text); font-weight: 600; }
+            #tablaPedidosEmpleado .pedido-main-row { cursor: pointer; }
+            #tablaPedidosEmpleado .pedido-main-row:hover { background: rgba(0, 123, 255, 0.06) !important; }
+            #tablaPedidosEmpleado .pedido-detail-row { display: none; }
+            #tablaPedidosEmpleado .pedido-detail-row.visible { display: table-row; }
+            #tablaPedidosEmpleado .pedido-detail-cell { background: #f8fafc; padding: 1rem 1.25rem; vertical-align: top; border-left: 3px solid var(--emp-primary, #0d6efd); }
+            #tablaPedidosEmpleado .pedido-detail-inner { font-size: 0.9rem; }
+            #tablaPedidosEmpleado .pedido-detail-item { margin-bottom: 0.35rem; }
         </style>
     </head>
     <body class="empleado-theme">
@@ -220,8 +227,19 @@ function badgeEstadoPago($estado) {
                                                 $estadoPago = $pedido['estado_pago'] ?? 'Sin pago';
                                                 $fechaPed = !empty($pedido['fecha_pedido']) ? date('d/m/Y H:i', strtotime($pedido['fecha_pedido'])) : 'N/D';
                                                 $fechaEnt = !empty($pedido['fecha_entrega_solicitada']) ? date('d/m/Y', strtotime($pedido['fecha_entrega_solicitada'])) : '';
+                                                $productos = !empty(trim($pedido['items_detalle'] ?? '')) ? $pedido['items_detalle'] : null;
+                                                $dir_entrega = !empty(trim($pedido['direccion_entrega'] ?? '')) ? $pedido['direccion_entrega'] : null;
+                                                $notas_pedido = !empty(trim($pedido['notas'] ?? '')) ? $pedido['notas'] : null;
+                                                $ref_pago = !empty(trim($pedido['transaccion_id'] ?? '')) ? trim($pedido['transaccion_id']) : null;
+                                                $tiene_comprobante_bd = !empty($pedido['tiene_comprobante_bd']);
+                                                $comprobante_legacy = !empty(trim($pedido['comprobante_transferencia'] ?? '')) ? trim($pedido['comprobante_transferencia']) : null;
+                                                $comprobante_legacy_existe = $comprobante_legacy && file_exists(__DIR__ . '/../../assets/comprobantes/' . $comprobante_legacy);
+                                                $tiene_evidencia = $tiene_comprobante_bd || $comprobante_legacy_existe;
+                                                $url_comprobante = isset($pedido['idpago']) && (int)$pedido['idpago'] > 0 ? ('ver_comprobante.php?idpago=' . (int)$pedido['idpago']) : '';
+                                                $fecha_pago_fmt = !empty($pedido['fecha_pago']) ? date('d/m/Y H:i', strtotime($pedido['fecha_pago'])) : null;
+                                                $pago_badge_class = (strtolower($estadoPago) === 'completado') ? 'success' : ((strtolower($estadoPago) === 'pendiente') ? 'warning text-dark' : 'secondary');
                                             ?>
-                                                <tr data-id="<?= (int)$pedido['idped'] ?>"
+                                                <tr class="pedido-main-row" role="button" tabindex="0" data-id="<?= (int)$pedido['idped'] ?>"
                                                     data-numero="<?= htmlspecialchars($pedido['numped'] ?? '') ?>"
                                                     data-cliente="<?= htmlspecialchars($pedido['cliente_nombre'] ?? '') ?>"
                                                     data-email="<?= htmlspecialchars($pedido['cliente_email'] ?? '') ?>"
@@ -267,6 +285,46 @@ function badgeEstadoPago($estado) {
                                                                 <button type="button" class="btn btn-outline-success" onclick="cambiarEstadoEmp(<?= (int)$pedido['idped'] ?>, 'Completado')" title="Completado" <?= $estado === 'Completado' ? 'disabled' : '' ?>><i class="fas fa-check"></i></button>
                                                                 <button type="button" class="btn btn-outline-danger" onclick="cambiarEstadoEmp(<?= (int)$pedido['idped'] ?>, 'Cancelado')" title="Cancelar" <?= $estado === 'Cancelado' ? 'disabled' : '' ?>><i class="fas fa-ban"></i></button>
                                                             <?php endif; ?>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                <tr class="pedido-detail-row">
+                                                    <td colspan="8" class="pedido-detail-cell">
+                                                        <div class="pedido-detail-inner">
+                                                            <div class="pedido-detail-item"><strong>Producto:</strong> <?= $productos ? htmlspecialchars($productos) : '<span class="text-muted">—</span>' ?></div>
+                                                            <div class="pedido-detail-item"><strong>Fecha:</strong> <?= htmlspecialchars($fechaPed) ?></div>
+                                                            <?php if ($fechaEnt): ?>
+                                                                <div class="pedido-detail-item"><strong>Entrega solicitada:</strong> <?= htmlspecialchars($fechaEnt) ?></div>
+                                                            <?php endif; ?>
+                                                            <?php if ($dir_entrega): ?>
+                                                                <div class="pedido-detail-item"><strong>Dirección de entrega:</strong> <?= htmlspecialchars($dir_entrega) ?></div>
+                                                            <?php endif; ?>
+                                                            <div class="pedido-detail-item"><strong>Comentario:</strong> <?= $notas_pedido ? nl2br(htmlspecialchars($notas_pedido)) : '<span class="text-muted">Ninguno</span>' ?></div>
+                                                            <hr class="my-2">
+                                                            <h6 class="mb-2 mt-2"><i class="fas fa-file-invoice-dollar me-1 text-primary"></i> Detalles del pago</h6>
+                                                            <div class="pedido-detail-item"><strong>Estado:</strong> <span class="badge bg-<?= $pago_badge_class ?>"><?= htmlspecialchars($estadoPago) ?></span></div>
+                                                            <div class="pedido-detail-item"><strong>Método:</strong> <?= !empty($pedido['metodo_pago']) ? htmlspecialchars($pedido['metodo_pago']) : '<span class="text-muted">—</span>' ?></div>
+                                                            <?php if ($fecha_pago_fmt): ?>
+                                                                <div class="pedido-detail-item"><strong>Fecha pago:</strong> <?= htmlspecialchars($fecha_pago_fmt) ?></div>
+                                                            <?php endif; ?>
+                                                            <?php if ($ref_pago): ?>
+                                                                <div class="pedido-detail-item"><strong>Referencia:</strong> <?= htmlspecialchars($ref_pago) ?></div>
+                                                            <?php endif; ?>
+                                                            <div class="pedido-detail-item mt-2">
+                                                                <strong>Evidencia de pago:</strong>
+                                                                <?php if ($tiene_evidencia && $url_comprobante): ?>
+                                                                    <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                                                                        <a href="<?= htmlspecialchars($url_comprobante) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
+                                                                            <i class="fas fa-external-link-alt me-1"></i> Ver comprobante
+                                                                        </a>
+                                                                        <a href="<?= htmlspecialchars($url_comprobante) ?>" target="_blank" rel="noopener" class="d-inline-block">
+                                                                            <img src="<?= htmlspecialchars($url_comprobante) ?>" alt="Comprobante" class="rounded border" style="max-width:80px;max-height:80px;object-fit:contain;background:#f8f9fa;">
+                                                                        </a>
+                                                                    </div>
+                                                                <?php else: ?>
+                                                                    <span class="text-muted small">No hay evidencia.</span>
+                                                                <?php endif; ?>
+                                                            </div>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -395,9 +453,7 @@ function badgeEstadoPago($estado) {
                                 <label class="form-label">Método de pago</label>
                                 <select class="form-select" name="metodo_pago" id="pagoMetodoEmp">
                                     <option value="efectivo">Efectivo</option>
-                                    <option value="tarjeta">Tarjeta</option>
-                                    <option value="transferencia">Transferencia</option>
-                                    <option value="otro">Otro</option>
+                                    <option value="nequi">Nequi</option>
                                 </select>
                             </div>
                             <div class="mb-3">
@@ -465,6 +521,17 @@ function badgeEstadoPago($estado) {
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
         <script>
             var baseUrlPedido = 'controllers/Cpedido.php';
+            document.addEventListener('DOMContentLoaded', function() {
+                document.querySelectorAll('#tablaPedidosEmpleado .pedido-main-row').forEach(function(row) {
+                    row.addEventListener('click', function(e) {
+                        if (e.target.closest('button, a, .btn-group')) return;
+                        var next = row.nextElementSibling;
+                        if (next && next.classList.contains('pedido-detail-row')) {
+                            next.classList.toggle('visible');
+                        }
+                    });
+                });
+            });
             function cambiarEstadoEmp(idPedido, nuevoEstado) {
                 if (!idPedido || !nuevoEstado) return;
                 var msg = { 'En proceso': 'Poner en proceso', 'Completado': 'Marcar como completado', 'Cancelado': 'Cancelar pedido', 'Pendiente': 'Reabrir pedido' };

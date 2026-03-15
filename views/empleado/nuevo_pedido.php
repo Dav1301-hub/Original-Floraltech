@@ -48,6 +48,15 @@ try {
 if ($nequi_qr_url === '' && file_exists(__DIR__ . '/../../assets/images/qr/qr_transferencia.png')) {
     $nequi_qr_url = 'assets/images/qr/qr_transferencia.png';
 }
+if (!isset($cobrar_envio)) { $cobrar_envio = 0; $precio_envio = 0.0; }
+try {
+    if (!isset($db_emp)) { $conn_emp = new conexion(); $db_emp = $conn_emp->get_conexion(); }
+    $st_env = @$db_emp->query("SELECT COALESCE(cobrar_envio, 0) as cobrar_envio, COALESCE(precio_envio, 0) as precio_envio FROM empresa LIMIT 1");
+    if ($st_env && ($r = $st_env->fetch(PDO::FETCH_ASSOC))) {
+        $cobrar_envio = (int)$r['cobrar_envio'];
+        $precio_envio = (float)$r['precio_envio'];
+    }
+} catch (Exception $e) {}
 $nequi_qr_base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
 if ($nequi_qr_base !== '' && isset($nequi_qr_url) && strpos($nequi_qr_url, 'ver_qr_empresa.php') !== false) {
     $nequi_qr_url = $nequi_qr_base . '/ver_qr_empresa.php';
@@ -107,7 +116,7 @@ if (!$isModal):
                     <div class="col-lg-8">
                         <div class="content-card">
                             <div class="card-header" style="background: linear-gradient(135deg, var(--emp-primary) 0%, var(--emp-primary-dark) 100%); color: #fff;">
-                                <h5 class="mb-0"><i class="fas fa-leaf me-2"></i>Seleccionar productos</h5>
+                                <h5 class="mb-0"><i class="fas fa-leaf me-2"></i>Nuevo pedido</h5>
                             </div>
                             <div class="card-body">
                                 <form id="pedidoForm" method="POST" action="index.php?ctrl=empleado&action=crearPedidoEmpleado">
@@ -120,10 +129,11 @@ if (!$isModal):
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
+                                    <h6 class="fw-bold text-dark mb-2"><i class="fas fa-box-open me-1"></i> Productos disponibles</h6>
                                     <div class="mb-3">
                                         <input type="text" class="form-control" id="flowerSearch" placeholder="Buscar por nombre..." onkeyup="filterFlowers()">
                                     </div>
-                                    <div id="floresContainer">
+                                    <div id="floresContainer" style="cursor: pointer;">
                                         <?php foreach ($flores as $flor): ?>
                                             <div class="flower-card <?= ($flor['stock'] ?? 0) <= 0 ? 'no-stock' : '' ?>"
                                                  data-id="<?= (int)$flor['idtflor'] ?>"
@@ -169,6 +179,19 @@ if (!$isModal):
                         <div class="total-summary-card">
                             <h5 class="mb-3"><i class="fas fa-shopping-cart me-2"></i>Resumen</h5>
                             <div class="mb-3">
+                                <label class="form-label small fw-bold">Tipo de entrega</label>
+                                <div class="d-flex flex-wrap gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="tipo_entrega" id="tipo_recoger" value="recoger" form="pedidoForm" checked>
+                                        <label class="form-check-label" for="tipo_recoger">Recoger en tienda</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="tipo_entrega" id="tipo_domicilio" value="domicilio" form="pedidoForm">
+                                        <label class="form-check-label" for="tipo_domicilio">Envío a domicilio</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3" id="wrap_direccion_emp" style="display: none;">
                                 <label for="direccion_entrega" class="form-label small fw-bold">Dirección de entrega</label>
                                 <input type="text" class="form-control form-control-sm" id="direccion_entrega" name="direccion_entrega" placeholder="Dirección..." form="pedidoForm">
                             </div>
@@ -180,10 +203,7 @@ if (!$isModal):
                                 <label for="metodo_pago" class="form-label small fw-bold">Método de pago</label>
                                 <select class="form-select form-select-sm" id="metodo_pago" name="metodo_pago" form="pedidoForm" onchange="toggleNequiQrEmp(this.value)">
                                     <option value="efectivo">Efectivo</option>
-                                    <option value="tarjeta">Tarjeta</option>
-                                    <option value="transferencia">Transferencia</option>
                                     <option value="nequi">Nequi</option>
-                                    <option value="otro">Otro</option>
                                 </select>
                             </div>
                             <div id="nequiQrContainerEmp" class="mb-3 text-center border rounded p-3 bg-light" style="display: none;">
@@ -213,6 +233,10 @@ if (!$isModal):
                                 <div class="d-flex justify-content-between">
                                     <span class="text-muted">Subtotal</span>
                                     <span id="subtotal" class="fw-bold">$0.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between mt-2 small" id="rowEnvioEmp">
+                                    <span class="text-muted">Envío</span>
+                                    <span id="summaryEnvioEmp" class="fw-semibold">Recoger en tienda</span>
                                 </div>
                                 <div class="d-flex justify-content-between mt-2">
                                     <span class="text-muted">Total</span>
@@ -255,6 +279,19 @@ if (!$isModal):
             }
             updateTotal();
         }
+        // Clic en la tarjeta del producto selecciona/deselecciona (como en cliente)
+        document.getElementById('floresContainer').addEventListener('click', function(e) {
+            var card = e.target.closest('.flower-card');
+            if (!card || card.classList.contains('no-stock')) return;
+            if (e.target.closest('.flower-checkbox') || e.target.closest('.quantity-input')) return;
+            e.preventDefault();
+            var id = card.getAttribute('data-id');
+            var chk = document.querySelector('input[name="flores[' + id + '][selected]"]');
+            if (chk && !chk.disabled) {
+                chk.checked = !chk.checked;
+                toggleFlowerSelection(id);
+            }
+        });
         function updateTotal() {
             var total = 0;
             document.querySelectorAll('.quantity-input:not(:disabled)').forEach(function(input) {
@@ -262,16 +299,45 @@ if (!$isModal):
                 var card = input.closest('.flower-card');
                 if (card) total += q * parseFloat(card.getAttribute('data-price'));
             });
+            var tipoEntrega = document.querySelector('input[name="tipo_entrega"]:checked');
+            tipoEntrega = tipoEntrega ? tipoEntrega.value : 'recoger';
+            var cobrarEnvio = <?= !empty($cobrar_envio) ? 'true' : 'false' ?>;
+            var precioEnvio = <?= (float)($precio_envio ?? 0) ?>;
+            var envio = 0;
+            if (tipoEntrega === 'domicilio' && cobrarEnvio && precioEnvio > 0) {
+                envio = precioEnvio;
+                document.getElementById('summaryEnvioEmp').textContent = '$' + precioEnvio.toFixed(2);
+            } else if (tipoEntrega === 'domicilio') {
+                document.getElementById('summaryEnvioEmp').textContent = 'Gratis';
+            } else {
+                document.getElementById('summaryEnvioEmp').textContent = 'Recoger en tienda';
+            }
+            var totalConEnvio = total + envio;
             document.getElementById('subtotal').textContent = '$' + total.toFixed(2);
-            document.getElementById('total').textContent = '$' + total.toFixed(2);
-            document.getElementById('monto_total').value = total.toFixed(2);
+            document.getElementById('total').textContent = '$' + totalConEnvio.toFixed(2);
+            document.getElementById('monto_total').value = totalConEnvio.toFixed(2);
             var submitBtn = document.getElementById('submitBtn');
             var cli = document.getElementById('cli_id');
             submitBtn.disabled = total === 0 || !cli || cli.value === '';
         }
         document.getElementById('cli_id').addEventListener('change', updateTotal);
+        document.querySelectorAll('input[name="tipo_entrega"]').forEach(function(r) {
+            r.addEventListener('change', function() {
+                var esDomicilio = document.getElementById('tipo_domicilio').checked;
+                document.getElementById('wrap_direccion_emp').style.display = esDomicilio ? 'block' : 'none';
+                if (!esDomicilio) document.getElementById('direccion_entrega').value = '';
+                updateTotal();
+            });
+        });
 
         document.getElementById('pedidoForm').addEventListener('submit', function(e) {
+            var esDomicilio = document.getElementById('tipo_domicilio').checked;
+            var direccion = (document.getElementById('direccion_entrega').value || '').trim();
+            if (esDomicilio && !direccion) {
+                e.preventDefault();
+                alert('Para envío a domicilio debes indicar la dirección de entrega.');
+                return;
+            }
             var invalid = false;
             var msg = '';
             document.querySelectorAll('.flower-card:not(.no-stock)').forEach(function(card) {
@@ -358,12 +424,27 @@ if (!$isModal):
         </div>
     </div>
 
-    <div class="row g-2 mb-3">
-        <div class="col-6">
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Tipo de entrega</label>
+        <div class="d-flex gap-3">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="tipo_entrega" id="tipo_recoger_modal" value="recoger" checked>
+                <label class="form-check-label" for="tipo_recoger_modal">Recoger en tienda</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="tipo_entrega" id="tipo_domicilio_modal" value="domicilio">
+                <label class="form-check-label" for="tipo_domicilio_modal">Envío a domicilio</label>
+            </div>
+        </div>
+    </div>
+    <div class="row g-2 mb-3" id="wrap_direccion_modal" style="display: none;">
+        <div class="col-12">
             <label for="direccion_modal" class="form-label small fw-bold">Dirección</label>
             <input type="text" class="form-control form-control-sm" id="direccion_modal" name="direccion_entrega" placeholder="Ej: Calle 123...">
         </div>
-        <div class="col-6">
+    </div>
+    <div class="row g-2 mb-3">
+        <div class="col-12">
             <label for="fecha_modal" class="form-label small fw-bold">Fecha Entrega</label>
             <input type="date" class="form-control form-control-sm" id="fecha_modal" name="fecha_entrega">
         </div>
@@ -382,5 +463,12 @@ function filterFlowersModal() {
         item.style.display = item.getAttribute('data-name').includes(term) ? 'block' : 'none';
     });
 }
+document.querySelectorAll('#pedidoFormModal input[name="tipo_entrega"]').forEach(function(r) {
+    r.addEventListener('change', function() {
+        var esDomicilio = document.getElementById('tipo_domicilio_modal').checked;
+        document.getElementById('wrap_direccion_modal').style.display = esDomicilio ? 'block' : 'none';
+        if (!esDomicilio) document.getElementById('direccion_modal').value = '';
+    });
+});
 </script>
 <?php endif; ?>

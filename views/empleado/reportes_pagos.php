@@ -230,10 +230,8 @@ $pagosCompletadosRecientes = isset($pagosCompletados) ? array_slice($pagosComple
                             <div class="col-md-3">
                                 <label for="metodo_pago" class="form-label">Método de Pago</label>
                                 <select class="form-select" id="metodo_pago" name="metodo_pago">
-                                    <option value="">Todos los Métodos</option>
+                                    <option value="">Todos los métodos</option>
                                     <option value="efectivo" <?= $filtros['metodo_pago'] === 'efectivo' ? 'selected' : '' ?>>Efectivo</option>
-                                    <option value="transferencia" <?= $filtros['metodo_pago'] === 'transferencia' ? 'selected' : '' ?>>Transferencia</option>
-                                    <option value="tarjeta_credito" <?= $filtros['metodo_pago'] === 'tarjeta_credito' ? 'selected' : '' ?>>Tarjeta de Crédito</option>
                                     <option value="nequi" <?= $filtros['metodo_pago'] === 'nequi' ? 'selected' : '' ?>>Nequi</option>
                                 </select>
                             </div>

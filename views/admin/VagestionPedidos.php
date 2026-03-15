@@ -569,9 +569,7 @@ try {
                         <label class="form-label">Metodo de pago</label>
                         <select class="form-select" name="metodo_pago" id="pagoMetodo">
                             <option value="efectivo">Efectivo</option>
-                            <option value="tarjeta">Tarjeta</option>
-                            <option value="transferencia">Transferencia</option>
-                            <option value="otro">Otro</option>
+                            <option value="nequi">Nequi</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -658,9 +656,7 @@ try {
                             <label class="form-label">Metodo de pago</label>
                             <select class="form-select" name="metodo_pago">
                                 <option value="efectivo">Efectivo</option>
-                                <option value="tarjeta">Tarjeta</option>
-                                <option value="transferencia">Transferencia</option>
-                                <option value="otro">Otro</option>
+                                <option value="nequi">Nequi</option>
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -797,7 +793,28 @@ function verDetallePedido(idPedido) {
 
             const notas = data.pedido?.notas || '';
             const notasHTML = notas ? `<div class="alert alert-info mt-3"><strong><i class="fas fa-sticky-note me-2"></i>Notas:</strong><br>${notas.replace(/\n/g, '<br>')}</div>` : '';
-            
+            const metodoPago = (data.pedido?.metodo_pago || '').toLowerCase();
+            const esNequi = metodoPago === 'nequi';
+            const refPago = data.pedido?.transaccion_id || '';
+            const idpago = data.pedido?.idpago && parseInt(data.pedido.idpago, 10) > 0 ? data.pedido.idpago : null;
+            const tieneEvidencia = !!data.pedido?.tiene_evidencia_pago;
+            const evidenciaHTML = esNequi ? `
+                <hr>
+                <h6 class="text-primary mb-2"><i class="fas fa-mobile-alt me-2"></i>Detalles de evidencia de pago (Nequi)</h6>
+                <div class="border rounded p-3 bg-light">
+                    ${refPago ? `<p class="mb-2"><strong>Referencia / Transacci\u00f3n:</strong> <code>${refPago.replace(/</g, '&lt;')}</code></p>` : ''}
+                    ${tieneEvidencia && idpago ? `
+                        <p class="mb-0">
+                            <a href="ver_comprobante.php?idpago=${idpago}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-external-link-alt me-1"></i> Ver comprobante
+                            </a>
+                            <a href="ver_comprobante.php?idpago=${idpago}" target="_blank" rel="noopener" class="d-inline-block ms-2">
+                                <img src="ver_comprobante.php?idpago=${idpago}" alt="Comprobante" class="rounded border" style="max-width:80px;max-height:80px;object-fit:contain;background:#fff;">
+                            </a>
+                        </p>
+                    ` : (esNequi && !tieneEvidencia ? '<p class="text-muted mb-0 small">No hay comprobante registrado.</p>' : '')}
+                </div>
+            ` : '';
             modalBody.innerHTML = `
                 <div class="row">
                     <div class="col-md-6">
@@ -812,8 +829,10 @@ function verDetallePedido(idPedido) {
                         <p class="mb-1 text-dark"><strong class="text-dark">Fecha entrega:</strong> ${fechaEntrega}</p>
                         <p class="mb-1 text-dark"><strong class="text-dark">Estado:</strong> ${estado}</p>
                         <p class="mb-1 text-dark"><strong class="text-dark">Estado pago:</strong> ${estadoPago}</p>
+                        ${data.pedido?.metodo_pago ? `<p class="mb-1 text-dark"><strong class="text-dark">M\u00e9todo de pago:</strong> ${data.pedido.metodo_pago}</p>` : ''}
                     </div>
                 </div>
+                ${evidenciaHTML}
                 <hr>
                 <h6 class="text-primary mb-3"><i class="fas fa-box me-2"></i>Productos</h6>
                 ${productosHTML}

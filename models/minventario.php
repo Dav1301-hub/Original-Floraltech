@@ -293,7 +293,7 @@ class Minventario {
                 $orden_direccion = strtoupper($filtros['direccion']);
             }
             
-            // Consulta mejorada con LEFT JOIN para mostrar todos los productos del inventario
+            // Consulta mejorada con datos de lotes (próxima caducidad y cantidad en lotes activos)
             $sql_inventario = "
                 SELECT 
                     i.idinv,
@@ -309,13 +309,17 @@ class Minventario {
                     COALESCE(t.color, 'Sin especificar') as color,
                     COALESCE(i.alimentacion, 'N/A') as categoria_producto,
                     i.tflor_idtflor,
+                    COALESCE(t.activo, 1) as activo,
                     i.fecha_actualizacion,
                     CASE 
                         WHEN i.stock = 0 THEN 'Sin Stock'
                         WHEN i.stock < 10 THEN 'Critico'
                         WHEN i.stock < 20 THEN 'Bajo'
                         ELSE 'Normal'
-                    END as estado_stock
+                    END as estado_stock,
+                    (SELECT MIN(l.fecha_caducidad) FROM lotes l WHERE l.inv_idinv = i.idinv AND COALESCE(l.estado, 'activo') = 'activo' AND l.cantidad > 0) as lote_proxima_caducidad,
+                    (SELECT COALESCE(SUM(l.cantidad), 0) FROM lotes l WHERE l.inv_idinv = i.idinv AND COALESCE(l.estado, 'activo') = 'activo') as lote_cantidad_activa,
+                    (SELECT DATEDIFF(MIN(l.fecha_caducidad), CURDATE()) FROM lotes l WHERE l.inv_idinv = i.idinv AND COALESCE(l.estado, 'activo') = 'activo' AND l.cantidad > 0) as dias_hasta_caducidad
                 FROM inv i
                 LEFT JOIN tflor t ON i.tflor_idtflor = t.idtflor
                 {$where_clause}
@@ -338,6 +342,43 @@ class Minventario {
             return $resultado;
             
         } catch (PDOException $e) {
+            if (strpos($e->getMessage(), 'lotes') !== false) {
+                try {
+                    $sql_sin_lotes = "
+                        SELECT 
+                            i.idinv,
+                            COALESCE(t.nombre, CONCAT('Producto ID-', i.idinv)) as producto,
+                            i.stock, i.precio, i.precio_compra,
+                            ROUND(i.precio - i.precio_compra, 2) as margen_unitario,
+                            ROUND((i.precio - i.precio_compra) * i.stock, 2) as ganancia_potencial,
+                            ROUND(i.precio_compra * i.stock, 2) as inversion_total,
+                            ROUND(i.precio * i.stock, 2) as ingresos_potenciales,
+                            COALESCE(t.naturaleza, 'Sin clasificar') as naturaleza,
+                            COALESCE(t.color, 'Sin especificar') as color,
+                            COALESCE(i.alimentacion, 'N/A') as categoria_producto,
+                            i.tflor_idtflor,
+                            COALESCE(t.activo, 1) as activo,
+                            i.fecha_actualizacion,
+                            CASE WHEN i.stock = 0 THEN 'Sin Stock' WHEN i.stock < 10 THEN 'Critico' WHEN i.stock < 20 THEN 'Bajo' ELSE 'Normal' END as estado_stock,
+                            NULL as lote_proxima_caducidad,
+                            0 as lote_cantidad_activa,
+                            NULL as dias_hasta_caducidad
+                        FROM inv i
+                        LEFT JOIN tflor t ON i.tflor_idtflor = t.idtflor
+                        {$where_clause}
+                        ORDER BY {$orden_columna} {$orden_direccion}, i.idinv ASC
+                        LIMIT :limit OFFSET :offset
+                    ";
+                    $stmt2 = $this->db->prepare($sql_sin_lotes);
+                    $stmt2->bindParam(':limit', $elementos_por_pagina, PDO::PARAM_INT);
+                    $stmt2->bindParam(':offset', $offset, PDO::PARAM_INT);
+                    foreach ($params as $param => $value) {
+                        $stmt2->bindParam($param, $value);
+                    }
+                    $stmt2->execute();
+                    return $stmt2->fetchAll(PDO::FETCH_ASSOC);
+                } catch (PDOException $e2) {}
+            }
             error_log("Error SQL en getInventarioPaginado: " . $e->getMessage());
             throw new Exception("Error al obtener inventario: " . $e->getMessage());
         }
@@ -517,6 +558,13 @@ class Minventario {
                     $this->db->rollBack();
                     throw new Exception('Esta flor ya existe en el inventario. Use la opción de actualizar stock.');
                 }
+                // Actualizar categoría (naturaleza) y color del tflor con los del formulario
+                $sql_upd_tflor = "UPDATE tflor SET naturaleza = :naturaleza, color = :color WHERE idtflor = :tflor_id";
+                $stmt_upd = $this->db->prepare($sql_upd_tflor);
+                $stmt_upd->bindValue(':naturaleza', $data['categoria'] ?? 'No especificado', PDO::PARAM_STR);
+                $stmt_upd->bindValue(':color', $data['color'] ?? 'Multicolor', PDO::PARAM_STR);
+                $stmt_upd->bindValue(':tflor_id', $tflor_id, PDO::PARAM_INT);
+                $stmt_upd->execute();
             } else {
                 // Crear nueva entrada en tflor
                 $sql_tflor = "INSERT INTO tflor (nombre, naturaleza, color, descripcion, precio, precio_venta, estado, fecha_creacion, activo) 
@@ -1023,7 +1071,7 @@ class Minventario {
                                  iva_porcentaje = :iva_porcentaje
                                  WHERE id = :id";
                 $stmt_actualizar = $this->db->prepare($sql_actualizar);
-                $stmt_actualizar->bindParam(':id', $config_existe['id']);
+                $stmt_actualizar->bindValue(':id', $config_existe['id'], PDO::PARAM_INT);
             } else {
                 // Insertar nueva configuración
                 $sql_actualizar = "INSERT INTO configuracion_inventario 
@@ -1032,11 +1080,16 @@ class Minventario {
                 $stmt_actualizar = $this->db->prepare($sql_actualizar);
             }
             
-            $stmt_actualizar->bindParam(':stock_minimo', $data['stock_minimo'], PDO::PARAM_INT);
-            $stmt_actualizar->bindParam(':dias_vencimiento', $data['dias_vencimiento'], PDO::PARAM_INT);
-            $stmt_actualizar->bindParam(':alertas_email', isset($data['alertas_email']) ? 1 : 0, PDO::PARAM_INT);
-            $stmt_actualizar->bindParam(':moneda', $data['moneda'] ?? 'USD');
-            $stmt_actualizar->bindParam(':iva_porcentaje', $data['iva_porcentaje'] ?? 13.00);
+            $stock_min = (int)($data['stock_minimo'] ?? 20);
+            $dias_venc = (int)($data['dias_vencimiento'] ?? 7);
+            $alertas_email = isset($data['alertas_email']) ? 1 : 0;
+            $moneda_default = $data['moneda'] ?? 'COP';
+            $iva = (float)($data['iva_porcentaje'] ?? 13.00);
+            $stmt_actualizar->bindValue(':stock_minimo', $stock_min, PDO::PARAM_INT);
+            $stmt_actualizar->bindValue(':dias_vencimiento', $dias_venc, PDO::PARAM_INT);
+            $stmt_actualizar->bindValue(':alertas_email', $alertas_email, PDO::PARAM_INT);
+            $stmt_actualizar->bindValue(':moneda', $moneda_default, PDO::PARAM_STR);
+            $stmt_actualizar->bindValue(':iva_porcentaje', $iva, PDO::PARAM_STR);
             
             if ($stmt_actualizar->execute()) {
                 return true;
@@ -1049,6 +1102,32 @@ class Minventario {
         } catch (PDOException $e) {
             throw new Exception('Error de base de datos: ' . $e->getMessage());
         }
+    }
+    
+    /**
+     * Obtener parámetros de configuración de inventario (para alertas y umbrales)
+     */
+    public function getParametrosInventario() {
+        try {
+            $sql = "SELECT stock_minimo, dias_vencimiento, alertas_email FROM configuracion_inventario LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                return [
+                    'stock_minimo' => (int)($row['stock_minimo'] ?? 20),
+                    'dias_vencimiento' => (int)($row['dias_vencimiento'] ?? 7),
+                    'alertas_email' => !empty($row['alertas_email'])
+                ];
+            }
+        } catch (PDOException $e) {
+            error_log('getParametrosInventario: ' . $e->getMessage());
+        }
+        return [
+            'stock_minimo' => 20,
+            'dias_vencimiento' => 7,
+            'alertas_email' => true
+        ];
     }
     
     /**
@@ -1116,11 +1195,15 @@ class Minventario {
      */
     public function obtenerProductoPorId($id) {
         try {
-            $sql = "SELECT idinv, producto, naturaleza, color, stock, precio, estado 
-                    FROM inv 
-                    WHERE idinv = :id";
+            $sql = "SELECT i.idinv, COALESCE(t.nombre, '') as producto, COALESCE(t.naturaleza, '') as naturaleza, 
+                    COALESCE(t.color, '') as color, i.stock, i.precio, i.precio_compra, 
+                    COALESCE(i.alimentacion, '') as alimentacion, 
+                    (CASE WHEN COALESCE(t.activo, 1) = 1 THEN 'activo' ELSE 'desactivado' END) as estado 
+                    FROM inv i 
+                    LEFT JOIN tflor t ON i.tflor_idtflor = t.idtflor 
+                    WHERE i.idinv = :id";
             $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             $stmt->execute();
             
             return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -1154,19 +1237,23 @@ class Minventario {
             
             $tflor_id = $resultado['tflor_idtflor'];
             
-            // Actualizar la tabla tflor (nombre, naturaleza, color)
+            // Actualizar la tabla tflor (nombre, naturaleza, color, activo)
             if ($tflor_id) {
+                $estado_val = isset($data['estado']) ? trim($data['estado']) : 'activo';
+                $activo_int = in_array($estado_val, ['desactivado', 'inactivo'], true) ? 0 : 1;
                 $sql_update_tflor = "UPDATE tflor SET 
                                      nombre = :nombre_producto,
                                      naturaleza = :naturaleza,
-                                     color = :color
+                                     color = :color,
+                                     activo = :activo
                                      WHERE idtflor = :tflor_id";
                 
                 $stmt_tflor = $this->db->prepare($sql_update_tflor);
-                $stmt_tflor->bindParam(':nombre_producto', $data['nombre_producto']);
-                $stmt_tflor->bindParam(':naturaleza', $data['naturaleza']);
-                $stmt_tflor->bindParam(':color', $data['color']);
-                $stmt_tflor->bindParam(':tflor_id', $tflor_id, PDO::PARAM_INT);
+                $stmt_tflor->bindValue(':nombre_producto', $data['nombre_producto'], PDO::PARAM_STR);
+                $stmt_tflor->bindValue(':naturaleza', $data['naturaleza'] ?? '', PDO::PARAM_STR);
+                $stmt_tflor->bindValue(':color', $data['color'] ?? '', PDO::PARAM_STR);
+                $stmt_tflor->bindValue(':activo', $activo_int, PDO::PARAM_INT);
+                $stmt_tflor->bindValue(':tflor_id', $tflor_id, PDO::PARAM_INT);
                 $stmt_tflor->execute();
             }
             
@@ -1265,39 +1352,47 @@ class Minventario {
     }
     
     /**
-     * Eliminar un producto del inventario
+     * Eliminar un producto del inventario (siempre permitido: se borran historial, lotes e inv)
      */
     public function eliminarProducto($id) {
         try {
-            // Primero verificar si el producto tiene historial de movimientos
-            $sqlCheck = "SELECT COUNT(*) as total FROM inv_historial WHERE idinv = :id";
-            $stmtCheck = $this->db->prepare($sqlCheck);
-            $stmtCheck->bindParam(':id', $id, PDO::PARAM_INT);
-            $stmtCheck->execute();
-            $historial = $stmtCheck->fetch(PDO::FETCH_ASSOC);
-            
-            if ($historial['total'] > 0) {
-                return [
-                    'success' => false, 
-                    'message' => 'No se puede eliminar este producto porque tiene ' . $historial['total'] . ' movimiento(s) en el historial. Los productos con historial no pueden eliminarse para preservar la integridad de los datos.'
-                ];
+            $this->db->beginTransaction();
+            $id = (int) $id;
+
+            // Eliminar historial de movimientos de este producto (para poder borrar inv)
+            try {
+                $stmtH = $this->db->prepare("DELETE FROM inv_historial WHERE idinv = :id");
+                $stmtH->bindValue(':id', $id, PDO::PARAM_INT);
+                $stmtH->execute();
+            } catch (PDOException $e) {
+                // Tabla puede no existir o no tener FK
             }
-            
-            // Si no tiene historial, proceder con la eliminación
-            $sql = "DELETE FROM inv WHERE idinv = :id";
-            $stmt = $this->db->prepare($sql);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-            
-            if ($stmt->execute()) {
-                if ($stmt->rowCount() > 0) {
-                    return ['success' => true, 'message' => 'Producto eliminado correctamente'];
-                } else {
-                    return ['success' => false, 'message' => 'Producto no encontrado'];
-                }
-            } else {
-                return ['success' => false, 'message' => 'Error al eliminar el producto'];
+
+            // Eliminar lotes asociados a este inv
+            try {
+                $stmtL = $this->db->prepare("DELETE FROM lotes WHERE inv_idinv = :id");
+                $stmtL->bindValue(':id', $id, PDO::PARAM_INT);
+                $stmtL->execute();
+            } catch (PDOException $e) {
+                // Tabla puede no existir
             }
+
+            // Eliminar el registro de inventario
+            $stmt = $this->db->prepare("DELETE FROM inv WHERE idinv = :id");
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            $deleted = $stmt->rowCount() > 0;
+
+            $this->db->commit();
+
+            if ($deleted) {
+                return ['success' => true, 'message' => 'Producto eliminado correctamente'];
+            }
+            return ['success' => false, 'message' => 'Producto no encontrado'];
         } catch (PDOException $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
             error_log('Error al eliminar producto: ' . $e->getMessage());
             return ['success' => false, 'message' => 'Error de base de datos: ' . $e->getMessage()];
         }

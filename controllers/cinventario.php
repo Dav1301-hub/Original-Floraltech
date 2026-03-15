@@ -18,6 +18,7 @@ class Cinventario {
     private $inventario_perecederos = [];
     private $inventario_no_perecederos = [];
     private $proveedores = [];
+    private $parametros_inventario = [];
     private $total_elementos = 0;
     private $total_paginas = 1;
     private $todas_las_flores = [];
@@ -162,7 +163,13 @@ class Cinventario {
                         break;
                         
                     case 'actualizar_parametros':
-                        $this->inventarioModel->actualizarParametros($_POST);
+                        $params = array_merge([
+                            'stock_minimo' => 20,
+                            'dias_vencimiento' => 7,
+                            'iva_porcentaje' => 19.00,
+                            'alertas_email' => isset($_POST['alertas_email']) ? 1 : 0
+                        ], $_POST);
+                        $this->inventarioModel->actualizarParametros($params);
                         $this->mensaje_exito = 'Parámetros de inventario actualizados correctamente';
                         header('Location: ?ctrl=cinventario&success=parametros_actualizados');
                         exit;
@@ -306,7 +313,7 @@ class Cinventario {
                         }
                         exit;
                         break;
-                        
+                    
                     case 'eliminar_producto':
                         $id = $_POST['id'] ?? $_GET['id'] ?? null;
                         
@@ -433,6 +440,9 @@ class Cinventario {
             // Obtener flores para los selectores
             $this->cargarFlores();
             
+            // Parámetros de configuración (alertas de stock y vencimiento)
+            $this->parametros_inventario = $this->inventarioModel->getParametrosInventario();
+            
         } catch (Exception $e) {
             error_log("Error en cargarDatos: " . $e->getMessage());
             $this->error_message = "Error al cargar los datos del inventario.";
@@ -547,6 +557,7 @@ class Cinventario {
             'flores_para_select' => $this->flores_para_select,
             'productos_inventario' => $this->inventarioModel ? $this->inventarioModel->getInventarioPaginado(9999, 0, []) : [],
             'proveedores' => $this->proveedores,
+            'parametros_inventario' => $this->parametros_inventario,
             'todos_proveedores' => $this->inventarioModel ? $this->inventarioModel->getProveedores() : [],
             'elementos_por_pagina' => $this->elementos_por_pagina,
             'pagina_actual' => $this->pagina_actual,
@@ -588,6 +599,7 @@ class Cinventario {
         $flores_para_select = $this->flores_para_select;
         $productos_inventario = $this->inventarioModel ? $this->inventarioModel->getInventarioPaginado(9999, 0, []) : [];
         $proveedores = $this->proveedores;
+        $parametros_inventario = $this->parametros_inventario;
         $todos_proveedores = $this->inventarioModel ? $this->inventarioModel->getProveedores() : [];
         $elementos_por_pagina = $this->elementos_por_pagina;
         $pagina_actual = $this->pagina_actual;
