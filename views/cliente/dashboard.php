@@ -9,12 +9,58 @@ if (!isset($_SESSION['user']) || $_SESSION['user']['tpusu_idtpusu'] != 5) {
 $usuario = $_SESSION['user'];
 
 // Conectar a la base de datos
-require_once 'models/conexion.php';
-require_once 'models/MDashboardGeneral.php';
+require_once __DIR__ . '/../../models/conexion.php';
+require_once __DIR__ . '/../../models/MDashboardGeneral.php';
 $conn = new conexion();
 $db = $conn->get_conexion();
 
 $modeloGeneral = new MDashboardGeneral($db);
+
+// Nequi (QR y número) desde empresa
+$nequi_qr_url = '';
+$nequi_numero = '';
+try {
+    $emp = null;
+    $st = @$db->query("SELECT nequi_qr, nequi_numero, (nequi_qr_imagen IS NOT NULL) as nequi_qr_en_bd FROM empresa LIMIT 1");
+    if ($st) {
+        $emp = $st->fetch(PDO::FETCH_ASSOC);
+    }
+    if (!$emp) {
+        $st = $db->query("SELECT nequi_qr, nequi_numero FROM empresa LIMIT 1");
+        if ($st) {
+            $emp = $st->fetch(PDO::FETCH_ASSOC);
+        }
+    }
+    if ($emp) {
+        if (!empty($emp['nequi_qr_en_bd'])) {
+            $nequi_qr_url = 'ver_qr_empresa.php';
+        } elseif (!empty($emp['nequi_qr']) && file_exists(__DIR__ . '/../../' . $emp['nequi_qr'])) {
+            $nequi_qr_url = $emp['nequi_qr'];
+        }
+        if (!empty(trim($emp['nequi_numero'] ?? ''))) {
+            $nequi_numero = trim($emp['nequi_numero']);
+        }
+    }
+} catch (Exception $e) {
+    try {
+        $st = $db->query("SELECT nequi_qr, nequi_numero FROM empresa LIMIT 1");
+        if ($st && ($emp = $st->fetch(PDO::FETCH_ASSOC))) {
+            if (!empty($emp['nequi_qr']) && file_exists(__DIR__ . '/../../' . $emp['nequi_qr'])) {
+                $nequi_qr_url = $emp['nequi_qr'];
+            }
+            if (!empty(trim($emp['nequi_numero'] ?? ''))) {
+                $nequi_numero = trim($emp['nequi_numero']);
+            }
+        }
+    } catch (Exception $e2) {}
+}
+if ($nequi_qr_url === '' && file_exists(__DIR__ . '/../../assets/images/qr/qr_transferencia.png')) {
+    $nequi_qr_url = 'assets/images/qr/qr_transferencia.png';
+}
+$nequi_qr_base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
+if ($nequi_qr_base !== '' && isset($nequi_qr_url) && strpos($nequi_qr_url, 'ver_qr_empresa.php') !== false) {
+    $nequi_qr_url = $nequi_qr_base . '/ver_qr_empresa.php';
+}
 
 // Buscar el cliente asociado al usuario actual por email
 try {
@@ -354,13 +400,16 @@ $stmt = $db->prepare("
                                                         'entregado' => 'badge-estado-success'
                                                     ];
                                                     $badge_class = $estados_pedido_clases[$estado_pedido] ?? 'badge-estado-secondary';
+                                                    $pago_bg = (strtolower($estado_pago) === 'completado') ? 'badge-estado-success' : ((strtolower($estado_pago) === 'pendiente') ? 'badge-estado-warning' : 'badge-estado-danger');
+                                                    $mismo_estado = (strtolower($pedido['estado']) === strtolower($estado_pago));
                                                     ?>
                                                     <span class="badge-pedido <?= $badge_class ?>"><?= htmlspecialchars($pedido['estado']) ?></span>
                                                     <div class="d-sm-none mt-1">
-                                                        <?php
-                                                        $pago_bg = (strtolower($estado_pago) === 'completado') ? 'badge-estado-success' : ((strtolower($estado_pago) === 'pendiente') ? 'badge-estado-warning' : 'badge-estado-danger');
-                                                        ?>
-                                                        <span class="badge-pedido <?= $pago_bg ?> badge-pedido-sm"><?= htmlspecialchars($estado_pago) ?></span>
+                                                        <?php if ($mismo_estado): ?>
+                                                            <small class="text-muted">Pedido y pago</small>
+                                                        <?php else: ?>
+                                                            <span class="badge-pedido <?= $pago_bg ?> badge-pedido-sm">Pago: <?= htmlspecialchars($estado_pago) ?></span>
+                                                        <?php endif; ?>
                                                     </div>
                                                 </td>
                                                 <td class="d-none d-sm-table-cell">
@@ -409,12 +458,9 @@ $stmt = $db->prepare("
                                 </table>
                             </div>
                         <?php else: ?>
-                            <div class="text-center">
+                            <div class="text-center py-4">
                                 <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
-                                <p class="text-muted">No tienes pedidos recientes</p>
-                                <a href="index.php?ctrl=cliente&action=realizar_pago" class="btn btn-primary">
-                                    <i class="fas fa-plus"></i> Realizar Pedido
-                                </a>
+                                <p class="text-muted mb-0">No tienes pedidos recientes</p>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -483,19 +529,25 @@ $stmt = $db->prepare("
                         </div>
                     </div>
 
-                    <!-- Contenedor QR QR (Oculto por defecto) -->
+                    <!-- Contenedor QR Nequi (Oculto por defecto) -->
                     <div id="qrContainer" class="text-center border rounded p-4 bg-light" style="display: none;">
                         <h6 class="text-primary mb-3">
                             <i class="fas fa-qrcode me-2"></i>Código QR Nequi
                         </h6>
-                        <img src="assets/images/qr/qr_transferencia.png" alt="QR Nequi" class="img-fluid bg-white p-2 rounded shadow-sm mb-3" style="max-width: 180px;">
+                        <?php if ($nequi_qr_url): ?>
+                            <img src="<?= htmlspecialchars($nequi_qr_url) ?>?v=<?= time() ?>" alt="QR Nequi" class="nequi-qr-img bg-white p-2 rounded shadow-sm mb-2">
+                        <?php else: ?>
+                            <p class="text-muted small mb-0">Configura el QR Nequi en Admin → Configuración.</p>
+                        <?php endif; ?>
+                        <?php if (isset($nequi_numero) && $nequi_numero !== ''): ?>
+                            <p class="mb-2 small fw-semibold text-dark">Número Nequi: <span class="text-primary"><?= htmlspecialchars($nequi_numero) ?></span></p>
+                        <?php endif; ?>
                         <div class="text-start small text-muted">
                             <p class="mb-1"><strong>Instrucciones:</strong></p>
                             <ol class="ps-3 mb-0">
                                 <li>Abre tu app Nequi</li>
                                 <li>Escanea este código QR</li>
                                 <li>Confirma el pago por el monto indicado</li>
-                                <li>Envía el comprobante por WhatsApp al +57 300 000 0000</li>
                             </ol>
                         </div>
                     </div>
@@ -528,6 +580,7 @@ $stmt = $db->prepare("
             background-color: #e9ecef;
             box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
         }
+        .nequi-qr-img { width: 200px; height: 200px; object-fit: contain; display: block; margin-left: auto; margin-right: auto; }
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
@@ -572,5 +625,6 @@ $stmt = $db->prepare("
     });
     </script>
     <script src="assets/js/dashboard-cliente.js"></script>
+    <?php include __DIR__ . '/../partials/footer_empresa.php'; ?>
 </body>
 </html>

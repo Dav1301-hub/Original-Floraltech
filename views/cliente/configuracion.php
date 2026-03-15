@@ -300,5 +300,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         });
     </script>
+    <?php include __DIR__ . '/../partials/footer_empresa.php'; ?>
 </body>
 </html>

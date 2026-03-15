@@ -1,54 +1,20 @@
 <?php
 
-require_once 'libs/fpdf/fpdf.php';
-
-// Definimos la clase PDF fuera de la clase cliente para evitar el error
-class FacturaPDF extends FPDF {
-    // Configuración de UTF-8 para caracteres especiales
-    function Cell($w, $h = 0, $txt = '', $border = 0, $ln = 0, $align = '', $fill = false, $link = '') {
-        parent::Cell($w, $h, $this->fixEncoding($txt), $border, $ln, $align, $fill, $link);
-    }
-    
-    function MultiCell($w, $h, $txt, $border = 0, $align = 'J', $fill = false) {
-        parent::MultiCell($w, $h, $this->fixEncoding($txt), $border, $align, $fill);
-    }
-    
-    private function fixEncoding($text) {
-        if (mb_detect_encoding($text, 'UTF-8', true)) {
-            return iconv('UTF-8', 'windows-1252', $text);
+/**
+ * Carga la clase FacturaPDF solo cuando se va a generar un PDF (factura).
+ * Así las páginas Nuevo pedido, Configuración, etc. no dependen de FPDF y no dan error 500
+ * en servidores donde la ruta o la librería fallen (p. ej. InfinityFree, rutas case-sensitive).
+ */
+function cliente_cargarFacturaPDF() {
+    if (!class_exists('FacturaPDF', false)) {
+        $base = __DIR__ . '/../libs';
+        $paths = [ $base . '/FPDF/FacturaPDFFloralTech.php', $base . '/fpdf/FacturaPDFFloralTech.php' ];
+        foreach ($paths as $path) {
+            if (file_exists($path)) {
+                require_once $path;
+                break;
+            }
         }
-        return $text;
-    }
-
-    // Cabecera personalizada con logo
-    function Header() {
-        // Configuración de colores
-        $this->SetTextColor(79, 129, 189); // Azul corporativo
-        
-        // Título
-        $this->SetFont('Arial','B',16);
-        $this->Cell(0,10,'FACTURA ELECTRÓNICA',0,1,'R');
-        $this->SetFont('Arial','',10);
-        $this->Cell(0,5,'FloralTech - Sistema de venta de flores online',0,1,'R');
-        
-        // Línea separadora
-        $this->SetDrawColor(79, 129, 189);
-        $this->SetLineWidth(0.5);
-        $this->Line(10, 25, 200, 25);
-        
-        // Logo de la empresa (ajusta la ruta según tu estructura de archivos)
-        $this->SetY(30); // Posicionamos 5mm debajo de la línea (25 + 5)
-        $this->Image('assets/images/logoepymes.png', 10, 30, 40);
-        
-        // Espacio después del logo (ajusta según necesidades)
-        $this->Ln(50);
-    }
-
-    // Pie de página (opcional)
-    function Footer() {
-        $this->SetY(-15);
-        $this->SetFont('Arial','I',8);
-        $this->Cell(0,10,'Página '.$this->PageNo().'/{nb}',0,0,'C');
     }
 }
 
@@ -296,22 +262,28 @@ class cliente {
                 }
                 
                 $referencia = $_POST['referencia_pago'] ?? null;
-                $comprobante_nombre = null;
+                $comprobante_imagen = null;
+                $comprobante_tipo = null;
 
                 if (isset($_FILES['comprobante']) && $_FILES['comprobante']['error'] === UPLOAD_ERR_OK) {
-                    $ext = pathinfo($_FILES['comprobante']['name'], PATHINFO_EXTENSION);
-                    $comprobante_nombre = 'comp_' . $pedido_id . '_' . time() . '.' . $ext;
-                    if (!is_dir('assets/comprobantes')) {
-                        mkdir('assets/comprobantes', 0777, true);
+                    $tmp = $_FILES['comprobante']['tmp_name'];
+                    $finfo = new finfo(FILEINFO_MIME_TYPE);
+                    $comprobante_tipo = $finfo->file($tmp) ?: ($_FILES['comprobante']['type'] ?: 'image/jpeg');
+                    if (strpos($comprobante_tipo, 'image/') !== 0) {
+                        $comprobante_tipo = 'image/jpeg';
                     }
-                    move_uploaded_file($_FILES['comprobante']['tmp_name'], 'assets/comprobantes/' . $comprobante_nombre);
+                    $comprobante_imagen = file_get_contents($tmp);
+                    if ($comprobante_imagen === false) {
+                        $comprobante_imagen = null;
+                        $comprobante_tipo = null;
+                    }
                 }
 
                 $stmt = $this->db->prepare("
-                    INSERT INTO pagos (ped_idped, monto, metodo_pago, estado_pag, fecha_pago, referencia, comprobante) 
-                    VALUES (?, ?, ?, ?, NOW(), ?, ?)
+                    INSERT INTO pagos (ped_idped, monto, metodo_pago, estado_pag, fecha_pago, transaccion_id, comprobante_imagen, comprobante_tipo) 
+                    VALUES (?, ?, ?, ?, NOW(), ?, ?, ?)
                 ");
-                $stmt->execute([$pedido_id, $monto_total, $metodo_pago, 'Pendiente', $referencia, $comprobante_nombre]);
+                $stmt->execute([$pedido_id, $monto_total, $metodo_pago, 'Pendiente', $referencia, $comprobante_imagen, $comprobante_tipo]);
                 
                 $this->db->commit();
                 
@@ -452,7 +424,8 @@ class cliente {
             // Obtener detalles de los items del pedido
             $detalles = $this->obtenerDetallesItemsPedido($idPedido);
             
-            // Crear documento con márgenes ajustados (usando nuestra clase extendida)
+            // Cargar FPDF solo aquí (no al abrir cualquier página de cliente)
+            cliente_cargarFacturaPDF();
             $pdf = new FacturaPDF();
             $pdf->AliasNbPages();
             $pdf->SetMargins(10, 30, 10); // Izquierda, Arriba (mayor para el logo), Derecha
@@ -618,7 +591,7 @@ class cliente {
      * Genera la factura en memoria (sin output directo)
      */
     private function generarFacturaEnMemoria($idPedido, $pedido, $pago, $detalles) {
-        // Crear documento en memoria
+        cliente_cargarFacturaPDF();
         $pdf = new FacturaPDF();
         $pdf->AliasNbPages();
         $pdf->SetMargins(10, 30, 10);

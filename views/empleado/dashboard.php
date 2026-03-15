@@ -156,7 +156,7 @@ unset($_SESSION['tipo_mensaje']);
                                                     <span class="badge rounded-pill bg-<?= $pedido['estado'] === 'Pendiente' ? 'warning' : 'info' ?> text-dark"><?= htmlspecialchars($pedido['estado']) ?></span>
                                                 </td>
                                                 <td>
-                                                    <span class="badge rounded-pill bg-<?= $pedido['estado_pag'] === 'Completado' ? 'success' : ($pedido['estado_pag'] === 'Pendiente' ? 'warning' : 'secondary') ?>"><?= htmlspecialchars($pedido['estado_pag'] ?? 'Sin pago') ?></span>
+                                                    <span class="badge rounded-pill bg-<?= $pedido['estado_pag'] === 'Completado' ? 'success' : ($pedido['estado_pag'] === 'Pendiente' ? 'warning' : 'secondary') ?> <?= ($pedido['estado_pag'] ?? '') === 'Pendiente' ? 'text-dark' : '' ?>"><?= htmlspecialchars($pedido['estado_pag'] ?? 'Sin pago') ?></span>
                                                 </td>
                                             </tr>
                                             <?php endforeach; ?>
