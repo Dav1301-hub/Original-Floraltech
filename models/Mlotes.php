@@ -103,11 +103,12 @@ class Mlotes {
             $stmt->bindParam(':observaciones', $observaciones);
             $stmt->execute();
 
-            // Actualizar stock del producto sumando la cantidad del lote
-            $sqlUpdateStock = "UPDATE inv SET stock = stock + :cantidad WHERE idinv = :inv_idinv";
+            // Sumar la cantidad del lote a inv (stock y cantidad_disponible)
+            $cantidad = (int)($datos['cantidad'] ?? 0);
+            $sqlUpdateStock = "UPDATE inv SET stock = stock + :cantidad, cantidad_disponible = cantidad_disponible + :cantidad, fecha_actualizacion = NOW() WHERE idinv = :inv_idinv";
             $stmtUpdate = $this->db->prepare($sqlUpdateStock);
-            $stmtUpdate->bindParam(':cantidad', $datos['cantidad']);
-            $stmtUpdate->bindParam(':inv_idinv', $datos['inv_idinv']);
+            $stmtUpdate->bindValue(':cantidad', $cantidad, PDO::PARAM_INT);
+            $stmtUpdate->bindValue(':inv_idinv', $datos['inv_idinv'], PDO::PARAM_INT);
             $stmtUpdate->execute();
 
             $this->db->commit();
@@ -168,13 +169,13 @@ class Mlotes {
             $stmt->bindParam(':observaciones', $datos['observaciones'] ?? null);
             $stmt->execute();
 
-            // Ajustar stock si cambió la cantidad
-            $diferencia = $datos['cantidad'] - $loteAnterior['cantidad'];
+            // Ajustar stock y cantidad_disponible si cambió la cantidad del lote
+            $diferencia = (int)($datos['cantidad'] ?? 0) - (int)($loteAnterior['cantidad'] ?? 0);
             if ($diferencia != 0) {
-                $sqlUpdateStock = "UPDATE inv SET stock = stock + :diferencia WHERE idinv = :inv_idinv";
+                $sqlUpdateStock = "UPDATE inv SET stock = GREATEST(0, stock + :diferencia), cantidad_disponible = GREATEST(0, cantidad_disponible + :diferencia), fecha_actualizacion = NOW() WHERE idinv = :inv_idinv";
                 $stmtUpdate = $this->db->prepare($sqlUpdateStock);
-                $stmtUpdate->bindParam(':diferencia', $diferencia);
-                $stmtUpdate->bindParam(':inv_idinv', $loteAnterior['inv_idinv']);
+                $stmtUpdate->bindValue(':diferencia', $diferencia, PDO::PARAM_INT);
+                $stmtUpdate->bindValue(':inv_idinv', $loteAnterior['inv_idinv'], PDO::PARAM_INT);
                 $stmtUpdate->execute();
             }
 
@@ -219,11 +220,12 @@ class Mlotes {
             $stmt->bindParam(':idlote', $idlote);
             $stmt->execute();
 
-            // Restar cantidad del stock
-            $sqlUpdateStock = "UPDATE inv SET stock = GREATEST(0, stock - :cantidad) WHERE idinv = :inv_idinv";
+            // Descontar cantidad del lote en inv (stock y cantidad_disponible)
+            $cantidad = (int)($lote['cantidad'] ?? 0);
+            $sqlUpdateStock = "UPDATE inv SET stock = GREATEST(0, stock - :cantidad), cantidad_disponible = GREATEST(0, cantidad_disponible - :cantidad), fecha_actualizacion = NOW() WHERE idinv = :inv_idinv";
             $stmtUpdate = $this->db->prepare($sqlUpdateStock);
-            $stmtUpdate->bindParam(':cantidad', $lote['cantidad']);
-            $stmtUpdate->bindParam(':inv_idinv', $lote['inv_idinv']);
+            $stmtUpdate->bindValue(':cantidad', $cantidad, PDO::PARAM_INT);
+            $stmtUpdate->bindValue(':inv_idinv', $lote['inv_idinv'], PDO::PARAM_INT);
             $stmtUpdate->execute();
 
             $this->db->commit();
@@ -362,16 +364,16 @@ class Mlotes {
             $sqlSuma = "SELECT COALESCE(SUM(cantidad), 0) as stock_real 
                        FROM lotes 
                        WHERE inv_idinv = :inv_idinv 
-                       AND estado = 'activo'";
+                       AND COALESCE(estado, 'activo') = 'activo'";
             $stmtSuma = $this->db->prepare($sqlSuma);
             $stmtSuma->bindParam(':inv_idinv', $inv_idinv, PDO::PARAM_INT);
             $stmtSuma->execute();
             $resultado = $stmtSuma->fetch(PDO::FETCH_ASSOC);
             
-            $stock_real = $resultado['stock_real'] ?? 0;
+            $stock_real = (int)($resultado['stock_real'] ?? 0);
             
-            // Actualizar stock del producto
-            $sqlUpdate = "UPDATE inv SET stock = :stock_real WHERE idinv = :inv_idinv";
+            // Actualizar stock y cantidad_disponible
+            $sqlUpdate = "UPDATE inv SET stock = :stock_real, cantidad_disponible = :stock_real, fecha_actualizacion = NOW() WHERE idinv = :inv_idinv";
             $stmtUpdate = $this->db->prepare($sqlUpdate);
             $stmtUpdate->bindParam(':stock_real', $stock_real, PDO::PARAM_INT);
             $stmtUpdate->bindParam(':inv_idinv', $inv_idinv, PDO::PARAM_INT);
@@ -397,35 +399,92 @@ class Mlotes {
     }
     
     /**
-     * Sincronizar stock de TODOS los productos con lotes
+     * Sincronizar UN producto: usa la cantidad que ya está en inv (no recalcula desde lotes).
+     * Iguala cantidad_disponible = stock y alinea precios inv ↔ tflor.
+     */
+    public function sincronizarProductoCompleto($inv_idinv) {
+        try {
+            $this->db->beginTransaction();
+            $inv_idinv = (int) $inv_idinv;
+            
+            $sqlInv = "SELECT i.stock, i.precio, i.precio_compra, i.tflor_idtflor FROM inv i WHERE i.idinv = :id";
+            $stmtInv = $this->db->prepare($sqlInv);
+            $stmtInv->bindValue(':id', $inv_idinv, PDO::PARAM_INT);
+            $stmtInv->execute();
+            $inv = $stmtInv->fetch(PDO::FETCH_ASSOC);
+            if (!$inv) {
+                $this->db->rollBack();
+                return ['success' => false, 'message' => 'Producto no encontrado'];
+            }
+            
+            $stock_inv = (int)($inv['stock'] ?? 0);
+            $tflor_id = (int)($inv['tflor_idtflor'] ?? 0);
+            $precio_venta = $inv['precio'] ?? 0;
+            $precio_compra = $inv['precio_compra'] ?? 0;
+            
+            // Inv: igualar cantidad_disponible al stock actual (sin tocar lotes)
+            $sqlUpdInv = "UPDATE inv SET cantidad_disponible = :stock, fecha_actualizacion = NOW() WHERE idinv = :id";
+            $stmtUpdInv = $this->db->prepare($sqlUpdInv);
+            $stmtUpdInv->bindValue(':stock', $stock_inv, PDO::PARAM_INT);
+            $stmtUpdInv->bindValue(':id', $inv_idinv, PDO::PARAM_INT);
+            $stmtUpdInv->execute();
+            
+            if ($tflor_id > 0) {
+                $sqlUpdTflor = "UPDATE tflor SET precio_venta = :precio_venta, precio = :precio_compra WHERE idtflor = :tflor_id";
+                $stmtTflor = $this->db->prepare($sqlUpdTflor);
+                $stmtTflor->bindValue(':precio_venta', $precio_venta, PDO::PARAM_STR);
+                $stmtTflor->bindValue(':precio_compra', $precio_compra, PDO::PARAM_STR);
+                $stmtTflor->bindValue(':tflor_id', $tflor_id, PDO::PARAM_INT);
+                $stmtTflor->execute();
+            }
+            
+            $this->db->commit();
+            return [
+                'success' => true,
+                'stock_nuevo' => $stock_inv,
+                'message' => "Producto sincronizado (inv: {$stock_inv}, precios alineados)"
+            ];
+        } catch (PDOException $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            error_log("Error al sincronizar producto: " . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+    
+    /**
+     * Sincronizar TODOS los productos: usa la cantidad en inv (no lotes).
+     * Por cada producto: cantidad_disponible = stock, y alinea precios inv ↔ tflor.
      */
     public function sincronizarTodosLosStocks() {
         try {
-            // Obtener todos los productos que tienen lotes
-            $sqlProductos = "SELECT DISTINCT inv_idinv FROM lotes";
-            $stmt = $this->db->prepare($sqlProductos);
+            // Todos los productos (inv), no solo los que tienen lotes
+            $sqlTodos = "SELECT idinv FROM inv ORDER BY idinv";
+            $stmt = $this->db->prepare($sqlTodos);
             $stmt->execute();
-            $productos = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
             
             $sincronizados = 0;
-            foreach ($productos as $inv_idinv) {
-                $resultado = $this->sincronizarStockProducto($inv_idinv);
+            foreach ($ids as $inv_idinv) {
+                $resultado = $this->sincronizarProductoCompleto($inv_idinv);
                 if ($resultado['success']) {
                     $sincronizados++;
                 }
             }
             
+            $msg = $sincronizados === 1
+                ? "Se sincronizó 1 producto (cantidad inv y precios alineados)."
+                : "Se sincronizaron {$sincronizados} productos (cantidad inv y precios alineados).";
+            
             return [
                 'success' => true,
                 'productos_sincronizados' => $sincronizados,
-                'message' => "Se sincronizaron {$sincronizados} productos"
+                'message' => $msg
             ];
-            
         } catch (PDOException $e) {
-            error_log("Error al sincronizar todos los stocks: " . $e->getMessage());
+            error_log("Error al sincronizar todos los productos: " . $e->getMessage());
             return [
                 'success' => false,
-                'message' => 'Error al sincronizar stocks: ' . $e->getMessage()
+                'message' => 'Error al sincronizar: ' . $e->getMessage()
             ];
         }
     }

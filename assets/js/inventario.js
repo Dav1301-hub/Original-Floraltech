@@ -729,6 +729,13 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
 
             const formData = new FormData(this);
+            // Asegurar que estado, categoría (naturaleza) y tipo de producto se envían
+            const estadoSelect = document.getElementById('editar_estado');
+            if (estadoSelect) formData.set('estado', estadoSelect.value || 'activo');
+            const naturalezaSelect = document.getElementById('editar_naturaleza');
+            if (naturalezaSelect) formData.set('naturaleza', naturalezaSelect.value || '');
+            const tipoSelect = document.getElementById('editar_tipo_producto');
+            if (tipoSelect) formData.set('tipo_producto', tipoSelect.value || 'otro');
 
             fetch('?ctrl=cinventario', {
                 method: 'POST',

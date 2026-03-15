@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Vista de auditor├¡a: espera variables preparadas por AdminAuditoriaController::obtenerContexto()
 $resumenAuditoria = $resumenAuditoria ?? ['acciones' => 0, 'usuarios' => 0, 'incidencias' => 0, 'ultima' => null];
 $accionesPorTipo = $accionesPorTipo ?? [];
@@ -36,7 +36,8 @@ $fechaFiltroPagos = $fechaFiltroPagos ?? date('Y-m-d');
                 <div class="d-flex gap-3 flex-wrap">
                     <div class="px-3 py-2 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-25">
                         <div class="small text-white-50">Pagos del mes</div>
-                        <div class="h5 mb-0">$<?= number_format($pagosMes['monto'] ?? 0, 2) ?> <?= intval($pagosMes['conteo'] ?? 0) ?></div>
+                        <div class="h5 mb-0">$<?= number_format($pagosMes['monto'] ?? 0, 2) ?></div>
+                        <div class="small text-white-50"><?= intval($pagosMes['conteo'] ?? 0) ?> pago<?= (int)($pagosMes['conteo'] ?? 0) !== 1 ? 's' : '' ?></div>
                     </div>
                     <div class="px-3 py-2 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-25">
                         <div class="small text-white-50">Usuarios activos hoy</div>

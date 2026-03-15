@@ -33,12 +33,16 @@ class ReportesController {
         $dtAllPagos = $this->model->getAllPagos();
         $modalPagos = $this->filtrarPagos($dtAllPagos, $_GET);
 
-        // Tarjetas resumidas
+        // Tarjetas resumidas: total de pedidos y pendientes
         $pedidosCompletados = array_filter($dtAll, function($p) {
-            return strtolower(trim($p['estado'])) === 'completado';
+            return strtolower(trim($p['estado'] ?? '')) === 'completado';
+        });
+        $pedidosPendientes = array_filter($dtAll, function($p) {
+            return strtolower(trim($p['estado'] ?? '')) === 'pendiente';
         });
 
-        $datos['ventas']['pedidos'] = count($pedidosCompletados);
+        $datos['ventas']['pedidos'] = count($dtAll);
+        $datos['ventas']['pedidos_pendientes'] = count($pedidosPendientes);
         $datos['ventas']['total'] = array_sum(array_column($pedidosCompletados, 'monto_total'));
 
         $datos['pagos']['realizados'] = array_sum(array_map(function($p) {

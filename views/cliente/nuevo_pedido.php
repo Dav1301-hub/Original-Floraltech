@@ -15,10 +15,11 @@ if (!isset($flores_disponibles)) {
                 tf.nombre,
                 tf.naturaleza as color,
                 tf.descripcion,
-                tf.precio,
+                COALESCE(i.precio, tf.precio_venta, tf.precio) as precio,
                 COALESCE(i.stock, i.cantidad_disponible, 0) as stock
             FROM tflor tf
             LEFT JOIN inv i ON tf.idtflor = i.tflor_idtflor
+            WHERE (tf.activo = 1 OR tf.activo IS NULL)
             ORDER BY tf.nombre
         ");
         $stmt->execute();
@@ -72,6 +73,19 @@ try {
 }
 if ($nequi_qr_url === '' && file_exists(__DIR__ . '/../../assets/images/qr/qr_transferencia.png')) {
     $nequi_qr_url = 'assets/images/qr/qr_transferencia.png';
+}
+if (!isset($cobrar_envio) || !isset($precio_envio)) {
+    $cobrar_envio = 0;
+    $precio_envio = 0.0;
+    $moneda = 'COP';
+    try {
+        $st = @$db->query("SELECT COALESCE(cobrar_envio, 0) as cobrar_envio, COALESCE(precio_envio, 0) as precio_envio, COALESCE(moneda, 'COP') as moneda FROM empresa LIMIT 1");
+        if ($st && ($r = $st->fetch(PDO::FETCH_ASSOC))) {
+            $cobrar_envio = (int)$r['cobrar_envio'];
+            $precio_envio = (float)$r['precio_envio'];
+            $moneda = $r['moneda'] ?? 'COP';
+        }
+    } catch (Exception $e) {}
 }
 $nequi_qr_base = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
 if ($nequi_qr_base !== '' && strpos($nequi_qr_url, 'ver_qr_empresa.php') !== false) {
@@ -236,11 +250,26 @@ $isFragment = isset($_GET['fragment']) && $_GET['fragment'] == '1';
 
                                     <div class="section-block">
                                         <h5><i class="fas fa-truck"></i> Información de Entrega</h5>
-                                        <div class="row g-3">
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold text-muted">Tipo de entrega</label>
+                                            <div class="d-flex flex-wrap gap-3">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="tipo_entrega" id="tipo_recoger" value="recoger" checked>
+                                                    <label class="form-check-label" for="tipo_recoger">Recoger en tienda</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="tipo_entrega" id="tipo_domicilio" value="domicilio">
+                                                    <label class="form-check-label" for="tipo_domicilio">Envío a domicilio</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="wrap_direccion_entrega" class="row g-3" style="display: none;">
                                             <div class="col-md-6">
                                                 <label for="direccion_entrega" class="form-label small fw-bold text-muted">Dirección de Entrega</label>
-                                                <textarea class="form-control" id="direccion_entrega" name="direccion_entrega" rows="2" placeholder="Calle, número, barrio..." required></textarea>
+                                                <textarea class="form-control" id="direccion_entrega" name="direccion_entrega" rows="2" placeholder="Calle, número, barrio..."></textarea>
                                             </div>
+                                        </div>
+                                        <div class="row g-3 mt-1">
                                             <div class="col-md-6">
                                                 <label for="fecha_entrega" class="form-label small fw-bold text-muted">Fecha de Entrega</label>
                                                 <input type="date" class="form-control" id="fecha_entrega" name="fecha_entrega" required>
@@ -312,9 +341,9 @@ $isFragment = isset($_GET['fragment']) && $_GET['fragment'] == '1';
                                 <span class="text-muted">Subtotal</span>
                                 <span id="summarySubtotal" class="fw-semibold">$0.00</span>
                             </div>
-                            <div class="d-flex justify-content-between mb-2 small">
+                            <div class="d-flex justify-content-between mb-2 small" id="rowEnvio">
                                 <span class="text-muted">Envío</span>
-                                <span class="text-success fw-semibold">Gratis</span>
+                                <span id="summaryEnvio" class="fw-semibold">Recoger en tienda</span>
                             </div>
                             <div class="total-row d-flex justify-content-between align-items-center">
                                 <span class="total-label">Total a Pagar</span>
@@ -388,9 +417,25 @@ $isFragment = isset($_GET['fragment']) && $_GET['fragment'] == '1';
                 }
             });
 
+            let envio = 0;
+            const tipoEntrega = document.querySelector('input[name="tipo_entrega"]:checked') && document.querySelector('input[name="tipo_entrega"]:checked').value;
+            const cobrarEnvio = <?= !empty($cobrar_envio) ? 'true' : 'false' ?>;
+            const precioEnvio = <?= (float)($precio_envio ?? 0) ?>;
+            if (tipoEntrega === 'domicilio' && cobrarEnvio && precioEnvio > 0) {
+                envio = precioEnvio;
+                document.getElementById('summaryEnvio').textContent = '$' + precioEnvio.toLocaleString('es-CO', {minimumFractionDigits: 2});
+                document.getElementById('summaryEnvio').className = 'fw-semibold';
+            } else if (tipoEntrega === 'domicilio') {
+                document.getElementById('summaryEnvio').textContent = 'Gratis';
+                document.getElementById('summaryEnvio').className = 'text-success fw-semibold';
+            } else {
+                document.getElementById('summaryEnvio').textContent = 'Recoger en tienda';
+                document.getElementById('summaryEnvio').className = 'fw-semibold';
+            }
+            const totalConEnvio = total + envio;
             document.getElementById('selectedFlowersSummary').innerHTML = summaryHtml || '<p class="text-muted small italic">No has seleccionado flores aún...</p>';
             document.getElementById('summarySubtotal').textContent = `$${total.toLocaleString('es-CO', {minimumFractionDigits: 2})}`;
-            document.getElementById('summaryTotal').textContent = `$${total.toLocaleString('es-CO', {minimumFractionDigits: 2})}`;
+            document.getElementById('summaryTotal').textContent = `$${totalConEnvio.toLocaleString('es-CO', {minimumFractionDigits: 2})}`;
             
             document.getElementById('submitBtn').disabled = total === 0;
         }
@@ -407,10 +452,16 @@ $isFragment = isset($_GET['fragment']) && $_GET['fragment'] == '1';
         document.getElementById('pedidoForm').addEventListener('submit', function(e) {
             const fecha = document.getElementById('fecha_entrega').value;
             const payMethod = document.querySelector('input[name="metodo_pago"]:checked');
-            
+            const esDomicilio = document.getElementById('tipo_domicilio').checked;
+            const direccion = (document.getElementById('direccion_entrega').value || '').trim();
             if (!fecha || !payMethod) {
                 e.preventDefault();
                 alert('Por favor completa todos los campos requeridos (Fecha y Método de Pago).');
+                return;
+            }
+            if (esDomicilio && !direccion) {
+                e.preventDefault();
+                alert('Para envío a domicilio debes indicar la dirección de entrega.');
                 return;
             }
 
@@ -455,10 +506,20 @@ $isFragment = isset($_GET['fragment']) && $_GET['fragment'] == '1';
             toggleFlowerSelection(id);
         });
 
-        // Configurar fecha mínima: desde hoy en adelante
+        // Tipo de entrega: mostrar/ocultar dirección y actualizar total
+        document.querySelectorAll('input[name="tipo_entrega"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                const esDomicilio = document.getElementById('tipo_domicilio').checked;
+                document.getElementById('wrap_direccion_entrega').style.display = esDomicilio ? 'flex' : 'none';
+                document.getElementById('direccion_entrega').required = esDomicilio;
+                if (!esDomicilio) document.getElementById('direccion_entrega').value = '';
+                updateTotal();
+            });
+        });
         document.addEventListener('DOMContentLoaded', function() {
             const today = new Date();
             document.getElementById('fecha_entrega').min = today.toISOString().split('T')[0];
+            document.getElementById('direccion_entrega').required = false;
         });
     </script>
     <?php include __DIR__ . '/../partials/footer_empresa.php'; ?>

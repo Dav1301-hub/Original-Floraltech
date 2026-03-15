@@ -447,8 +447,8 @@
         <button class="btn btn-info shadow-sm" onclick="abrirproveedor(); return false;" id="btn-proveedores">
             <i class="fas fa-truck me-2"></i>Proveedores
         </button>
-        <button class="btn btn-primary shadow-sm" onclick="sincronizarTodosStocks(); return false;" id="btn-sincronizar-stocks" title="Sincronizar stock de productos con lotes activos">
-            <i class="fas fa-sync-alt me-2"></i>Sincronizar Stocks
+        <button class="btn btn-primary shadow-sm" onclick="sincronizarTodosStocks(); return false;" id="btn-sincronizar-stocks" title="Sincronizar productos: usa cantidad en inv, iguala cantidad_disponible y alinea precios con catálogo">
+            <i class="fas fa-sync-alt me-2"></i>Sincronizar productos
         </button>
         <button class="btn btn-warning shadow-sm" 
                 onclick="console.log('Botón configuración clickeado'); 
@@ -591,7 +591,7 @@
                                 Fº Caducidad <i class="fas fa-sort text-muted"></i>
                             </th>
                             <th>Obs. Días Rest.</th>
-                            <th>Prioridad</th>
+                            <th>Activo</th>
                             <th>Lotes</th>
                             <th>Acciones</th>
                         </tr>
@@ -618,7 +618,14 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="badge <?= $item['stock'] == 0 ? 'bg-danger' : ($item['stock'] < 20 ? 'bg-warning text-dark' : 'bg-success') ?>">
+                                        <?php 
+                                        $umbral = (int)($parametros_inventario['stock_minimo'] ?? 20);
+                                        $critico = min(5, max(1, (int)($umbral / 2)));
+                                        $es_critico = ($item['stock'] ?? 0) > 0 && ($item['stock'] ?? 0) < $critico;
+                                        $es_bajo = ($item['stock'] ?? 0) >= $critico && ($item['stock'] ?? 0) < $umbral;
+                                        $badge_stock = ($item['stock'] ?? 0) == 0 ? 'bg-danger' : ($es_critico ? 'bg-danger' : ($es_bajo ? 'bg-warning text-dark' : 'bg-success'));
+                                        ?>
+                                        <span class="badge <?= $badge_stock ?>">
                                             <?= $item['stock'] ?>
                                         </span>
                                     </td>
@@ -650,6 +657,7 @@
                                     </td>
                                     <td>
                                         <?php 
+                                        $dias_limite = (int)($parametros_inventario['dias_vencimiento'] ?? 7);
                                         $dias = $item['dias_hasta_caducidad'] ?? null;
                                         if ($dias !== null && $item['lote_cantidad_activa'] > 0):
                                             if ($dias <= 3): ?>
@@ -660,7 +668,7 @@
                                                 <span class="badge bg-warning text-dark">
                                                     <i class="fas fa-exclamation-triangle"></i> <?= $dias ?>d
                                                 </span>
-                                            <?php elseif ($dias <= 7): ?>
+                                            <?php elseif ($dias <= $dias_limite): ?>
                                                 <span class="badge bg-info">
                                                     <i class="fas fa-info-circle"></i> <?= $dias ?>d
                                                 </span>
@@ -672,26 +680,11 @@
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <?php 
-                                        $dias = $item['dias_hasta_caducidad'] ?? null;
-                                        if ($dias !== null && $item['lote_cantidad_activa'] > 0):
-                                            if ($dias <= 3): ?>
-                                                <span class="badge bg-danger">
-                                                    <i class="fas fa-exclamation-triangle"></i> CRÍTICO
-                                                </span>
-                                            <?php elseif ($dias <= 5): ?>
-                                                <span class="badge bg-warning text-dark">
-                                                    <i class="fas fa-exclamation-circle"></i> URGENTE
-                                                </span>
-                                            <?php elseif ($dias <= 7): ?>
-                                                <span class="badge bg-info">
-                                                    <i class="fas fa-info-circle"></i> ALERTA
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="badge bg-success">OK</span>
-                                            <?php endif;
-                                        else: ?>
-                                            <span class="badge bg-secondary">N/A</span>
+                                        <?php $activoP = (int)($item['activo'] ?? 1); ?>
+                                        <?php if ($activoP): ?>
+                                            <span class="badge bg-success">Activo</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">Inactivo</span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
@@ -853,7 +846,7 @@
                             <th class="sortable" data-sort="fecha_actualizacion" style="cursor: pointer;">
                                 Fº Actualización <i class="fas fa-sort text-muted"></i>
                             </th>
-                            <th>Estado</th>
+                            <th>Activo</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -903,7 +896,14 @@
                                             <?= $item['fecha_actualizacion'] ? date('m/d/y H:i', strtotime($item['fecha_actualizacion'])) : 'N/A' ?>
                                         </span>
                                     </td>
-                                    <td><?= $item['stock'] > 0 ? '<span class="badge bg-success">Disponible</span>' : '<span class="badge bg-danger">Agotado</span>' ?></td>
+                                    <td>
+                                        <?php $activoNp = (int)($item['activo'] ?? 1); ?>
+                                        <?php if ($activoNp): ?>
+                                            <span class="badge bg-success">Activo</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">Inactivo</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <button type="button" class="btn btn-warning btn-sm btn-modal-editar" title="Editar"
                                                 data-producto-id="<?= $item['idinv'] ?>" 
@@ -1508,7 +1508,12 @@
                                 <option value="Natural">Natural</option>
                                 <option value="Artificial">Artificial</option>
                                 <option value="Mixto">Mixto</option>
+                                <option value="Comestible">Comestible</option>
+                                <option value="Decorativo">Decorativo</option>
+                                <option value="Regalo">Regalo</option>
+                                <option value="Accesorio">Accesorio</option>
                                 <option value="No aplica">No aplica</option>
+                                <option value="Sin clasificar">Sin clasificar</option>
                             </select>
                         </div>
                         
@@ -1516,9 +1521,8 @@
                         <div class="col-md-6">
                             <label class="form-label"><i class="fas fa-info-circle me-1"></i>Estado</label>
                             <select class="form-select" name="estado" id="editar_estado">
-                                <option value="Disponible">Disponible</option>
-                                <option value="Agotado">Agotado</option>
-                                <option value="Descontinuado">Descontinuado</option>
+                                <option value="activo">Activo</option>
+                                <option value="desactivado">Desactivado</option>
                             </select>
                         </div>
                     </div>
@@ -1713,6 +1717,11 @@
                 <form method="POST" action="?ctrl=cinventario" id="form-configuracion">
                     <input type="hidden" name="accion" value="actualizar_parametros">
                     
+                    <?php 
+                    $param = $parametros_inventario ?? [];
+                    $cfg_stock_min = (int)($param['stock_minimo'] ?? 20);
+                    $cfg_dias_venc = (int)($param['dias_vencimiento'] ?? 7);
+                    ?>
                     <div class="row g-3">
                         <div class="col-12">
                             <h6 class="text-muted"><i class="fas fa-exclamation-triangle me-2"></i>Niveles de Alerta de Stock</h6>
@@ -1720,76 +1729,22 @@
                         
                         <div class="col-md-6">
                             <label class="form-label"><i class="fas fa-arrow-down me-1"></i>Stock Mínimo *</label>
-                            <input type="number" class="form-control" name="stock_minimo" min="0" value="10" required 
+                            <input type="number" class="form-control" name="stock_minimo" min="0" value="<?= $cfg_stock_min ?>" required 
                                    placeholder="Cantidad mínima antes de alertar">
-                            <small class="text-muted">Nivel crítico de stock</small>
+                            <small class="text-muted">Productos con stock menor aparecerán como "Stock Bajo" o "Crítico"</small>
                         </div>
                         
                         <div class="col-md-6">
-                            <label class="form-label"><i class="fas fa-arrow-up me-1"></i>Stock Máximo</label>
-                            <input type="number" class="form-control" name="stock_maximo" min="0" value="1000" 
-                                   placeholder="Cantidad máxima recomendada">
-                            <small class="text-muted">Opcional: para alertas de sobrestock</small>
+                            <label class="form-label"><i class="fas fa-calendar-alt me-1"></i>Días para alerta de vencimiento</label>
+                            <input type="number" class="form-control" name="dias_vencimiento" min="1" max="365" value="<?= $cfg_dias_venc ?>">
+                            <small class="text-muted">Avisar cuando los lotes caduquen en este número de días</small>
                         </div>
                         
                         <div class="col-12">
-                            <hr>
-                            <h6 class="text-muted"><i class="fas fa-dollar-sign me-2"></i>Configuración de Precios</h6>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <label class="form-label"><i class="fas fa-percentage me-1"></i>Margen de Ganancia (%)</label>
-                            <input type="number" class="form-control" name="margen_ganancia" min="0" max="100" step="0.1" value="30" 
-                                   placeholder="Porcentaje de ganancia">
-                            <small class="text-muted">Para cálculo automático de precios de venta</small>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <label class="form-label"><i class="fas fa-coins me-1"></i>Moneda</label>
-                            <select class="form-select" name="moneda">
-                                <option value="COP" selected>COP - Peso Colombiano</option>
-                                <option value="USD">USD - Dólar Americano</option>
-                                <option value="EUR">EUR - Euro</option>
-                            </select>
-                        </div>
-                        
-                        <div class="col-12">
-                            <hr>
-                            <h6 class="text-muted"><i class="fas fa-bell me-2"></i>Configuración de Alertas</h6>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="alertas_stock_bajo" id="alertas_stock_bajo" checked>
-                                <label class="form-check-label" for="alertas_stock_bajo">
-                                    <i class="fas fa-exclamation-triangle me-1"></i>Alertas de Stock Bajo
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="alertas_vencimiento" id="alertas_vencimiento" checked>
-                                <label class="form-check-label" for="alertas_vencimiento">
-                                    <i class="fas fa-calendar-times me-1"></i>Alertas de Vencimiento
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-4">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="alertas_email" id="alertas_email" checked>
-                                <label class="form-check-label" for="alertas_email">
-                                    <i class="fas fa-envelope me-1"></i>Enviar alertas por email
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <div class="col-12">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <strong>Nota:</strong> Estos parámetros afectarán el cálculo de alertas y reportes en todo el sistema.
-                            </div>
+                            <p class="text-muted small mb-0">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Stock mínimo y días de vencimiento definen cuándo se marcan los productos en rojo/amarillo en la tabla.
+                            </p>
                         </div>
                     </div>
                     
@@ -2279,43 +2234,14 @@ function abrirParametros() {
                             
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label"><i class="fas fa-exclamation-triangle me-1"></i>Stock Mínimo para Alerta</label>
+                                    <label class="form-label"><i class="fas fa-exclamation-triangle me-1"></i>Stock Mínimo</label>
                                     <input type="number" class="form-control" name="stock_minimo" value="20" min="1" max="100">
-                                    <small class="text-muted">Productos con stock menor a este número aparecerán como "Stock Bajo"</small>
+                                    <small class="text-muted">Productos con stock menor se marcan como bajo/crítico en la tabla</small>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label"><i class="fas fa-calendar-alt me-1"></i>Días para Alerta de Vencimiento</label>
+                                    <label class="form-label"><i class="fas fa-calendar-alt me-1"></i>Días para vencimiento</label>
                                     <input type="number" class="form-control" name="dias_vencimiento" value="30" min="1" max="365">
-                                    <small class="text-muted">Días de anticipación para alertas de vencimiento</small>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label"><i class="fas fa-money-bill me-1"></i>Moneda</label>
-                                    <select class="form-select" name="moneda">
-                                        <option value="USD">Dólares (USD)</option>
-                                        <option value="EUR">Euros (EUR)</option>
-                                        <option value="GTQ">Quetzales (GTQ)</option>
-                                        <option value="HNL">Lempiras (HNL)</option>
-                                        <option value="NIO">Córdobas (NIO)</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label"><i class="fas fa-percent me-1"></i>IVA (%)</label>
-                                    <input type="number" step="0.01" class="form-control" name="iva_porcentaje" value="13.00" min="0" max="100">
-                                    <small class="text-muted">Porcentaje de IVA aplicado a los precios</small>
-                                </div>
-                                <div class="col-12">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="alertas_email" id="alertas_email" checked>
-                                        <label class="form-check-label" for="alertas_email">
-                                            <i class="fas fa-envelope me-1"></i>Enviar alertas por email
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        <strong>Nota:</strong> Estos parámetros afectarán el cálculo de alertas y reportes en todo el sistema.
-                                    </div>
+                                    <small class="text-muted">Días de anticipación para marcar lotes próximos a vencer</small>
                                 </div>
                             </div>
                             
@@ -3620,6 +3546,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Mapear valor de alimentación (inv) al valor del select tipo de producto (editar/crear)
+function mapAlimentacionToTipo(alimentacion) {
+    if (!alimentacion) return 'otro';
+    const a = String(alimentacion).toLowerCase();
+    if (a.indexOf('agua') !== -1 || a.indexOf('nutrientes') !== -1) return 'flor';
+    if (a.indexOf('fresco') !== -1 || a.indexOf('seco') !== -1) return 'chocolate';
+    if (a === 'no requiere' || a === 'n/a') return 'otro';
+    return 'otro';
+}
+
 // Función para abrir modal de editar con datos pre-cargados
 function abrirModalEditar(productoId, productoNombre) {
     console.log('🔧 Abriendo modal editar para:', productoId, productoNombre);
@@ -3639,12 +3575,14 @@ function abrirModalEditar(productoId, productoNombre) {
         document.getElementById('editar_precio').value = producto.precio || 0;
         document.getElementById('editar_color').value = producto.color || '';
         document.getElementById('editar_naturaleza').value = producto.naturaleza || '';
-        document.getElementById('editar_estado').value = producto.estado || 'Disponible';
+        document.getElementById('editar_estado').value = producto.estado || 'activo';
         
-        // Tipo de producto (si existe)
+        // Tipo de producto: derivar desde alimentación (categoria_producto) si no viene tipo
         const tipoSelect = document.getElementById('editar_tipo_producto');
-        if (tipoSelect && producto.tipo) {
-            tipoSelect.value = producto.tipo;
+        if (tipoSelect) {
+            const alimentacion = (producto.categoria_producto || producto.alimentacion || '').trim();
+            const tipo = mapAlimentacionToTipo(alimentacion);
+            tipoSelect.value = tipo;
         }
         
         // Abrir el modal con Bootstrap
@@ -3928,8 +3866,14 @@ function mostrarLotesEnTabla(lotes, resumen) {
 function abrirModalAgregarLote(productoId, productoNombre) {
     console.log('➕ Abriendo modal agregar lote para:', productoId, productoNombre);
     
+    const form = document.getElementById('form-agregar-lote');
+    if (form) form.reset();
+    
     document.getElementById('agregar_lote_producto_id').value = productoId;
     document.getElementById('agregar_lote_producto_nombre').textContent = productoNombre;
+    
+    var hoy = new Date().toISOString().split('T')[0];
+    document.getElementById('agregar_fecha_ingreso').value = hoy;
     
     // Obtener número de lote sugerido del servidor
     fetch(`?ctrl=Clotes&action=generarNumeroLote&inv_idinv=${productoId}`)
@@ -3938,18 +3882,13 @@ function abrirModalAgregarLote(productoId, productoNombre) {
             if (data.success) {
                 document.getElementById('agregar_numero_lote').value = data.numero_lote;
             } else {
-                // Fallback si falla
                 document.getElementById('agregar_numero_lote').value = 'LOTE-' + Date.now();
             }
         })
         .catch(error => {
             console.error('Error al generar número de lote:', error);
-            // Fallback si falla
             document.getElementById('agregar_numero_lote').value = 'LOTE-' + Date.now();
         });
-    
-    // Establecer fecha de ingreso a hoy
-    document.getElementById('agregar_fecha_ingreso').value = new Date().toISOString().split('T')[0];
     
     const modal = new bootstrap.Modal(document.getElementById('modal-agregar-lote'));
     modal.show();
@@ -4117,9 +4056,9 @@ function formatearFecha(fecha) {
     return date.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
-// Función para sincronizar stocks de todos los productos
+// Función para sincronizar todos los productos (stock desde lotes + alinear precios inv/catálogo)
 function sincronizarTodosStocks() {
-    if (!confirm('¿Deseas sincronizar el stock de TODOS los productos con sus lotes activos?\n\nEsto recalculará el stock basándose en la suma de lotes.')) {
+    if (!confirm('¿Sincronizar TODOS los productos?\n\n• Se usa la cantidad que ya está en inv (no se recalcula desde lotes).\n• Se iguala cantidad_disponible = stock en inv.\n• Se alinean precios entre inv y catálogo (tflor).')) {
         return;
     }
     
@@ -4132,18 +4071,26 @@ function sincronizarTodosStocks() {
     }
     
     fetch('?ctrl=Clotes&action=sincronizarTodosStocks')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert(`✅ ${data.message}\n\nProductos sincronizados: ${data.productos_sincronizados}`);
-                window.location.reload();
-            } else {
-                alert('❌ Error: ' + data.message);
+        .then(response => response.text())
+        .then(text => {
+            try {
+                var data = JSON.parse(text);
+                if (data.success) {
+                    var msg = data.message || 'Sincronización completada';
+                    var n = data.productos_sincronizados != null ? data.productos_sincronizados : 0;
+                    alert('✅ ' + msg + '\n\nProductos sincronizados: ' + n);
+                    window.location.reload();
+                } else {
+                    alert('❌ Error: ' + (data.message || 'Error desconocido'));
+                }
+            } catch (e) {
+                console.error('Respuesta no JSON:', text);
+                alert('❌ El servidor no respondió correctamente. Revisa que la tabla "lotes" exista en la base de datos.');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('❌ Error al sincronizar stocks');
+            alert('❌ Error al sincronizar stocks: ' + error.message);
         })
         .finally(() => {
             if (btn) {
@@ -4362,7 +4309,7 @@ function generarFilaProducto(item, tipo) {
                 <td>${item.fecha_actualizacion || '-'}</td>
                 <td>${item.lote_proxima_caducidad || 'Sin lotes'}</td>
                 <td>${generarBadgeDias(item.dias_hasta_caducidad, item.lote_cantidad_activa)}</td>
-                <td>${generarBadgePrioridad(item.dias_hasta_caducidad, item.lote_cantidad_activa)}</td>
+                <td>${(item.activo !== undefined && item.activo !== 0) ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>'}</td>
                 <td>
                     <button class="btn btn-sm btn-success" onclick="abrirModalVerLotes('${item.idinv}', '${item.producto.replace(/'/g, "\\'")}')">
                         <i class="fas fa-eye"></i>
@@ -4392,7 +4339,8 @@ function generarFilaProducto(item, tipo) {
                 <td class="fw-bold text-primary">$${precioVenta.toFixed(2)}</td>
                 <td><span class="badge ${margenClass}" title="Margen de ganancia">${margenPorcentaje.toFixed(1)}%</span></td>
                 <td class="fw-bold text-success">$${(item.stock * precioVenta).toFixed(2)}</td>
-                <td><span class="badge ${stockClass}">${item.estado_stock}</span></td>
+                <td><span class="text-muted small">${item.fecha_actualizacion ? (item.fecha_actualizacion + '').substring(0, 16) : 'N/A'}</span></td>
+                <td>${(item.activo !== undefined && item.activo !== 0) ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>'}</td>
                 <td>
                     <button class="btn btn-warning btn-sm" onclick="abrirModalEditar('${item.idinv}', '${item.producto.replace(/'/g, "\\'")}')">
                         <i class="fas fa-edit"></i>
@@ -4445,7 +4393,7 @@ function mostrarMensajeNoResultados(tipo) {
     
     if (!tbody) return;
     
-    const colspan = tipo === 'perecedero' ? 14 : 10;
+    const colspan = tipo === 'perecedero' ? 14 : 11;
     tbody.innerHTML = `
         <tr>
             <td colspan="${colspan}" class="text-center text-muted py-4">

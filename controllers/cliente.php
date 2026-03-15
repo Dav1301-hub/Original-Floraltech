@@ -87,12 +87,27 @@ class cliente {
         }
         $idpedido = (int)($_POST['idpedido'] ?? 0);
         $idpago = (int)($_POST['idpago'] ?? 0);
-        $metodo_pago = in_array($_POST['metodo_pago'] ?? '', ['efectivo', 'nequi', 'tarjeta', 'transferencia', 'otro'], true) ? $_POST['metodo_pago'] : 'efectivo';
+        $metodo_pago = in_array($_POST['metodo_pago'] ?? '', ['efectivo', 'nequi'], true) ? $_POST['metodo_pago'] : 'efectivo';
         if ($idpedido <= 0) {
             $_SESSION['mensaje'] = 'Pedido no válido.';
             $_SESSION['tipo_mensaje'] = 'danger';
             header('Location: index.php?ctrl=cliente&action=dashboard');
             exit();
+        }
+        $comprobante_imagen = null;
+        $comprobante_tipo = null;
+        if (isset($_FILES['comprobante']) && $_FILES['comprobante']['error'] === UPLOAD_ERR_OK) {
+            $tmp = $_FILES['comprobante']['tmp_name'];
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $comprobante_tipo = $finfo->file($tmp) ?: ($_FILES['comprobante']['type'] ?: 'image/jpeg');
+            if (strpos($comprobante_tipo, 'image/') !== 0) {
+                $comprobante_tipo = 'image/jpeg';
+            }
+            $comprobante_imagen = file_get_contents($tmp);
+            if ($comprobante_imagen === false) {
+                $comprobante_imagen = null;
+                $comprobante_tipo = null;
+            }
         }
         try {
             $pedido = $this->obtenerDetallesPedido($idpedido);
@@ -102,12 +117,22 @@ class cliente {
                 header('Location: index.php?ctrl=cliente&action=dashboard');
                 exit();
             }
-            if ($idpago > 0) {
-                $stmt = $this->db->prepare("UPDATE pagos SET estado_pag = 'Completado', metodo_pago = ? WHERE idpago = ? AND ped_idped = ?");
-                $stmt->execute([$metodo_pago, $idpago, $idpedido]);
+            if ($comprobante_imagen !== null && $comprobante_tipo !== null) {
+                if ($idpago > 0) {
+                    $stmt = $this->db->prepare("UPDATE pagos SET estado_pag = 'Completado', metodo_pago = ?, comprobante_imagen = ?, comprobante_tipo = ? WHERE idpago = ? AND ped_idped = ?");
+                    $stmt->execute([$metodo_pago, $comprobante_imagen, $comprobante_tipo, $idpago, $idpedido]);
+                } else {
+                    $stmt = $this->db->prepare("UPDATE pagos SET estado_pag = 'Completado', metodo_pago = ?, comprobante_imagen = ?, comprobante_tipo = ? WHERE ped_idped = ?");
+                    $stmt->execute([$metodo_pago, $comprobante_imagen, $comprobante_tipo, $idpedido]);
+                }
             } else {
-                $stmt = $this->db->prepare("UPDATE pagos SET estado_pag = 'Completado', metodo_pago = ? WHERE ped_idped = ?");
-                $stmt->execute([$metodo_pago, $idpedido]);
+                if ($idpago > 0) {
+                    $stmt = $this->db->prepare("UPDATE pagos SET estado_pag = 'Completado', metodo_pago = ? WHERE idpago = ? AND ped_idped = ?");
+                    $stmt->execute([$metodo_pago, $idpago, $idpedido]);
+                } else {
+                    $stmt = $this->db->prepare("UPDATE pagos SET estado_pag = 'Completado', metodo_pago = ? WHERE ped_idped = ?");
+                    $stmt->execute([$metodo_pago, $idpedido]);
+                }
             }
             if ($stmt->rowCount() > 0) {
                 $_SESSION['mensaje'] = 'Pago registrado correctamente. Gracias por su pago.';
@@ -132,11 +157,12 @@ class cliente {
                     tf.idtflor,
                     tf.nombre,
                     tf.naturaleza as color,
-                    tf.precio,
+                    COALESCE(i.precio, tf.precio_venta, tf.precio) as precio,
                     tf.descripcion,
                     COALESCE(i.stock, i.cantidad_disponible, 0) as stock
                 FROM tflor tf
                 LEFT JOIN inv i ON tf.idtflor = i.tflor_idtflor
+                WHERE COALESCE(tf.activo, 1) = 1
                 ORDER BY tf.nombre
             ");
             $stmt->execute();
@@ -145,7 +171,18 @@ class cliente {
             error_log("Error obteniendo flores: " . $e->getMessage());
             $flores_disponibles = [];
         }
-        
+        // Configuración de envío (para tipo entrega y total)
+        $cobrar_envio = 0;
+        $precio_envio = 0.0;
+        $moneda = 'COP';
+        try {
+            $st = $this->db->query("SELECT COALESCE(cobrar_envio, 0) as cobrar_envio, COALESCE(precio_envio, 0) as precio_envio, COALESCE(moneda, 'COP') as moneda FROM empresa LIMIT 1");
+            if ($st && ($row = $st->fetch(PDO::FETCH_ASSOC))) {
+                $cobrar_envio = (int)$row['cobrar_envio'];
+                $precio_envio = (float)$row['precio_envio'];
+                $moneda = $row['moneda'] ?? 'COP';
+            }
+        } catch (PDOException $e) {}
         include 'views/cliente/nuevo_pedido.php';
     }
     
@@ -166,7 +203,8 @@ class cliente {
             try {
                 error_log("Datos POST recibidos: " . print_r($_POST, true));
                 
-                $direccion_entrega = $_POST['direccion_entrega'] ?? '';
+                $tipo_entrega = $_POST['tipo_entrega'] ?? 'recoger';
+                $direccion_entrega = trim($_POST['direccion_entrega'] ?? '');
                 $fecha_entrega = $_POST['fecha_entrega'] ?? '';
                 $metodo_pago = $_POST['metodo_pago'] ?? 'efectivo';
                 
@@ -180,7 +218,7 @@ class cliente {
                         $cantidad = intval($_POST[$cantidad_key] ?? 0);
                         
                         if ($cantidad > 0) {
-                            $stmt = $this->db->prepare("SELECT precio FROM tflor WHERE idtflor = ?");
+                            $stmt = $this->db->prepare("SELECT COALESCE(i.precio, tf.precio_venta, tf.precio) as precio FROM tflor tf LEFT JOIN inv i ON tf.idtflor = i.tflor_idtflor WHERE tf.idtflor = ? AND COALESCE(tf.activo, 1) = 1 LIMIT 1");
                             $stmt->execute([$idtflor]);
                             $flor = $stmt->fetch(PDO::FETCH_ASSOC);
                             
@@ -206,6 +244,18 @@ class cliente {
                 
                 if ($monto_total <= 0) {
                     throw new Exception("El monto total debe ser mayor a cero");
+                }
+
+                if ($tipo_entrega === 'domicilio') {
+                    if ($direccion_entrega === '') {
+                        throw new Exception("Para envío a domicilio debes indicar la dirección de entrega.");
+                    }
+                    try {
+                        $st_env = $this->db->query("SELECT COALESCE(cobrar_envio, 0) as cobrar_envio, COALESCE(precio_envio, 0) as precio_envio FROM empresa LIMIT 1");
+                        if ($st_env && ($row_env = $st_env->fetch(PDO::FETCH_ASSOC)) && !empty($row_env['cobrar_envio'])) {
+                            $monto_total += (float)$row_env['precio_envio'];
+                        }
+                    } catch (PDOException $e) {}
                 }
 
                 // Validar que ninguna cantidad sea 0 ni mayor al stock disponible
@@ -343,11 +393,12 @@ class cliente {
                     tf.idtflor,
                     tf.nombre,
                     tf.naturaleza as color,
-                    tf.precio,
+                    COALESCE(i.precio, tf.precio_venta, tf.precio) as precio,
                     tf.descripcion,
                     COALESCE(i.stock, i.cantidad_disponible, 0) as stock
                 FROM tflor tf
                 LEFT JOIN inv i ON tf.idtflor = i.tflor_idtflor
+                WHERE COALESCE(tf.activo, 1) = 1
                 ORDER BY tf.nombre
             ");
             $stmt->execute();

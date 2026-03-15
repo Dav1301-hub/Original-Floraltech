@@ -27,6 +27,9 @@ $categorias = $categorias ?? [];
 $filter_buscar = isset($_GET['buscar']) ? htmlspecialchars((string)$_GET['buscar'], ENT_QUOTES, 'UTF-8') : '';
 $filter_categoria = isset($_GET['categoria']) ? (string)$_GET['categoria'] : '';
 $filter_estado = isset($_GET['estado_stock']) ? (string)$_GET['estado_stock'] : '';
+$parametros_inventario = $parametros_inventario ?? ['stock_minimo' => 20, 'dias_vencimiento' => 7];
+$todos_proveedores = $todos_proveedores ?? [];
+$colores = ['Rojo' => '#dc3545', 'Rosa' => '#ff69b4', 'Blanco' => '#f8f9fa', 'Amarillo' => '#ffc107', 'Naranja' => '#fd7e14', 'Morado' => '#6f42c1', 'Azul' => '#0d6efd', 'Verde' => '#198754', 'Multicolor' => '#6c757d'];
 
 function urlPaginaEmpleado($param, $pagina) {
     $params = array_merge($_GET, [$param => $pagina]);
@@ -173,26 +176,71 @@ function urlPaginaEmpleado($param, $pagina) {
                             <table class="table table-hover mb-0 align-middle">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Producto</th>
-                                        <th>Naturaleza</th>
-                                        <th>Stock</th>
+                                        <th><i class="fas fa-tag me-1"></i>Producto</th>
+                                        <th><i class="fas fa-seedling me-1"></i>Naturaleza</th>
+                                        <th><i class="fas fa-palette me-1"></i>Color</th>
+                                        <th><i class="fas fa-boxes me-1"></i>Stock</th>
+                                        <th>P. Compra</th>
                                         <th>P. Venta</th>
-                                        <th>Estado</th>
+                                        <th><i class="fas fa-calendar-times me-1"></i>F. Caducidad</th>
+                                        <th><i class="fas fa-clock me-1"></i>Días rest.</th>
+                                        <th><i class="fas fa-layer-group me-1"></i>Lotes</th>
+                                        <th class="text-center">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if (!empty($inventario_perecederos)): ?>
-                                        <?php foreach ($inventario_perecederos as $item): ?>
+                                        <?php foreach ($inventario_perecederos as $item):
+                                            $umbral = (int)($parametros_inventario['stock_minimo'] ?? 20);
+                                            $critico = min(5, max(1, (int)($umbral / 2)));
+                                            $es_critico = ($item['stock'] ?? 0) > 0 && ($item['stock'] ?? 0) < $critico;
+                                            $es_bajo = ($item['stock'] ?? 0) >= $critico && ($item['stock'] ?? 0) < $umbral;
+                                            $badge_stock = ($item['stock'] ?? 0) == 0 ? 'bg-danger' : ($es_critico ? 'bg-danger' : ($es_bajo ? 'bg-warning text-dark' : 'bg-success'));
+                                            $dias_limite = (int)($parametros_inventario['dias_vencimiento'] ?? 7);
+                                            $dias = $item['dias_hasta_caducidad'] ?? null;
+                                            $color_badge = $colores[$item['color'] ?? ''] ?? '#6c757d';
+                                            $text_color = in_array($item['color'] ?? '', ['Blanco', 'Amarillo']) ? '#000' : '#fff';
+                                        ?>
                                         <tr>
                                             <td class="fw-bold"><?= htmlspecialchars($item['producto'] ?? '') ?></td>
                                             <td><span class="badge bg-success"><?= htmlspecialchars($item['naturaleza'] ?? '') ?></span></td>
-                                            <td><strong class="text-<?= ($item['stock'] ?? 0) < 10 ? 'danger' : 'dark' ?>"><?= (int)($item['stock'] ?? 0) ?></strong></td>
-                                            <td class="text-success">$<?= number_format((float)($item['precio'] ?? 0), 2) ?></td>
-                                            <td><span class="badge <?= ($item['estado_stock'] ?? '') === 'Sin Stock' ? 'stock-sin' : (($item['estado_stock'] ?? '') === 'Critico' ? 'stock-bajo' : (($item['estado_stock'] ?? '') === 'Bajo' ? 'stock-medio' : 'stock-alto')) ?>"><?= htmlspecialchars($item['estado_stock'] ?? '') ?></span></td>
+                                            <td><span class="badge" style="background-color:<?= $color_badge ?>;color:<?= $text_color ?>"><?= htmlspecialchars($item['color'] ?? '') ?></span></td>
+                                            <td><span class="badge <?= $badge_stock ?>"><i class="fas fa-box me-1"></i><?= (int)($item['stock'] ?? 0) ?></span></td>
+                                            <td class="text-muted small">$<?= number_format((float)($item['precio_compra'] ?? 0), 2) ?></td>
+                                            <td class="fw-bold text-primary">$<?= number_format((float)($item['precio'] ?? 0), 2) ?></td>
+                                            <td>
+                                                <?php if (!empty($item['lote_proxima_caducidad'])): ?>
+                                                    <span class="small"><?= date('m/d/y', strtotime($item['lote_proxima_caducidad'])) ?></span>
+                                                <?php else: ?>
+                                                    <span class="text-muted small">Sin lotes</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if ($dias !== null && ($item['lote_cantidad_activa'] ?? 0) > 0): ?>
+                                                    <?php if ($dias <= 3): ?>
+                                                        <span class="badge bg-danger"><i class="fas fa-circle-exclamation"></i> <?= $dias ?>d</span>
+                                                    <?php elseif ($dias <= 5): ?>
+                                                        <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle"></i> <?= $dias ?>d</span>
+                                                    <?php elseif ($dias <= $dias_limite): ?>
+                                                        <span class="badge bg-info"><i class="fas fa-info-circle"></i> <?= $dias ?>d</span>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-secondary"><?= $dias ?>d</span>
+                                                    <?php endif; ?>
+                                                <?php else: ?>
+                                                    <span class="text-muted">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-success btn-modal-ver-lotes-emp" title="Ver historial de lotes" data-producto-id="<?= (int)($item['idinv'] ?? 0) ?>" data-producto-nombre="<?= htmlspecialchars($item['producto'] ?? '', ENT_QUOTES) ?>"><i class="fas fa-eye"></i></button>
+                                                <button type="button" class="btn btn-sm btn-primary btn-modal-agregar-lote-emp" title="Agregar nuevo lote" data-producto-id="<?= (int)($item['idinv'] ?? 0) ?>" data-producto-nombre="<?= htmlspecialchars($item['producto'] ?? '', ENT_QUOTES) ?>"><i class="fas fa-plus"></i></button>
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-sm btn-warning btn-editar-producto-emp" data-idinv="<?= (int)($item['idinv'] ?? 0) ?>" title="Editar producto"><i class="fas fa-edit"></i></button>
+                                            </td>
                                         </tr>
                                         <?php endforeach; ?>
                                     <?php else: ?>
-                                        <tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-seedling me-1"></i>No hay productos perecederos</td></tr>
+                                        <tr><td colspan="10" class="text-center text-muted py-4"><i class="fas fa-seedling me-1"></i>No hay productos perecederos</td></tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
@@ -225,26 +273,38 @@ function urlPaginaEmpleado($param, $pagina) {
                             <table class="table table-hover mb-0 align-middle">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Producto</th>
-                                        <th>Naturaleza</th>
-                                        <th>Stock</th>
+                                        <th><i class="fas fa-tag me-1"></i>Producto</th>
+                                        <th><i class="fas fa-seedling me-1"></i>Naturaleza</th>
+                                        <th><i class="fas fa-palette me-1"></i>Color</th>
+                                        <th><i class="fas fa-boxes me-1"></i>Stock</th>
+                                        <th>P. Compra</th>
                                         <th>P. Venta</th>
-                                        <th>Estado</th>
+                                        <th class="text-center">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if (!empty($inventario_no_perecederos)): ?>
-                                        <?php foreach ($inventario_no_perecederos as $item): ?>
+                                        <?php foreach ($inventario_no_perecederos as $item):
+                                            $stock_np = (int)($item['stock'] ?? 0);
+                                            $badge_stock_np = $stock_np == 0 ? 'bg-danger' : ($stock_np < 20 ? 'bg-warning text-dark' : 'bg-success');
+                                            $color_badge_np = $colores[$item['color'] ?? ''] ?? '#6c757d';
+                                            $text_color_np = in_array($item['color'] ?? '', ['Blanco', 'Amarillo']) ? '#000' : '#fff';
+                                        ?>
                                         <tr>
                                             <td class="fw-bold"><?= htmlspecialchars($item['producto'] ?? '') ?></td>
                                             <td><span class="badge bg-secondary"><?= htmlspecialchars($item['naturaleza'] ?? '') ?></span></td>
-                                            <td><strong class="text-<?= ($item['stock'] ?? 0) < 10 ? 'danger' : 'dark' ?>"><?= (int)($item['stock'] ?? 0) ?></strong></td>
-                                            <td class="text-success">$<?= number_format((float)($item['precio'] ?? 0), 2) ?></td>
-                                            <td><span class="badge <?= ($item['estado_stock'] ?? '') === 'Sin Stock' ? 'stock-sin' : (($item['estado_stock'] ?? '') === 'Critico' ? 'stock-bajo' : (($item['estado_stock'] ?? '') === 'Bajo' ? 'stock-medio' : 'stock-alto')) ?>"><?= htmlspecialchars($item['estado_stock'] ?? '') ?></span></td>
+                                            <td><span class="badge" style="background-color:<?= $color_badge_np ?>;color:<?= $text_color_np ?>"><?= htmlspecialchars($item['color'] ?? '') ?></span></td>
+                                            <td><span class="badge <?= $badge_stock_np ?>"><i class="fas fa-box me-1"></i><?= $stock_np ?></span></td>
+                                            <td class="text-muted small">$<?= number_format((float)($item['precio_compra'] ?? 0), 2) ?></td>
+                                            <td class="fw-bold text-primary">$<?= number_format((float)($item['precio'] ?? 0), 2) ?></td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-sm btn-warning btn-editar-producto-emp" data-idinv="<?= (int)($item['idinv'] ?? 0) ?>" title="Editar producto"><i class="fas fa-edit"></i></button>
+                                                <button type="button" class="btn btn-sm btn-info btn-modal-stock-emp" title="Agregar stock" data-producto-id="<?= (int)($item['idinv'] ?? 0) ?>" data-producto-nombre="<?= htmlspecialchars($item['producto'] ?? '', ENT_QUOTES) ?>" data-producto-stock="<?= $stock_np ?>"><i class="fas fa-plus"></i></button>
+                                            </td>
                                         </tr>
                                         <?php endforeach; ?>
                                     <?php else: ?>
-                                        <tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-box me-1"></i>No hay productos no perecederos</td></tr>
+                                        <tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-box me-1"></i>No hay productos no perecederos</td></tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
@@ -318,8 +378,392 @@ function urlPaginaEmpleado($param, $pagina) {
         </div>
     </div>
 
+    <!-- Modal Editar Producto (solo edición; sin eliminar ni crear) -->
+    <div class="modal fade" id="modal-editar-producto-emp" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Producto del Inventario</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-editar-producto-emp">
+                        <input type="hidden" name="producto_id" id="emp_editar_producto_id">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><i class="fas fa-tag me-1"></i>Nombre del Producto *</label>
+                                <input type="text" class="form-control" name="nombre_producto" id="emp_editar_nombre_producto" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><i class="fas fa-layer-group me-1"></i>Tipo de Producto *</label>
+                                <select class="form-select" name="tipo_producto" id="emp_editar_tipo_producto" required>
+                                    <option value="">Selecciona el tipo...</option>
+                                    <option value="flor">🌸 Flor Natural/Artificial</option>
+                                    <option value="chocolate">🍫 Chocolate</option>
+                                    <option value="tarjeta">💌 Tarjeta</option>
+                                    <option value="peluche">🧸 Peluche</option>
+                                    <option value="globo">🎈 Globo</option>
+                                    <option value="accesorio">✨ Accesorio</option>
+                                    <option value="otro">📦 Otro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label"><i class="fas fa-boxes me-1"></i>Stock Actual</label>
+                                <input type="number" class="form-control" name="stock" id="emp_editar_stock" min="0" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label"><i class="fas fa-shopping-cart me-1"></i>Precio Compra</label>
+                                <input type="number" class="form-control" name="precio_compra" id="emp_editar_precio_compra" min="0" step="0.01" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label"><i class="fas fa-dollar-sign me-1"></i>Precio Venta</label>
+                                <input type="number" class="form-control" name="precio" id="emp_editar_precio" min="0" step="0.01" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label"><i class="fas fa-palette me-1"></i>Color</label>
+                                <input type="text" class="form-control" name="color" id="emp_editar_color" placeholder="Ej: Rojo, Azul">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><i class="fas fa-seedling me-1"></i>Naturaleza</label>
+                                <select class="form-select" name="naturaleza" id="emp_editar_naturaleza">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="Natural">Natural</option>
+                                    <option value="Artificial">Artificial</option>
+                                    <option value="Mixto">Mixto</option>
+                                    <option value="Comestible">Comestible</option>
+                                    <option value="Decorativo">Decorativo</option>
+                                    <option value="Regalo">Regalo</option>
+                                    <option value="Accesorio">Accesorio</option>
+                                    <option value="No aplica">No aplica</option>
+                                    <option value="Sin clasificar">Sin clasificar</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><i class="fas fa-info-circle me-1"></i>Estado</label>
+                                <select class="form-select" name="estado" id="emp_editar_estado">
+                                    <option value="activo">Activo</option>
+                                    <option value="desactivado">Desactivado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i>Cancelar</button>
+                    <button type="button" class="btn btn-warning" id="emp-btn-guardar-editar"><i class="fas fa-save me-1"></i>Guardar Cambios</button>
+                </div>
+</div>
+    </div>
+</div>
+
+    <!-- Modal Ver Lotes (empleado) -->
+    <div class="modal fade" id="modal-ver-lotes-emp" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-boxes me-2"></i>Gestión de Lotes - <span id="ver_lotes_emp_producto_nombre"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="ver_lotes_emp_producto_id">
+                    <div class="row mb-3">
+                        <div class="col-md-4"><div class="card bg-light"><div class="card-body text-center"><h6>Total Lotes</h6><h3 id="resumen_emp_total_lotes">0</h3></div></div></div>
+                        <div class="col-md-4"><div class="card bg-light"><div class="card-body text-center"><h6>Cantidad Activa</h6><h3 id="resumen_emp_cantidad_activa">0</h3></div></div></div>
+                        <div class="col-md-4"><div class="card bg-light"><div class="card-body text-center"><h6>Próxima Caducidad</h6><h3 id="resumen_emp_proxima_caducidad">-</h3></div></div></div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr><th>Nº Lote</th><th>Cantidad</th><th>F. Ingreso</th><th>F. Caducidad</th><th>Proveedor</th><th>Precio Compra</th><th>Estado</th></tr>
+                            </thead>
+                            <tbody id="tabla-lotes-emp-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Agregar Lote (empleado) -->
+    <div class="modal fade" id="modal-agregar-lote-emp" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Agregar Nuevo Lote - <span id="agregar_lote_emp_producto_nombre"></span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-agregar-lote-emp">
+                        <input type="hidden" name="inv_idinv" id="agregar_lote_emp_producto_id">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Número de Lote <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="numero_lote" id="agregar_lote_emp_numero" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Cantidad <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" name="cantidad" min="1" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Fecha de Ingreso <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" name="fecha_ingreso" id="agregar_lote_emp_fecha_ingreso" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Fecha de Caducidad <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" name="fecha_caducidad" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Proveedor</label>
+                                <select class="form-select" name="proveedor" id="agregar_lote_emp_proveedor">
+                                    <option value="">Seleccionar proveedor...</option>
+                                    <?php foreach ($todos_proveedores as $prov): ?>
+                                        <option value="<?= htmlspecialchars($prov['nombre'] ?? '', ENT_QUOTES) ?>"><?= htmlspecialchars($prov['nombre'] ?? '') ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Precio de Compra</label>
+                                <input type="number" class="form-control" name="precio_compra" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" name="observaciones" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="emp-btn-guardar-lote"><i class="fas fa-save me-1"></i>Guardar Lote</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Agregar Stock (empleado, no perecederos) -->
+    <div class="modal fade" id="modal-agregar-stock-emp" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Agregar Stock</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="stock_emp_producto_id">
+                    <p class="mb-2"><strong>Producto:</strong> <span id="stock_emp_producto_nombre" class="text-info"></span></p>
+                    <p class="mb-3 text-muted">Stock actual: <span id="stock_emp_actual" class="badge bg-secondary">0</span></p>
+                    <label class="form-label">Cantidad a agregar <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="stock_emp_cantidad" min="1" value="1">
+                    <label class="form-label mt-2">Motivo (opcional)</label>
+                    <input type="text" class="form-control" id="stock_emp_motivo" placeholder="Ej: Reposición">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-info" id="emp-btn-agregar-stock"><i class="fas fa-plus me-1"></i>Agregar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        (function() {
+            var baseUrl = 'index.php?ctrl=empleado&action=';
+            var baseIndex = 'index.php?';
+            function mapAlimentacionToTipo(a) {
+                if (!a) return 'otro';
+                var s = String(a).toLowerCase();
+                if (s.indexOf('agua') !== -1 || s.indexOf('nutrientes') !== -1) return 'flor';
+                if (s.indexOf('fresco') !== -1 || s.indexOf('seco') !== -1) return 'chocolate';
+                if (s === 'no requiere' || s === 'n/a') return 'otro';
+                return 'otro';
+            }
+            document.querySelectorAll('.btn-editar-producto-emp').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var id = this.getAttribute('data-idinv');
+                    if (!id) return;
+                    fetch(baseUrl + 'obtener_producto_inventario&id=' + encodeURIComponent(id))
+                        .then(function(r) { return r.json(); })
+                        .then(function(res) {
+                            if (!res.success || !res.producto) {
+                                alert(res.message || 'No se pudo cargar el producto');
+                                return;
+                            }
+                            var p = res.producto;
+                            document.getElementById('emp_editar_producto_id').value = p.idinv;
+                            document.getElementById('emp_editar_nombre_producto').value = p.producto || '';
+                            document.getElementById('emp_editar_stock').value = p.stock || 0;
+                            document.getElementById('emp_editar_precio_compra').value = p.precio_compra || 0;
+                            document.getElementById('emp_editar_precio').value = p.precio || 0;
+                            document.getElementById('emp_editar_color').value = p.color || '';
+                            document.getElementById('emp_editar_naturaleza').value = p.naturaleza || '';
+                            document.getElementById('emp_editar_estado').value = p.estado || 'activo';
+                            var alimentacion = (p.alimentacion || '').trim();
+                            document.getElementById('emp_editar_tipo_producto').value = mapAlimentacionToTipo(alimentacion);
+                            var modalEl = document.getElementById('modal-editar-producto-emp');
+                            if (modalEl && typeof bootstrap !== 'undefined') {
+                                new bootstrap.Modal(modalEl).show();
+                            }
+                        })
+                        .catch(function() { alert('Error al cargar el producto'); });
+                });
+            });
+            document.getElementById('emp-btn-guardar-editar').addEventListener('click', function() {
+                var form = document.getElementById('form-editar-producto-emp');
+                if (!form.checkValidity()) { form.reportValidity(); return; }
+                var fd = new FormData(form);
+                var btn = this;
+                btn.disabled = true;
+                fetch(baseUrl + 'editar_producto_inventario', { method: 'POST', body: fd })
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        btn.disabled = false;
+                        if (res.success) {
+                            var modalEl = document.getElementById('modal-editar-producto-emp');
+                            if (modalEl && typeof bootstrap !== 'undefined') {
+                                bootstrap.Modal.getInstance(modalEl).hide();
+                            }
+                            alert(res.message || 'Producto actualizado.');
+                            window.location.reload();
+                        } else {
+                            alert(res.message || 'Error al actualizar');
+                        }
+                    })
+                    .catch(function() {
+                        btn.disabled = false;
+                        alert('Error de conexión');
+                    });
+            });
+
+            // --- Ver Lotes (empleado) ---
+            function formatearFechaEmp(s) {
+                if (!s) return '-';
+                var d = new Date(s);
+                return isNaN(d.getTime()) ? s : (d.getMonth()+1)+'/'+d.getDate()+'/'+String(d.getFullYear()).slice(2);
+            }
+            function mostrarLotesEmp(lotes, resumen) {
+                var tbody = document.getElementById('tabla-lotes-emp-body');
+                tbody.innerHTML = '';
+                if (!lotes || lotes.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No hay lotes registrados</td></tr>';
+                } else {
+                    var badge = { 'activo': 'bg-success', 'vendido': 'bg-info', 'caducado': 'bg-danger', 'devuelto': 'bg-warning text-dark' };
+                    lotes.forEach(function(lote) {
+                        var tr = '<tr><td>' + (lote.numero_lote || '') + '</td><td>' + (lote.cantidad || 0) + '</td><td>' + formatearFechaEmp(lote.fecha_ingreso) + '</td><td>' + formatearFechaEmp(lote.fecha_caducidad) + '</td><td>' + (lote.proveedor || '-') + '</td><td>$' + parseFloat(lote.precio_compra || 0).toFixed(2) + '</td><td><span class="badge ' + (badge[lote.estado] || 'bg-secondary') + '">' + (lote.estado || '') + '</span></td></tr>';
+                        tbody.innerHTML += tr;
+                    });
+                }
+                if (resumen) {
+                    document.getElementById('resumen_emp_total_lotes').textContent = resumen.total_lotes || 0;
+                    document.getElementById('resumen_emp_cantidad_activa').textContent = resumen.cantidad_activa || 0;
+                    document.getElementById('resumen_emp_proxima_caducidad').textContent = resumen.proxima_caducidad ? formatearFechaEmp(resumen.proxima_caducidad) : 'N/A';
+                }
+            }
+            document.querySelectorAll('.btn-modal-ver-lotes-emp').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var id = this.getAttribute('data-producto-id');
+                    var nombre = this.getAttribute('data-producto-nombre') || '';
+                    document.getElementById('ver_lotes_emp_producto_id').value = id;
+                    document.getElementById('ver_lotes_emp_producto_nombre').textContent = nombre;
+                    fetch(baseIndex + 'ctrl=Clotes&action=obtenerLotes&inv_idinv=' + encodeURIComponent(id))
+                        .then(function(r) { return r.json(); })
+                        .then(function(data) {
+                            if (data.success) {
+                                mostrarLotesEmp(data.lotes, data.resumen);
+                                new bootstrap.Modal(document.getElementById('modal-ver-lotes-emp')).show();
+                            } else {
+                                alert('Error: ' + (data.message || 'No se pudieron cargar los lotes'));
+                            }
+                        })
+                        .catch(function() { alert('Error al cargar lotes'); });
+                });
+            });
+
+            // --- Agregar Lote (empleado) ---
+            document.querySelectorAll('.btn-modal-agregar-lote-emp').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var id = this.getAttribute('data-producto-id');
+                    var nombre = this.getAttribute('data-producto-nombre') || '';
+                    document.getElementById('agregar_lote_emp_producto_id').value = id;
+                    document.getElementById('agregar_lote_emp_producto_nombre').textContent = nombre;
+                    document.getElementById('form-agregar-lote-emp').reset();
+                    document.getElementById('agregar_lote_emp_producto_id').value = id;
+                    var hoy = new Date().toISOString().split('T')[0];
+                    document.getElementById('agregar_lote_emp_fecha_ingreso').value = hoy;
+                    fetch(baseIndex + 'ctrl=Clotes&action=generarNumeroLote&inv_idinv=' + encodeURIComponent(id))
+                        .then(function(r) { return r.json(); })
+                        .then(function(data) {
+                            document.getElementById('agregar_lote_emp_numero').value = data.success && data.numero_lote ? data.numero_lote : ('LOTE-' + Date.now());
+                        })
+                        .catch(function() {
+                            document.getElementById('agregar_lote_emp_numero').value = 'LOTE-' + Date.now();
+                        });
+                    new bootstrap.Modal(document.getElementById('modal-agregar-lote-emp')).show();
+                });
+            });
+            document.getElementById('emp-btn-guardar-lote').addEventListener('click', function() {
+                var form = document.getElementById('form-agregar-lote-emp');
+                if (!form.checkValidity()) { form.reportValidity(); return; }
+                var fd = new FormData(form);
+                var btn = this;
+                btn.disabled = true;
+                fetch(baseIndex + 'ctrl=Clotes&action=crearLote', { method: 'POST', body: fd })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        btn.disabled = false;
+                        if (data.success) {
+                            bootstrap.Modal.getInstance(document.getElementById('modal-agregar-lote-emp')).hide();
+                            alert(data.message || 'Lote agregado.');
+                            window.location.reload();
+                        } else {
+                            alert(data.message || 'Error al guardar');
+                        }
+                    })
+                    .catch(function() { btn.disabled = false; alert('Error de conexión'); });
+            });
+
+            // --- Agregar Stock (empleado, no perecederos) ---
+            document.querySelectorAll('.btn-modal-stock-emp').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    document.getElementById('stock_emp_producto_id').value = this.getAttribute('data-producto-id');
+                    document.getElementById('stock_emp_producto_nombre').textContent = this.getAttribute('data-producto-nombre') || '';
+                    document.getElementById('stock_emp_actual').textContent = this.getAttribute('data-producto-stock') || '0';
+                    document.getElementById('stock_emp_cantidad').value = 1;
+                    document.getElementById('stock_emp_motivo').value = '';
+                    new bootstrap.Modal(document.getElementById('modal-agregar-stock-emp')).show();
+                });
+            });
+            document.getElementById('emp-btn-agregar-stock').addEventListener('click', function() {
+                var id = document.getElementById('stock_emp_producto_id').value;
+                var cantidad = parseInt(document.getElementById('stock_emp_cantidad').value, 10) || 0;
+                var motivo = document.getElementById('stock_emp_motivo').value;
+                if (!id || cantidad < 1) { alert('Ingresa una cantidad válida'); return; }
+                var fd = new FormData();
+                fd.append('id', id);
+                fd.append('cantidad', cantidad);
+                fd.append('motivo', motivo);
+                var btn = this;
+                btn.disabled = true;
+                fetch(baseUrl + 'agregar_stock', { method: 'POST', body: fd })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        btn.disabled = false;
+                        if (data.success) {
+                            bootstrap.Modal.getInstance(document.getElementById('modal-agregar-stock-emp')).hide();
+                            alert(data.message || 'Stock agregado.');
+                            window.location.reload();
+                        } else {
+                            alert(data.message || 'Error');
+                        }
+                    })
+                    .catch(function() { btn.disabled = false; alert('Error de conexión'); });
+            });
+        })();
         document.querySelectorAll('.inv-nav-link').forEach(function(link) {
             link.addEventListener('click', function(e) {
                 var id = this.getAttribute('href').slice(1);

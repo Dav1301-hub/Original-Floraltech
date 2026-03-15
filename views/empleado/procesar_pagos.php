@@ -113,7 +113,8 @@ $filtro_fecha_hasta = $filtro_completados['fecha_hasta'] ?? '';
                                 <div class="payment-item">
                                     <div class="payment-header">
                                         <div class="payment-id">
-                                            PED-<?= $pago['ped_idped'] ?>
+                                            <?= htmlspecialchars($pago['numped'] ?? 'PED-' . $pago['ped_idped']) ?>
+                                            <br><small class="text-muted">Pedido ID: <?= (int)$pago['ped_idped'] ?></small>
                                         </div>
                                         <div class="payment-amount">
                                             $<?= number_format($pago['monto'], 0) ?>
@@ -134,13 +135,15 @@ $filtro_fecha_hasta = $filtro_completados['fecha_hasta'] ?? '';
                                                 Ref: <?= htmlspecialchars($pago['referencia']) ?>
                                             </div>
                                         <?php endif; ?>
-                                        <?php if (!empty($pago['tiene_comprobante']) || !empty($pago['comprobante'])): ?>
-                                            <div class="mt-2">
+                                        <div class="mt-2">
+                                            <?php if (!empty($pago['tiene_comprobante'])): ?>
                                                 <a href="ver_comprobante.php?idpago=<?= (int)$pago['idpago'] ?>" target="_blank" class="btn-pago btn-approve py-1 px-2" style="font-size: 0.75rem; background: var(--emp-info);">
                                                     <i class="fas fa-image"></i> Ver comprobante
                                                 </a>
-                                            </div>
-                                        <?php endif; ?>
+                                            <?php else: ?>
+                                                <span class="text-muted small">No hay evidencia.</span>
+                                            <?php endif; ?>
+                                        </div>
                                         <div class="payment-date">
                                             <i class="fas fa-calendar"></i>
                                             <?= date('d/m/Y H:i', strtotime($pago['fecha_pago'])) ?>
@@ -235,7 +238,8 @@ $filtro_fecha_hasta = $filtro_completados['fecha_hasta'] ?? '';
                                 <div class="payment-item">
                                     <div class="payment-header">
                                         <div class="payment-id">
-                                            PED-<?= $pago['ped_idped'] ?>
+                                            <?= htmlspecialchars($pago['numped'] ?? 'PED-' . $pago['ped_idped']) ?>
+                                            <br><small class="text-muted">Pedido ID: <?= (int)$pago['ped_idped'] ?></small>
                                         </div>
                                         <div class="payment-amount">
                                             $<?= number_format($pago['monto'], 0) ?>
@@ -255,6 +259,15 @@ $filtro_fecha_hasta = $filtro_completados['fecha_hasta'] ?? '';
                                                 <small>Ref: <?= htmlspecialchars($pago['referencia']) ?></small>
                                             </div>
                                         <?php endif; ?>
+                                        <div class="mt-2">
+                                            <?php if (!empty($pago['tiene_comprobante'])): ?>
+                                                <a href="ver_comprobante.php?idpago=<?= (int)$pago['idpago'] ?>" target="_blank" class="btn-pago btn-approve py-1 px-2" style="font-size: 0.75rem; background: var(--emp-info);">
+                                                    <i class="fas fa-image"></i> Ver comprobante
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="text-muted small">No hay evidencia.</span>
+                                            <?php endif; ?>
+                                        </div>
                                         <div class="payment-date">
                                             <i class="fas fa-calendar-check"></i>
                                             <?php if (isset($pago['fecha_verificacion']) && $pago['fecha_verificacion']): ?>

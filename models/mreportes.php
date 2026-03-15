@@ -254,7 +254,10 @@ class Mreportes{
 
 public function getAll() {
         try {
-            $sql = "SELECT idped, numped, fecha_pedido, monto_total, cli_idcli, estado, empleado_id, notas, direccion_entrega, fecha_entrega_solicitada  FROM ped";
+            $sql = "SELECT p.idped, p.numped, p.fecha_pedido, p.monto_total, p.cli_idcli, p.estado, p.empleado_id, p.notas, p.direccion_entrega, p.fecha_entrega_solicitada,
+                    COALESCE(u.nombre_completo, CONCAT('Empleado ', p.empleado_id)) AS empleado_nombre
+                    FROM ped p
+                    LEFT JOIN usu u ON p.empleado_id = u.idusu";
             $modelo = new conexion();
             $conexion = $modelo->get_conexion();
             $res = $conexion->prepare($sql);
@@ -310,8 +313,30 @@ public function getAllusu($tipo = null) {
         $usuarios = $this->getAllusu();
         $clientes = $this->getClientes();
 
+        // Emails de clientes (cli): si un usu tiene el mismo email, no lo mostramos para evitar duplicado
+        $emailsCli = array();
+        foreach ($clientes as $c) {
+            $e = isset($c['email']) ? trim($c['email']) : '';
+            $e = strtolower($e);
+            if ($e !== '') {
+                $emailsCli[$e] = true;
+            }
+        }
+        $emailsCli = array_keys($emailsCli);
+
+        // Primero agregar solo los usu cuyo email NO está en cli
+        $lista = array();
+        foreach ($usuarios as $u) {
+            $email = isset($u['email']) ? trim($u['email']) : '';
+            $email = strtolower($email);
+            if ($email === '' || !in_array($email, $emailsCli)) {
+                $lista[] = $u;
+            }
+        }
+
+        // Luego agregar todos los clientes (prioridad cli cuando el correo existe en ambos)
         foreach ($clientes as $cli) {
-            $usuarios[] = [
+            $lista[] = [
                 'idusu' => 'cli-' . $cli['idcli'],
                 'username' => 'cliente_' . $cli['idcli'],
                 'nombre_completo' => $cli['nombre'] ?? 'Cliente ' . $cli['idcli'],
@@ -322,7 +347,7 @@ public function getAllusu($tipo = null) {
             ];
         }
 
-        return $usuarios;
+        return $lista;
     }
 
 public function getAllInventario() {

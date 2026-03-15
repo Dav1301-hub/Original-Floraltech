@@ -196,14 +196,14 @@ $stmt = $db->prepare("
                                         <td class="d-none d-xl-table-cell text-muted small"><?= $pedido['metodo_pago'] ? htmlspecialchars($pedido['metodo_pago']) : '-' ?></td>
                                         <td class="text-end pedido-row-actions">
                                             <div class="d-flex flex-wrap gap-1 justify-content-end">
-                                                <a href="index.php?ctrl=cliente&action=generar_factura&idpedido=<?= $pedido['idped'] ?>" class="btn btn-action btn-pdf" title="Descargar Factura" target="_blank">
-                                                    <i class="fas fa-file-pdf"></i><span class="d-none d-md-inline ms-1">PDF</span>
-                                                </a>
-                                                <?php if (strtolower($pedido['estado_pag'] ?? 'sin pago') === 'pendiente' || strtolower($pedido['estado_pag'] ?? '') === 'sin pago'): ?>
-                                                    <button type="button" class="btn btn-action btn-pagar" title="Pagar Pedido" data-bs-toggle="modal" data-bs-target="#modalPago"
-                                                        onclick="prepararModalPago('<?= htmlspecialchars($pedido['numped']) ?>', '<?= number_format($pedido['monto_total'], 2, '.', '') ?>', <?= (int)$pedido['idped'] ?>)">
+                                                <?php if (strtolower($pedido['estado_pag'] ?? '') === 'pendiente' || strtolower($pedido['estado_pag'] ?? '') === 'sin pago'): ?>
+                                                    <a href="index.php?ctrl=cliente&action=realizar_pago&idpedido=<?= (int)$pedido['idped'] ?>" class="btn btn-action btn-pagar" title="Pagar Pedido">
                                                         <i class="fas fa-credit-card"></i><span class="d-none d-md-inline ms-1">Pagar</span>
-                                                    </button>
+                                                    </a>
+                                                <?php elseif (strtolower($pedido['estado_pag'] ?? '') === 'completado'): ?>
+                                                    <a href="index.php?ctrl=cliente&action=generar_factura&idpedido=<?= $pedido['idped'] ?>" class="btn btn-action btn-pdf" title="Descargar Factura" target="_blank">
+                                                        <i class="fas fa-file-pdf"></i><span class="d-none d-md-inline ms-1">PDF</span>
+                                                    </a>
                                                 <?php endif; ?>
                                                 <button type="button" class="btn btn-action btn-enviar-factura" title="Enviar Factura por Email" data-idpedido="<?= $pedido['idped'] ?>" data-email="<?= htmlspecialchars($usuario['email']) ?>">
                                                     <i class="fas fa-envelope"></i><span class="d-none d-md-inline ms-1">Enviar</span>
@@ -233,9 +233,9 @@ $stmt = $db->prepare("
                                                 <?php if ($ref_pago): ?>
                                                     <div class="pedido-detail-item"><strong>Referencia:</strong> <?= htmlspecialchars($ref_pago) ?></div>
                                                 <?php endif; ?>
-                                                <?php if ($tiene_evidencia): ?>
-                                                    <div class="pedido-detail-item mt-2">
-                                                        <strong>Evidencia de pago:</strong>
+                                                <div class="pedido-detail-item mt-2">
+                                                    <strong>Evidencia de pago:</strong>
+                                                    <?php if ($tiene_evidencia): ?>
                                                         <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
                                                             <a href="<?= htmlspecialchars($url_comprobante) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
                                                                 <i class="fas fa-external-link-alt me-1"></i> Ver comprobante
@@ -244,8 +244,10 @@ $stmt = $db->prepare("
                                                                 <img src="<?= htmlspecialchars($url_comprobante) ?>" alt="Comprobante" class="rounded border" style="max-width:80px;max-height:80px;object-fit:contain;background:#f8f9fa;">
                                                             </a>
                                                         </div>
-                                                    </div>
-                                                <?php endif; ?>
+                                                    <?php else: ?>
+                                                        <span class="text-muted small">No hay evidencia.</span>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -305,131 +307,8 @@ $stmt = $db->prepare("
         </div>
     </div>
 
-    <!-- Modal de Pago -->
-    <div class="modal fade" id="modalPago" tabindex="-1" aria-labelledby="modalPagoLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header modal-header-cliente text-white">
-                    <h5 class="modal-title" id="modalPagoLabel">
-                        <i class="fas fa-credit-card me-2"></i>Realizar Pago
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="text-center mb-4">
-                        <h4 class="mb-2">Pedido <span id="modalNumPed" class="text-primary"></span></h4>
-                        <div class="display-6 fw-bold text-success mb-2">
-                            $<span id="modalMontoTotal">0.00</span>
-                        </div>
-                        <p class="text-muted">Total a pagar</p>
-                    </div>
-
-                    <h6 class="mb-3 text-secondary">Seleccione un método de pago:</h6>
-                    
-                    <div class="row g-3 mb-4">
-                        <div class="col-6">
-                            <div class="payment-method text-center p-3 border rounded h-100" onclick="selectPaymentMethod('efectivo')" id="method-efectivo" style="cursor: pointer; transition: all 0.2s;">
-                                <i class="fas fa-money-bill-wave fa-2x text-success mb-2"></i>
-                                <h6>Efectivo</h6>
-                                <small class="text-muted d-block">Pago contra entrega</small>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="payment-method text-center p-3 border rounded h-100" onclick="selectPaymentMethod('nequi')" id="method-nequi" style="cursor: pointer; transition: all 0.2s;">
-                                <i class="fas fa-mobile-alt fa-2x text-primary mb-2"></i>
-                                <h6>Nequi</h6>
-                                <small class="text-muted d-block">Código QR</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Contenedor QR Nequi (Oculto por defecto) -->
-                    <div id="qrContainer" class="text-center border rounded p-4 bg-light" style="display: none;">
-                        <h6 class="text-primary mb-3">
-                            <i class="fas fa-qrcode me-2"></i>Código QR Nequi
-                        </h6>
-                        <?php if ($nequi_qr_url): ?>
-                            <img src="<?= htmlspecialchars($nequi_qr_url) ?>?v=<?= time() ?>" alt="QR Nequi" class="nequi-qr-img bg-white p-2 rounded shadow-sm mb-2">
-                        <?php else: ?>
-                            <p class="text-muted small mb-0">Configura el QR Nequi en Admin → Configuración.</p>
-                        <?php endif; ?>
-                        <?php if (isset($nequi_numero) && $nequi_numero !== ''): ?>
-                            <p class="mb-2 small fw-semibold text-dark">Número Nequi: <span class="text-primary"><?= htmlspecialchars($nequi_numero) ?></span></p>
-                        <?php endif; ?>
-                        <div class="text-start small text-muted">
-                            <p class="mb-1"><strong>Instrucciones:</strong></p>
-                            <ol class="ps-3 mb-0">
-                                <li>Abre tu app Nequi</li>
-                                <li>Escanea este código QR</li>
-                                <li>Confirma el pago por el monto indicado</li>
-                            </ol>
-                        </div>
-                    </div>
-                    
-                    <!-- Contenedor Efectivo (Oculto por defecto) -->
-                    <div id="efectivoContainer" class="text-center border rounded p-4 bg-light shadow-sm" style="display: none;">
-                        <i class="fas fa-hand-holding-usd fa-3x text-success mb-3"></i>
-                        <h6>Pago Contra Entrega</h6>
-                        <p class="text-muted small mb-0">Por favor, ten el dinero exacto al momento de recibir tu pedido para facilitar el cambio al domiciliario.</p>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <a href="#" id="btnIrAPagar" class="btn btn-success"><i class="fas fa-external-link-alt me-1"></i> Ir a pagar este pedido</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Estilos adicionales para el modal -->
-    <style>
-        .payment-method:hover {
-            border-color: #0d6efd !important;
-            background-color: #f8f9fa;
-        }
-        .payment-method.selected {
-            border-color: #0d6efd !important;
-            background-color: #e9ecef;
-            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
-        }
-        .nequi-qr-img { width: 200px; height: 200px; object-fit: contain; display: block; margin-left: auto; margin-right: auto; }
-    </style>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    let currentPedidoId = '';
-    function prepararModalPago(numPed, monto, idped) {
-        document.getElementById('modalNumPed').textContent = numPed;
-        const formatMonto = parseFloat(monto).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        document.getElementById('modalMontoTotal').textContent = formatMonto;
-        document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('selected'));
-        document.getElementById('qrContainer').style.display = 'none';
-        document.getElementById('efectivoContainer').style.display = 'none';
-        currentPedidoId = idped || '';
-        var link = document.getElementById('btnIrAPagar');
-        link.href = currentPedidoId ? ('index.php?ctrl=cliente&action=realizar_pago&idpedido=' + currentPedidoId) : '#';
-    }
-
-    // Función para seleccionar método de pago en el modal
-    function selectPaymentMethod(method) {
-        // Remover clase selected de todos
-        document.querySelectorAll('.payment-method').forEach(el => {
-            el.classList.remove('selected');
-        });
-        
-        // Añadir clase selected al método elegido
-        document.getElementById('method-' + method).classList.add('selected');
-        
-        // Mostrar contenido correspondiente
-        if (method === 'nequi') {
-            document.getElementById('qrContainer').style.display = 'block';
-            document.getElementById('efectivoContainer').style.display = 'none';
-        } else if (method === 'efectivo') {
-            document.getElementById('efectivoContainer').style.display = 'block';
-            document.getElementById('qrContainer').style.display = 'none';
-        }
-    }
-
     document.addEventListener('DOMContentLoaded', function() {
         // Filas expandibles: clic en la fila muestra/oculta el detalle (excepto en botones/enlaces)
         document.querySelectorAll('.pedido-main-row').forEach(function(row) {

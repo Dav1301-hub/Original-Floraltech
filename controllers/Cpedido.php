@@ -77,9 +77,12 @@ class Cpedido {
                     c.email AS cliente_email,
                     c.telefono AS cliente_telefono,
                     c.direccion AS cliente_direccion,
+                    pg.idpago,
                     pg.metodo_pago,
                     pg.estado_pag AS estado_pago,
-                    pg.fecha_pago
+                    pg.fecha_pago,
+                    pg.transaccion_id,
+                    (pg.comprobante_imagen IS NOT NULL OR (pg.comprobante_transferencia IS NOT NULL AND pg.comprobante_transferencia != '')) AS tiene_evidencia_pago
             FROM ped p
             INNER JOIN cli c ON p.cli_idcli = c.idcli
                 LEFT JOIN pagos pg ON pg.ped_idped = p.idped
@@ -375,6 +378,7 @@ class Cpedido {
                    tf.idtflor AS categoria_id
             FROM tflor tf
             LEFT JOIN inv i ON i.tflor_idtflor = tf.idtflor
+            WHERE COALESCE(tf.activo, 1) = 1
             ORDER BY tf.nombre ASC
         ");
         $stmt->execute();
@@ -382,10 +386,10 @@ class Cpedido {
     }
 
     /**
-     * Lista categorias (tipos de flor).
+     * Lista categorias (tipos de flor) solo con productos activos.
      */
     public function listarCategorias() {
-        $stmt = $this->db->prepare("SELECT idtflor AS id, nombre FROM tflor ORDER BY nombre ASC");
+        $stmt = $this->db->prepare("SELECT idtflor AS id, nombre FROM tflor WHERE COALESCE(activo, 1) = 1 ORDER BY nombre ASC");
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -403,7 +407,7 @@ class Cpedido {
                    COALESCE(AVG(i.precio), tf.precio) AS precio
             FROM tflor tf
             LEFT JOIN inv i ON i.tflor_idtflor = tf.idtflor
-            WHERE tf.idtflor = :cat
+            WHERE tf.idtflor = :cat AND COALESCE(tf.activo, 1) = 1
             GROUP BY tf.idtflor, tf.nombre, tf.descripcion, tf.precio
             ORDER BY tf.nombre ASC
         ");

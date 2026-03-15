@@ -137,11 +137,19 @@ $baseCss = '
 //  PDF DE USUARIOS
 // ---------------------- //
 if (isset($_POST['accion']) && $_POST['accion'] === 'usuarios_pdf') {
-    $ids = array_filter(explode(',', $_POST['ids'] ?? ''));
+    $ids = array_filter(array_map('trim', explode(',', $_POST['ids'] ?? '')));
     $tipo = $_POST['tipo'] ?? null;
 
-    $usuarios = $mreportes->getAllusu($tipo);
-    $usuariosSeleccionados = array_filter($usuarios, fn($u) => in_array((string)$u['idusu'], $ids, true));
+    $usuarios = $mreportes->getAllUsuariosCombinados();
+    if ($tipo !== null && $tipo !== '') {
+        $tipoLower = strtolower($tipo);
+        $usuarios = array_filter($usuarios, function ($u) use ($tipoLower) {
+            return strtolower(trim($u['tipo_usuario'] ?? '')) === $tipoLower;
+        });
+    }
+    $usuariosSeleccionados = array_filter($usuarios, function ($u) use ($ids) {
+        return in_array((string)$u['idusu'], $ids, true);
+    });
 
     $totalActivos = count(array_filter($usuariosSeleccionados, fn($u) => $u['activo']));
 
@@ -548,7 +556,7 @@ if (!empty($pedidosSeleccionados)) {
             <td>$' . number_format($pedido['monto_total'], 2) . '</td>
             <td>' . htmlspecialchars($pedido['cli_idcli']) . '</td>
             <td>' . htmlspecialchars($pedido['estado']) . '</td>
-            <td>' . htmlspecialchars($pedido['empleado_id']) . '</td>
+            <td>' . htmlspecialchars($pedido['empleado_nombre'] ?? ('Empleado ' . ($pedido['empleado_id'] ?? ''))) . '</td>
         </tr>';
     }
     $html .= '
@@ -588,7 +596,7 @@ if ($pdfEngine === 'fpdf') {
             number_format($pedido['monto_total'] ?? 0, 2),
             $pedido['cli_idcli'] ?? '',
             $pedido['estado'] ?? '',
-            $pedido['empleado_id'] ?? ''
+            $pedido['empleado_nombre'] ?? ('Empleado ' . ($pedido['empleado_id'] ?? ''))
         ];
     }
     // Pasar el gráfico si se recibió
