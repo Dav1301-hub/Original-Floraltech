@@ -12,25 +12,26 @@ unset($_SESSION['register_success']);
 <head>
     <link rel="icon" href="favicon.php">
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de Nuevo Usuario - FloralTech</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/styles.css">
     <!-- Cargar reCAPTCHA v2 -->
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
-<body style="background: #f8f9fa url('assets/images/composicion-de-flores-y-conos-de-waffle.jpg') no-repeat center center fixed; background-size: cover;">
-<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center py-4">
-    <div class="row w-100 shadow-lg rounded overflow-hidden" style="max-width: 1000px;">
+<body class="register-page" style="background: #f8f9fa url('assets/images/composicion-de-flores-y-conos-de-waffle.jpg') no-repeat center center fixed; background-size: cover;">
+<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center py-3 py-md-4 px-2 px-md-3">
+    <div class="row w-100 shadow-lg rounded overflow-hidden mx-auto register-card" style="max-width: 1000px;">
         <!-- Logo -->
-        <div class="col-lg-6 d-flex flex-column align-items-center justify-content-center" style="background:rgba(249,214,223,0.85); padding: 40px 20px; min-height: 500px;">
-            <img src="assets/images/logoepymes.png" alt="Logo" class="mb-4" style="width:280px; max-width: 80%;">
-            <p class="text-center px-3" style="font-size: 1.1rem; color: #333;">"Regístrate y gestiona tu florería de manera fácil y eficiente, ¡haz que la tecnología trabaje para ti!"</p>
+        <div class="col-lg-6 register-logo d-flex flex-column align-items-center justify-content-center p-4 p-md-5" style="background:rgba(249,214,223,0.85);">
+            <img src="assets/images/logoepymes.png" alt="Logo" class="mb-3 mb-md-4 img-fluid" style="width:280px; max-width: 85%;">
+            <p class="text-center px-2 px-md-3 mb-0" style="font-size: 1rem; color: #333;">"Regístrate y gestiona tu florería de manera fácil y eficiente, ¡haz que la tecnología trabaje para ti!"</p>
         </div>
 
         <!-- Formulario -->
-        <div class="col-lg-6 bg-white d-flex flex-column justify-content-center align-items-center" style="padding: 30px 20px; min-height: 500px;">
-            <div class="w-100" style="max-width: 420px;">
-                <h2 class="mb-4 text-center fw-bold" style="font-size:1.8rem; color: #2293c3;">Crear Cuenta</h2>
+        <div class="col-lg-6 bg-white d-flex flex-column justify-content-center align-items-center register-form p-3 p-md-4">
+            <div class="w-100 register-form-inner" style="max-width: 420px;">
+                <h2 class="mb-3 mb-md-4 text-center fw-bold" style="font-size:1.5rem; color: #2293c3;">Crear Cuenta</h2>
 
                 <?php if (!empty($error)): ?>
                     <div class="alert alert-danger text-center"><?= htmlspecialchars($error) ?></div>
@@ -46,20 +47,20 @@ unset($_SESSION['register_success']);
                     
                     <!-- Información básica -->
                     <div class="row g-2 mb-3">
-                        <div class="col">
+                        <div class="col-12 col-sm-6">
                             <input type="text" class="form-control rounded" placeholder="Nombre de usuario" name="username" required>
                         </div>
-                        <div class="col">
+                        <div class="col-12 col-sm-6">
                             <input type="text" class="form-control rounded" placeholder="Nombre completo" name="nombre_completo" required>
                         </div>
                     </div>
                     
                     <!-- Información de contacto -->
                     <div class="row g-2 mb-3">
-                        <div class="col">
+                        <div class="col-12 col-sm-6">
                             <input type="email" class="form-control rounded" placeholder="Correo electrónico" name="email" required>
                         </div>
-                        <div class="col">
+                        <div class="col-12 col-sm-6">
                             <input type="tel" class="form-control rounded" placeholder="Teléfono" name="telefono" required>
                         </div>
                     </div>
@@ -71,20 +72,25 @@ unset($_SESSION['register_success']);
 
                     <!-- Contraseñas -->
                     <div class="row g-2 mb-3">
-                        <div class="col">
+                        <div class="col-12 col-sm-6">
                             <input type="password" class="form-control rounded" placeholder="Contraseña" name="password" required minlength="6">
                         </div>
-                        <div class="col">
+                        <div class="col-12 col-sm-6">
                             <input type="password" class="form-control rounded" placeholder="Confirmar contraseña" name="password_confirm" required minlength="6">
                         </div>
                     </div>
 
                     <!-- reCAPTCHA v2 -->
-                    <div class="mb-3">
+                    <div class="mb-3 recaptcha-wrap">
                         <div class="g-recaptcha" data-sitekey="6LdL6bwrAAAAAGd47QZb40LsI4gzPFDcfP3btLvM"></div>
                         <div id="recaptcha-error" class="text-danger small mt-1" style="display: none;">
                             Por favor, completa el reCAPTCHA
                         </div>
+                        <p class="small text-muted mt-2 mb-0" style="font-size: 0.75rem; line-height: 1.3;">
+                            Este sitio está protegido por reCAPTCHA y se aplican la
+                            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de privacidad</a> y los
+                            <a href="https://policies.google.com/terms" target="_blank" rel="noopener">Términos de servicio</a> de Google.
+                        </p>
                     </div>
 
                     <button type="submit" class="btn w-100 py-2 mb-3" style="background:#2293c3; color:#fff; font-size:1.2rem; font-weight:bold;">Registrarse</button>
@@ -96,6 +102,26 @@ unset($_SESSION['register_success']);
         </div>
     </div>
 </div>
+<style>
+/* Registro: responsive */
+.register-page { -webkit-text-size-adjust: 100%; }
+.register-card { margin-left: 0; margin-right: 0; }
+.register-logo { min-height: 220px; }
+.register-form { min-height: 0; }
+.register-form-inner { margin: 0 auto; }
+.recaptcha-wrap { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; max-width: 100%; }
+.recaptcha-wrap > div { min-width: 304px; margin: 0 auto; }
+@media (min-width: 992px) {
+    .register-logo { min-height: 500px; }
+    .register-form { min-height: 500px; padding: 30px 20px !important; }
+}
+@media (max-width: 575px) {
+    .register-page .container-fluid { padding-left: 0.5rem; padding-right: 0.5rem; }
+    .register-card { border-radius: 0.5rem; }
+    .register-form h2 { font-size: 1.35rem !important; }
+    .register-form .btn { font-size: 1rem; }
+}
+</style>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>

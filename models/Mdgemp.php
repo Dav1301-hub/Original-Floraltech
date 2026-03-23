@@ -208,6 +208,22 @@ class Mdgemp {
     }
 
     /**
+     * Obtener usuarios "operativos" (no clientes) para selects de permisos/turnos/vacaciones.
+     * Roles permitidos según getTiposUsuario(): 1=Admin, 2=Empleado, 4=Repartidor.
+     */
+    public function getUsuariosOperativos() {
+        $roles = [1, 2, 4];
+        $placeholders = implode(',', array_fill(0, count($roles), '?'));
+        $sql = "SELECT idusu, nombre_completo, username, email, telefono, tpusu_idtpusu, activo, naturaleza, fecha_registro
+                FROM usu
+                WHERE tpusu_idtpusu IN ($placeholders)
+                ORDER BY nombre_completo ASC";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($roles);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Crear empleado y registrar auditoría
      */
     public function crearEmpleado($datos) {
