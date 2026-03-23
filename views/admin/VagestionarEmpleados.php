@@ -23,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['nuevo_empleado'])) {
 
 // Obtener datos usando el modelo
 $empleados = $userModel->getAllEmpleados();
+$usuarios_operativos = $userModel->getUsuariosOperativos();
 $tipos_usuario = $userModel->getTiposUsuario();
 $empleados_activos = $userModel->getEmpleadosActivos();
 $permisos = $userModel->getPermisosEmpleados();
@@ -499,7 +500,7 @@ $total_empleados = count($empleados);
                                 <label class="form-label">Empleado</label>
                                 <select class="form-select" name="idempleado" required>
                                     <option value="">Seleccione...</option>
-                                    <?php foreach ($empleados as $emp): ?>
+                                    <?php foreach ($usuarios_operativos as $emp): ?>
                                         <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
@@ -551,7 +552,7 @@ $total_empleados = count($empleados);
                                 <label class="form-label">Empleado</label>
                                 <select class="form-select" id="edit_permisoEmpleado" name="idempleado" required>
                                     <option value="">Seleccione...</option>
-                                    <?php foreach ($empleados as $emp): ?>
+                                    <?php foreach ($usuarios_operativos as $emp): ?>
                                         <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
@@ -602,7 +603,7 @@ $total_empleados = count($empleados);
                                 <label class="form-label">Empleado</label>
                                 <select class="form-select" name="idempleado" required>
                                     <option value="">Seleccione...</option>
-                                    <?php foreach ($empleados as $emp): ?>
+                                    <?php foreach ($usuarios_operativos as $emp): ?>
                                         <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
@@ -665,7 +666,7 @@ $total_empleados = count($empleados);
                                 <label class="form-label">Empleado</label>
                                 <select class="form-select" id="edit_turnoEmpleado" name="idempleado" required>
                                     <option value="">Seleccione...</option>
-                                    <?php foreach ($empleados as $emp): ?>
+                                    <?php foreach ($usuarios_operativos as $emp): ?>
                                         <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
@@ -727,7 +728,7 @@ $total_empleados = count($empleados);
                                 <label class="form-label">Empleado</label>
                                 <select class="form-select" name="id_empleado" required>
                                     <option value="">Seleccione...</option>
-                                    <?php foreach ($empleados as $emp): ?>
+                                    <?php foreach ($usuarios_operativos as $emp): ?>
                                         <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
@@ -780,7 +781,7 @@ $total_empleados = count($empleados);
                                 <label class="form-label">Empleado</label>
                                 <select class="form-select" id="edit_vacacionEmpleado" name="id_empleado" required>
                                     <option value="">Seleccione...</option>
-                                    <?php foreach ($empleados as $emp): ?>
+                                    <?php foreach ($usuarios_operativos as $emp): ?>
                                         <option value="<?= $emp['idusu'] ?>"><?= htmlspecialchars($emp['nombre_completo']) ?></option>
                                     <?php endforeach; ?>
                                 </select>

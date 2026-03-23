@@ -1,7 +1,7 @@
 <?php
 // Obtener datos reales del dashboard general mediante el controller
 if (!isset($dashboardData) || !is_array($dashboardData)) {
-    // Solo ejecutar el controller si no tenemos datos (evitar duplicaci+�n)
+    // Solo ejecutar el controller si no tenemos datos (evitar duplicación)
     require_once __DIR__ . '/../../controllers/CDashboardGeneral.php';
     
     try {
@@ -77,7 +77,7 @@ $topProductos = $dashboardData['topProductos'] ?? [];
 $periodos = $dashboardData['periodos'] ?? [];
 $filtro = $dashboardData['filtro'] ?? ['mes' => null, 'ano' => null];
 
-// Obtener lotes pr+�ximos a caducar
+// Obtener lotes próximos a caducar
 require_once __DIR__ . '/../../models/Mlotes.php';
 $lotesModel = new Mlotes();
 $lotesProximosCaducar = $lotesModel->getLotesProximosCaducar(7);
@@ -675,7 +675,7 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title" id="modalAlertasCaducidadLabel">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Lotes Pr+�ximos a Caducar
+                    <i class="fas fa-exclamation-triangle me-2"></i>Lotes Próximos a Caducar
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -683,7 +683,7 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
                 <?php if (!empty($lotesProximosCaducar)): ?>
                 <div class="alert alert-warning">
                     <i class="fas fa-info-circle me-2"></i>
-                    <strong>Atenci+�n:</strong> Los siguientes lotes <strong>con stock disponible</strong> caducan en los pr+�ximos 7 d+�as. 
+                    <strong>Atención:</strong> Los siguientes lotes <strong>con stock disponible</strong> caducan en los próximos 7 días. 
                     Se recomienda priorizar su venta o uso inmediato.
                     <br><small class="mt-1 d-block"><i class="fas fa-lightbulb me-1"></i>Los lotes sin stock (cantidad = 0) no se muestran en esta lista.</small>
                 </div>
@@ -697,7 +697,7 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
                                 <th>Lote</th>
                                 <th>Cantidad</th>
                                 <th>Fecha Caducidad</th>
-                                <th>D+�as Restantes</th>
+                                <th>Días Restantes</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -707,11 +707,11 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
                                 $diferencia = $hoy->diff($fechaCaducidad);
                                 $diasRestantes = $diferencia->invert ? 0 : $diferencia->days;
                                 
-                                // Determinar color seg+�n d+�as restantes
+                                // Determinar color según días restantes
                                 if ($diasRestantes <= 3) {
                                     $colorClase = 'text-danger';
                                     $iconoEstado = '<i class="fas fa-circle text-danger"></i>';
-                                    $nivelUrgencia = 'CR+�TICO';
+                                    $nivelUrgencia = 'CRÍTICO';
                                 } elseif ($diasRestantes <= 5) {
                                     $colorClase = 'text-warning';
                                     $iconoEstado = '<i class="fas fa-circle text-warning"></i>';
@@ -730,7 +730,7 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
                                 <td><?= $fechaCaducidad->format('d/m/Y') ?></td>
                                 <td>
                                     <span class="badge <?= $diasRestantes <= 3 ? 'bg-danger' : ($diasRestantes <= 5 ? 'bg-warning text-dark' : 'bg-info') ?>">
-                                        <?= $diasRestantes ?> <?= $diasRestantes === 1 ? 'd+�a' : 'd+�as' ?>
+                                        <?= $diasRestantes ?> <?= $diasRestantes === 1 ? 'día' : 'días' ?>
                                     </span>
                                 </td>
                             </tr>
@@ -743,15 +743,15 @@ document.addEventListener('DOMContentLoaded', actualizarActividadReciente);
                 <div class="mt-3">
                     <h6 class="fw-bold">Leyenda de Niveles de Urgencia:</h6>
                     <div class="d-flex gap-3 flex-wrap">
-                        <div><i class="fas fa-circle text-danger"></i> <strong>CR+�TICO:</strong> 1-3 d+�as</div>
-                        <div><i class="fas fa-circle text-warning"></i> <strong>URGENTE:</strong> 4-5 d+�as</div>
-                        <div><i class="fas fa-circle text-info"></i> <strong>ALERTA:</strong> 6-7 d+�as</div>
+                        <div><i class="fas fa-circle text-danger"></i> <strong>CRÍTICO:</strong> 1-3 días</div>
+                        <div><i class="fas fa-circle text-warning"></i> <strong>URGENTE:</strong> 4-5 días</div>
+                        <div><i class="fas fa-circle text-info"></i> <strong>ALERTA:</strong> 6-7 días</div>
                     </div>
                 </div>
                 <?php else: ?>
                 <div class="alert alert-success">
                     <i class="fas fa-check-circle me-2"></i>
-                    No hay lotes pr+�ximos a caducar en los pr+�ximos 7 d+�as.
+                    No hay lotes próximos a caducar en los próximos 7 días.
                 </div>
                 <?php endif; ?>
             </div>
